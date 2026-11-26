@@ -8,6 +8,9 @@ use std::sync::{mpsc, Arc};
 
 pub struct FontMgr {
     rx: Option<mpsc::Receiver<Fonts>>,
+    /// The scan thread; it sends its result and then asks for one repaint before ending.
+    #[cfg_attr(not(test), allow(dead_code))]
+    scan_thread: Option<std::thread::JoinHandle<()>>,
     db: Option<Fonts>,
     /// Sorted family names found on this computer (for the font menu).
     pub families: Vec<String>,
@@ -74,13 +77,14 @@ impl FontMgr {
         let defs = base_definitions();
         ctx.set_fonts(defs.clone());
         let ctx = ctx.clone();
-        std::thread::spawn(move || {
+        let scan_thread = std::thread::spawn(move || {
             let dirs = pub2pdf::default_font_dirs();
             let _ = tx.send(Fonts::scan(&dirs));
             ctx.request_repaint();
         });
         FontMgr {
             rx: Some(rx),
+            scan_thread: Some(scan_thread),
             db: None,
             families: Vec::new(),
             defs,
@@ -94,6 +98,13 @@ impl FontMgr {
     /// `true` once the system font scan has finished.
     pub fn scan_done(&self) -> bool {
         self.db.is_some()
+    }
+
+    /// `true` once the scan thread has ended, so its final repaint request has been made
+    /// (tests wait for this before checking that the window is idle).
+    #[cfg(test)]
+    pub fn scan_thread_ended(&self) -> bool {
+        self.scan_thread.as_ref().is_none_or(|h| h.is_finished())
     }
 
     /// `true` when no font load is waiting to become active.

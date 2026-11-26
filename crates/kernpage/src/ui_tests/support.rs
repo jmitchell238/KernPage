@@ -273,7 +273,7 @@ impl TestUi {
         loop {
             self.h.run_steps(2);
             let f = &self.h.state().fonts;
-            if f.scan_done() && f.settled() {
+            if f.scan_done() && f.settled() && f.scan_thread_ended() {
                 break;
             }
             assert!(start.elapsed().as_secs() < 60, "the font scan did not finish");
