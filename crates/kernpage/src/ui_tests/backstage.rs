@@ -1067,10 +1067,9 @@ fn ctrl_p_then_the_print_button_prints_unsaved_text_edits_too() {
 fn the_export_page_offers_create_pdf_and_greys_the_other_rows() {
     let mut ui = new_doc();
     file_entry(&mut ui, "Export");
-    assert!(ui.ribbon("exportrow:Create PDF/XPS Document").enabled, "the supported row");
-    assert!(has_label(&ui, "Create a PDF/XPS Document"));
+    assert!(ui.ribbon("exportrow:Create a PDF").enabled, "the supported row");
+    assert!(has_label(&ui, "Create a PDF"));
     assert!(has_label(&ui, "Package for Printing"));
-    assert!(has_label_containing(&ui, "PDF only; XPS is not supported"));
     let off = [
         "Publish HTML", "Change File Type", "Save for Photo Printing",
         "Save for a Commercial Printer", "Save for Another Computer",
@@ -1102,12 +1101,12 @@ fn clicking_the_greyed_export_rows_does_nothing() {
 fn clicking_the_selected_create_pdf_row_itself_does_nothing_the_big_button_creates() {
     let mut ui = new_doc();
     file_entry(&mut ui, "Export");
-    let p = ui.ribbon("exportrow:Create PDF/XPS Document").rect.center();
+    let p = ui.ribbon("exportrow:Create a PDF").rect.center();
     ui.click_at(p);
     assert!(ui.dialogs.saves().is_empty(), "the row is only the selected category");
     let target = ui.env.files.join("x.pdf");
     ui.dialogs.script_save(Some(target.clone()));
-    ui.click_ribbon("export:Create PDF/XPS");
+    ui.click_ribbon("export:Create PDF");
     assert_eq!(ui.dialogs.saves().len(), 1);
     assert!(std::fs::read(&target).is_ok_and(|b| b.starts_with(b"%PDF")));
 }

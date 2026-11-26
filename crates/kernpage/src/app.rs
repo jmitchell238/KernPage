@@ -273,6 +273,8 @@ pub struct Options {
     /// Screenshot options: `--theme light|dark|system`, `--accent teal|blue|purple|graphite|orange`.
     pub theme: Option<String>,
     pub accent: Option<String>,
+    /// `--demo`: invented data in place of the real profile (for screenshots); see `crate::demo`.
+    pub demo: bool,
 }
 
 impl Options {
@@ -571,8 +573,9 @@ pub struct App {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, opts: Options) -> App {
+        crate::demo::set(opts.demo);
         let appearance = opts.appearance_override().unwrap_or_else(|| {
-            if opts.screenshot.is_some() {
+            if opts.screenshot.is_some() || opts.demo {
                 crate::theme::Appearance::default()
             } else {
                 crate::theme::Appearance::load_from(&crate::theme::settings_file())
@@ -596,7 +599,7 @@ impl App {
             tab: Tab::Home,
             backstage: true,
             section: Section::Home,
-            recent: crate::recent::Recent::load(),
+            recent: if opts.demo { crate::demo::recent() } else { crate::recent::Recent::load() },
             print_sheet: 0,
             print: crate::output::PrintState::default(),
             bs_tab: 0,
@@ -650,13 +653,13 @@ impl App {
             appearance: crate::theme::Appearance::default(),
             applied_palette: None,
             search: Default::default(),
-            ar: crate::autorecover::AutoRecover::new(opts.screenshot.is_none()),
+            ar: crate::autorecover::AutoRecover::new(opts.screenshot.is_none() && !opts.demo),
             recovered: false,
             dialogs: Box::new(crate::filedialog::Native),
             options_buf: None,
             options_cat: 0,
             // No check in screenshot runs or tests; a real start asks the launcher in the background.
-            update: if cfg!(test) || opts.screenshot.is_some() {
+            update: if cfg!(test) || opts.screenshot.is_some() || opts.demo {
                 crate::update_notice::UpdateNotice::idle()
             } else {
                 crate::update_notice::UpdateNotice::start(&cc.egui_ctx)

@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn no_microsoft_feature_names_in_labels_or_text() {
         let banned = [
-            "Building Blocks", "Page Parts", "Graphics Manager", "Pack and Go", "Format Painter", "WordArt", "Backstage", "Design Checker", "Business Information",
+            "Building Blocks", "Page Parts", "Graphics Manager", "Pack and Go", "Format Painter", "WordArt", "Backstage", "Design Checker", "Business Information", "PDF/XPS",
         ];
         for c in COMMANDS {
             for b in banned {

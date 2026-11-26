@@ -12,6 +12,8 @@ const MAX: usize = 20;
 pub struct Recent {
     items: Vec<PathBuf>,
     file: Option<PathBuf>,
+    /// A fixed list (demo mode): never saved, never changed.
+    fixed: bool,
 }
 
 /// The "KernPage" folder inside the user's configuration folder.
@@ -63,7 +65,17 @@ impl Recent {
                     .collect()
             })
             .unwrap_or_default();
-        Recent { items, file }
+        Recent { items, file, fixed: false }
+    }
+
+    /// A list that is never saved and that `add`, `remove` and `clear` leave alone.
+    pub fn fixed(items: Vec<PathBuf>) -> Self {
+        Recent { items, file: None, fixed: true }
+    }
+
+    /// Is this a fixed list (see `fixed`)?
+    pub fn is_fixed(&self) -> bool {
+        self.fixed
     }
 
     pub fn items(&self) -> &[PathBuf] {
@@ -72,6 +84,9 @@ impl Recent {
 
     /// Put `path` at the top of the list and save the list.
     pub fn add(&mut self, path: &Path) {
+        if self.fixed {
+            return;
+        }
         self.items.retain(|p| p != path);
         self.items.insert(0, path.to_path_buf());
         self.items.truncate(MAX);
@@ -80,12 +95,18 @@ impl Recent {
 
     /// Take `path` out of the list and save the list.
     pub fn remove(&mut self, path: &Path) {
+        if self.fixed {
+            return;
+        }
         self.items.retain(|p| p != path);
         self.save();
     }
 
     /// Empty the list and save it.
     pub fn clear(&mut self) {
+        if self.fixed {
+            return;
+        }
         self.items.clear();
         self.save();
     }

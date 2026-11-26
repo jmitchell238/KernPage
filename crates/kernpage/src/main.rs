@@ -6,6 +6,7 @@ mod autorecover;
 mod backstage;
 mod canvas;
 mod ctx_ribbon;
+mod demo;
 mod feedback;
 mod filedialog;
 mod fontmgr;
@@ -40,7 +41,7 @@ use app::{App, Options};
 use std::path::PathBuf;
 
 const USAGE: &str =
-    "Usage: kernpage [file.pub] [--screenshot out.png] [--open file.pub] [--page N] [--tab name] [--file-screen home|new|open|info|saveas|print|share|export|about|feedback|options] [--edit-cell shape-index,cell] [--edit-text shape-index[,start-end]] [--spacing-dialog] [--dialog page-setup|custom-margins] [--menu wrap|columns|margins|orientation|size] [--select i,j,...] [--window-size WxH] [--scale F] [--open-group name] [--theme light|dark|system] [--accent teal|blue|purple|graphite|orange]";
+    "Usage: kernpage [file.pub] [--screenshot out.png] [--open file.pub] [--page N] [--tab name] [--file-screen home|new|open|info|saveas|print|share|export|about|feedback|options] [--edit-cell shape-index,cell] [--edit-text shape-index[,start-end]] [--spacing-dialog] [--dialog page-setup|custom-margins] [--menu wrap|columns|margins|orientation|size] [--select i,j,...] [--window-size WxH] [--scale F] [--open-group name] [--theme light|dark|system] [--accent teal|blue|purple|graphite|orange] [--demo]";
 
 fn parse_args() -> Result<Options, String> {
     let mut opts = Options::default();
@@ -114,6 +115,7 @@ fn parse_args() -> Result<Options, String> {
             "--open-group" => opts.open_group = Some(value("--open-group")?),
             "--theme" => opts.theme = Some(value("--theme")?),
             "--accent" => opts.accent = Some(value("--accent")?),
+            "--demo" => opts.demo = true,
             "--tab" => opts.tab = Some(value("--tab")?),
             "--page" => {
                 let v = value("--page")?;
@@ -191,7 +193,7 @@ fn main() -> eframe::Result {
     if let Some(g) = &opts.open_group {
         ribbon_fit::set_debug_open(g);
     }
-    if opts.screenshot.is_none() {
+    if opts.screenshot.is_none() && !opts.demo {
         kernpage_core::autorecover::install_panic_hook();
     }
     let (w, h) = opts.window_size.unwrap_or((1280.0, 800.0));

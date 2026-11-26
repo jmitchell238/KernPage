@@ -700,11 +700,11 @@ impl App {
                     FontId::proportional(13.5),
                     crate::theme::text(),
                 );
-                if let Ok(t) = std::fs::metadata(path).and_then(|m| m.modified()) {
+                if let Some(date) = modified_text(path) {
                     p.text(
                         Pos2::new(rect.min.x + 12.0, rect.max.y - 20.0),
                         Align2::LEFT_TOP,
-                        recent::date_text(t),
+                        date,
                         FontId::proportional(11.5),
                         crate::theme::group_label(),
                     );
@@ -746,11 +746,11 @@ impl App {
             p.text(rect.min + Vec2::new(10.0, 8.0), Align2::LEFT_TOP, name, FontId::proportional(14.0), crate::theme::text());
             let crumb = path.parent().map(recent::breadcrumb).unwrap_or_default();
             p.text(rect.min + Vec2::new(10.0, 27.0), Align2::LEFT_TOP, crumb, FontId::proportional(11.5), crate::theme::group_label());
-            if let Ok(t) = std::fs::metadata(path).and_then(|m| m.modified()) {
+            if let Some(date) = modified_text(path) {
                 p.text(
                     Pos2::new(rect.max.x - 14.0, rect.center().y),
                     Align2::RIGHT_CENTER,
-                    recent::date_text(t),
+                    date,
                     FontId::proportional(12.5),
                     crate::theme::group_label(),
                 );
@@ -887,7 +887,9 @@ impl App {
         let name = ed.doc().name.trim_end_matches(".pub").trim_end_matches(".kern").to_owned();
         let pages = ed.doc().pages.len();
         let size = ed.doc().pages.first().map(|p| (p.width_emu, p.height_emu));
-        let path = self.path.clone();
+        // Demo mode shows a made-up folder instead of the real one.
+        let real = self.path.clone();
+        let path = real.as_deref().map(|p| if crate::demo::is_on() { crate::demo::shown_path(p) } else { p.to_path_buf() });
         ui.label(RichText::new(name).size(24.0).color(crate::theme::accent_text()));
         match path.as_deref().and_then(Path::parent) {
             Some(dir) => ui.label(RichText::new(recent::breadcrumb(dir)).color(crate::theme::text())),
@@ -900,14 +902,14 @@ impl App {
                     ui.ctx().copy_text(p.to_string_lossy().into_owned());
                 }
             }
-            if flat_button(ui, "Open file location", path.is_some()).clicked() {
+            if flat_button(ui, "Open file location", path.is_some() && !crate::demo::is_on()).clicked() {
                 if let Some(d) = path.as_deref().and_then(Path::parent) {
                     let _ = crate::output::open_with_system(d);
                 }
             }
         });
         ui.add_space(14.0);
-        let meta = path.as_ref().and_then(|p| std::fs::metadata(p).ok());
+        let meta = real.as_ref().and_then(|p| std::fs::metadata(p).ok());
         let mut rows = vec![("Pages", pages.to_string())];
         if let Some((w, h)) = size {
             rows.push((
@@ -917,7 +919,9 @@ impl App {
         }
         if let Some(m) = &meta {
             rows.push(("Size", format!("{:.1} KB", m.len() as f64 / 1024.0)));
-            if let Ok(t) = m.modified() {
+            if crate::demo::is_on() {
+                rows.push(("Last Saved", crate::demo::OPEN_DATE.to_owned()));
+            } else if let Ok(t) = m.modified() {
                 rows.push(("Last Saved", recent::date_text(t)));
             }
         }
@@ -999,6 +1003,14 @@ impl App {
             self.save_as(None);
         }
     }
+}
+
+/// The modified date of a recent file as text (the made-up date in demo mode).
+fn modified_text(path: &Path) -> Option<String> {
+    if crate::demo::is_on() {
+        return crate::demo::date_of(path).map(str::to_owned);
+    }
+    std::fs::metadata(path).and_then(|m| m.modified()).ok().map(recent::date_text)
 }
 
 fn trim(v: f64) -> String {

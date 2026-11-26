@@ -171,6 +171,15 @@ impl TestUi {
     /// Like `start`, in a prepared environment (for example with a snapshot already in its
     /// AutoRecover folder).
     pub fn start_in(env: TestEnv) -> TestUi {
+        TestUi::start_with(env, Options::default())
+    }
+
+    /// The app started with `--demo`.
+    pub fn start_demo() -> TestUi {
+        TestUi::start_with(TestEnv::new(), Options { demo: true, ..Options::default() })
+    }
+
+    fn start_with(env: TestEnv, opts: Options) -> TestUi {
         init_env();
         crate::autorecover::test_env::install(env.autorecover.clone(), env.settings.clone());
         crate::output::test_os::set_print_dir(env.files.join("print"));
@@ -185,10 +194,12 @@ impl TestUi {
             // accessibility check of that frame names the ribbon's unlabelled combo boxes
             // (the other tests open their document after construction, which is not checked).
             .with_accessibility_check(env.snapshots().is_empty())
-            .build_eframe(|cc| App::new(cc, Options::default()));
+            .build_eframe(|cc| App::new(cc, opts));
         let dialogs = Dialogs::default();
         h.state_mut().dialogs = Box::new(dialogs.clone());
-        h.state_mut().recent = crate::recent::Recent::load_from(Some(env.recent.clone()));
+        if !h.state().recent.is_fixed() {
+            h.state_mut().recent = crate::recent::Recent::load_from(Some(env.recent.clone()));
+        }
         h.run_steps(3);
         TestUi {
             h,

@@ -132,6 +132,9 @@ pub fn sheet_order(job: &PrintJob) -> Vec<usize> {
 }
 
 pub fn list_printers() -> PrinterList {
+    if crate::demo::is_on() {
+        return crate::demo::printers();
+    }
     #[cfg(test)]
     {
         test_os::printers()

@@ -770,7 +770,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | BS-SAVEAS | File screen: Save As page | Places list and file type choice. | — | — | 🟡 | 🟡 | pw-o5yf |
 | BS-PRINT | File screen: Print page | Printer, copies, range, duplex, settings and preview. *Note: Printer, Printer Properties, copies, pages, collation and the preview work; duplex, paper size and colour mode are shown greyed.* | — | — | 🟡 | 🟡 | pw-tkvm |
 | BS-SHARE | File screen: Share page | Email, cloud and share options (open replacements, ROADMAP Phase 2). | — | — | ⬜ | ⬜ | pw-gto1 |
-| BS-EXPORT | File screen: Export page | Create PDF/XPS, Package for Printing, Save for Photo Printing, Publish HTML, Change File Type. | — | — | 🟡 | 🟡 | pw-zbqw |
+| BS-EXPORT | File screen: Export page | Create a PDF, Package for Printing, Save for Photo Printing, Publish HTML, Change File Type. | — | — | 🟡 | 🟡 | pw-zbqw |
 | BS-CLOSE | File screen: Close command | Close with save prompt. | — | — | 🟡 | 🟡 | pw-vjhd |
 | BS-FEEDBACK | File screen: Feedback page | Send feedback (replaced by the same two pre-filled GitHub issue links as the Help tab). | — | — | ✅ | ✅ | pw-q8i0 |
 | BS-OPTIONS | File screen: Options window | Application options dialog. | — | — | ⬜ | ⬜ | pw-5xqu |
@@ -884,7 +884,7 @@ Online features in Publisher 2021. Each gets an open replacement that needs no M
 | FILE-OPEN-URL | Open an address or document from a web address | Open an address or document from a web address; FTP login **[ONLINE]** | — | — | ⬜ | ⬜ | pw-mzrz |
 | FILE-REPORT-PROBLEM | Send a problem file report to the vendor | Send a problem file report to the vendor **[ONLINE]** | — | — | ⬜ | ⬜ | pw-24ko |
 | FILE-ACTIVATE | Product activation prompt | Product activation prompt. *Note: not planned: licensing only; KernPage is free and has no activation.* | — | — | — | — | — |
-| FILE-PDF-ADDIN | Install missing PDF/XPS export components | Install missing PDF/XPS export components. *Note: not needed: PDF export is built in.* | — | — | — | — | — |
+| FILE-PDF-ADDIN | Install missing PDF export components | Install missing PDF export components. *Note: not needed: PDF export is built in.* | — | — | — | — | — |
 | CON-ONLINE-PICTURES | Online pictures from open image sources | Search Openverse, Wikimedia Commons, Pixabay, Pexels and Unsplash and insert with credit. | — | — | ⬜ | ⬜ | pw-rvhl |
 | CON-ONLINE-TEMPLATES | Online template catalogue | Own bundled templates plus an online catalogue to browse and download. | — | — | ⬜ | ⬜ | pw-j3ib |
 | CON-SHARE | Share | Email with attachment, Windows Share window, share sheets. | — | — | ⬜ | ⬜ | pw-y6ua |

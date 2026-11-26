@@ -5,6 +5,7 @@
 //! (see docs/testing/UI-TEST-PLAN.md).
 
 mod backstage;
+mod demo;
 mod canvas_mouse;
 mod ribbon_contextual;
 mod ribbon_other;

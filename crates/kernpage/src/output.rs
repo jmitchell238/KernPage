@@ -136,7 +136,7 @@ impl App {
         });
     }
 
-    /// Choose a file name and create the PDF (Save & Send > Create PDF/XPS Document).
+    /// Choose a file name and create the PDF (Save & Send > Create a PDF).
     pub fn create_pdf(&mut self) {
         let Some(ed) = &self.editor else { return };
         let name = format!("{}.pdf", file_stem(&ed.doc().name));
@@ -445,7 +445,7 @@ impl App {
         }
     }
 
-    /// File > Export: the export types and the Create PDF/XPS page.
+    /// File > Export: the export types and the Create a PDF page.
     pub fn export_page(&mut self, ui: &mut Ui) {
         page_title(ui, "Export");
         let mut create = false;
@@ -453,7 +453,7 @@ impl App {
             ui.allocate_ui(Vec2::new(390.0, 500.0), |ui| {
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing.y = 4.0;
-                    export_row(ui, "Create PDF/XPS Document", Icon::Print, true);
+                    export_row(ui, "Create a PDF", Icon::Print, true);
                     export_row(ui, "Publish HTML", Icon::Globe, false);
                     export_row(ui, "Change File Type", Icon::Rename, false);
                     ui.add_space(10.0);
@@ -470,7 +470,7 @@ impl App {
             );
             ui.add_space(20.0);
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new("Create a PDF/XPS Document").size(24.0).color(crate::theme::accent_text()));
+                ui.label(egui::RichText::new("Create a PDF").size(24.0).color(crate::theme::accent_text()));
                 ui.add_space(4.0);
                 for t in [
                     "Keeps your fonts, pictures and layout exactly as they are",
@@ -483,12 +483,11 @@ impl App {
                         ui.label(egui::RichText::new(t).color(crate::theme::text()).size(13.0));
                     });
                 }
-                ui.label(egui::RichText::new("PDF only; XPS is not supported.").color(crate::theme::disabled()).size(12.0));
                 ui.add_space(8.0);
                 let (rect, resp) = ui.allocate_exact_size(Vec2::new(78.0, 80.0), Sense::click());
                 #[cfg(test)]
                 crate::widgets::probe::record(crate::widgets::probe::Seen {
-                    label: "export:Create PDF/XPS".to_owned(),
+                    label: "export:Create PDF".to_owned(),
                     tip: String::new(),
                     rect,
                     enabled: true,
@@ -504,7 +503,7 @@ impl App {
                     crate::theme::text(),
                 );
                 p.text(rect.center_bottom() - Vec2::new(0.0, 22.0), egui::Align2::CENTER_CENTER, "Create", egui::FontId::proportional(13.0), crate::theme::text());
-                p.text(rect.center_bottom() - Vec2::new(0.0, 8.0), egui::Align2::CENTER_CENTER, "PDF/XPS", egui::FontId::proportional(13.0), crate::theme::text());
+                p.text(rect.center_bottom() - Vec2::new(0.0, 8.0), egui::Align2::CENTER_CENTER, "PDF", egui::FontId::proportional(13.0), crate::theme::text());
                 if resp.clicked() {
                     create = true;
                 }

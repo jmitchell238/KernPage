@@ -78,6 +78,9 @@ impl StartThumbs {
     /// Draw page 1 of the file at `path` into `area` (fitted, bordered); false when it is not
     /// ready, so the caller draws its glyph. Starts the load on first sight or after a change.
     pub fn paint_file(&mut self, ui: &Ui, area: Rect, path: &Path, fonts: &FontMgr) -> bool {
+        if crate::demo::is_on() {
+            return false; // the made-up files do not exist
+        }
         self.poll();
         let due = self.checked.get(path).is_none_or(|t| t.elapsed() >= RECHECK) || !self.map.contains_key(path);
         let key: Key = if due {

@@ -1040,7 +1040,7 @@ fn export_create_pdf_asks_for_a_name_and_writes_the_pdf() {
     assert!(ui.h.state().section == Section::Export);
     let pdf = ui.env.files.join("out.pdf");
     ui.dialogs.script_save(Some(pdf.clone()));
-    ui.click_ribbon("export:Create PDF/XPS");
+    ui.click_ribbon("export:Create PDF");
     assert_eq!(
         ui.dialogs.saves(),
         vec![SaveRequest {
@@ -1062,7 +1062,7 @@ fn export_pdf_for_a_saved_publication_starts_in_its_folder() {
     file_entry(&mut ui, "Export");
     let pdf = ui.env.files.join("work.pdf");
     ui.dialogs.script_save(Some(pdf.clone()));
-    ui.click_ribbon("export:Create PDF/XPS");
+    ui.click_ribbon("export:Create PDF");
     let s = &ui.dialogs.saves()[0];
     assert_eq!(s.default_name, "work.pdf");
     assert_eq!(s.default_dir.as_deref(), Some(ui.env.files.as_path()));
@@ -1074,7 +1074,7 @@ fn a_pdf_name_without_an_extension_gets_dot_pdf() {
     let mut ui = new_doc();
     file_entry(&mut ui, "Export");
     ui.dialogs.script_save(Some(ui.env.files.join("noext")));
-    ui.click_ribbon("export:Create PDF/XPS");
+    ui.click_ribbon("export:Create PDF");
     assert!(is_pdf_file(&ui.env.files.join("noext.pdf")));
 }
 
@@ -1083,7 +1083,7 @@ fn cancelling_export_pdf_writes_nothing() {
     let mut ui = new_doc();
     file_entry(&mut ui, "Export");
     ui.dialogs.script_save(None);
-    ui.click_ribbon("export:Create PDF/XPS");
+    ui.click_ribbon("export:Create PDF");
     assert_eq!(ui.dialogs.saves().len(), 1);
     assert!(std::fs::read_dir(&ui.env.files).unwrap().next().is_none());
     assert!(ui.app().error.is_none());
