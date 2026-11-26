@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KernPage Setup.exe (WiX 5 Burn bundle) that wraps the MSI so the file shows the
+     KernPage icon in Explorer. package.ps1 supplies Version, MsiPath, IconPath, LicenseRtf, ThemeFile, ThemeLoc and
+     LogoPng. The bundle UpgradeCode below is separate from the MSI's and must never change.
+     Per-user: the embedded MSI is built perUser (package.ps1 PkgScope), so Burn marks the bundle perUser:
+     asInvoker stub (no UAC) and the ARP entry under HKCU. Bundle Scope is not an attribute in WiX 5. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle Name="KernPage"
+          Manufacturer="The KernPage contributors"
+          Version="$(var.Version)"
+          UpgradeCode="5D0E7B3A-2C41-4F6B-9A18-C3E7F0A4B6D2"
+          IconSourceFile="$(var.IconPath)"
+          AboutUrl="https://github.com/jmitchell238/kernpage"
+          HelpUrl="https://github.com/jmitchell238/kernpage"
+          UpdateUrl="https://github.com/jmitchell238/kernpage/releases">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication Theme="rtfLicense"
+          LicenseFile="$(var.LicenseRtf)" LogoFile="$(var.LogoPng)"
+          ShowVersion="yes" SuppressOptionsUI="yes"
+          ThemeFile="$(var.ThemeFile)" LocalizationFile="$(var.ThemeLoc)" />
+    </BootstrapperApplication>
+    <!-- The MSI's finish page (with its launch checkbox) is hidden inside the bundle, so the
+         bundle's success page offers the Launch button instead. Path matches the perUser MSI. -->
+    <!-- Bound to the two checkboxes on the license page (bundle-theme.xml); passed to the MSI. -->
+    <Variable Name="DESKTOPSHORTCUT_APP" Type="numeric" Value="1" Persisted="yes" bal:Overridable="yes" />
+    <Variable Name="DESKTOPSHORTCUT_LAUNCHER" Type="numeric" Value="0" Persisted="yes" bal:Overridable="yes" />
+    <Variable Name="LaunchTarget" Value="[LocalAppDataFolder]Programs\KernPage\kernpage.exe" />
+    <Variable Name="LaunchWorkingFolder" Value="[LocalAppDataFolder]Programs\KernPage" />
+
+    <!-- Same-version or older bundle over newer is fine: the MSI itself allows downgrades. -->
+    <Chain>
+      <!-- ARPSYSTEMCOMPONENT=1 hides the MSI's own Settings > Apps row, leaving only the bundle's. -->
+      <MsiPackage Id="KernPageMsi" SourceFile="$(var.MsiPath)"
+                  Visible="no" Vital="yes" Compressed="yes">
+        <MsiProperty Name="MSIINSTALLPERUSER" Value="1" />
+        <MsiProperty Name="ARPSYSTEMCOMPONENT" Value="1" />
+        <MsiProperty Name="DESKTOPSHORTCUT_APP" Value="[DESKTOPSHORTCUT_APP]" />
+        <MsiProperty Name="DESKTOPSHORTCUT_LAUNCHER" Value="[DESKTOPSHORTCUT_LAUNCHER]" />
+      </MsiPackage>
+    </Chain>
+  </Bundle>
+</Wix>

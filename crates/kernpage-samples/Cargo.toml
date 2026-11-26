@@ -1,0 +1,10 @@
+[package]
+name = "kernpage-samples"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Test helper: finds Publisher sample files in the repo or in the optional extra-samples folder."
+
+[dependencies]
+kernpage-samples-macros = { path = "../kernpage-samples-macros" }

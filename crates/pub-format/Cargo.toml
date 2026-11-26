@@ -1,0 +1,15 @@
+[package]
+name = "pub-format"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+cfb = "0.16.0"
+serde = { version = "1.0.229", features = ["derive"] }
+miniz_oxide = "0.9"
+thiserror = "2.0.21"
+
+[dev-dependencies]
+serde_json = "1.0.154"
+kernpage-samples = { path = "../kernpage-samples" }

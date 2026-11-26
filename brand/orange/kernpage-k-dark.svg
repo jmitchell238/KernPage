@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="341 245 780 914">
+<!-- KernPage K, no tile, transparent: set the CSS variables kp-ink, kp-light, kp-line (double-hyphen prefix) on the inlined svg or a parent. -->
+<path fill="#FFC285" d="M341,285C341,252 395,245 440.8,245V1159C395,1159 341,1152 341,1126Z"/>
+<path fill="#FFFFFF" d="M449.8,245C495,245 524.5,250 524.5,278V502L449.8,687Z"/>
+<path fill="#FFFFFF" d="M449.8,697L524.5,909V1126C524.5,1154 495,1159 449.8,1159Z"/>
+<path fill="#FFFFFF" d="M704,266H1121L775,687H445.3Z"/>
+<path fill="#FFFFFF" d="M445.3,697H775L1121,1135H704Z"/>
+<path fill="none" stroke="#E8C9A8" stroke-width="5" d="M710.0,366.1H969.4M680.3,411.4H932.7M652.0,456.6H895.9M622.4,503.3H859.2M594.1,548.5H822.4M567.2,595.1H788.5M572.9,795.9H794.1M601.1,842.5H829.5M628.0,889.2H863.4M654.9,934.4H897.3M683.1,981.1H931.3M710.0,1027.7H965.2M736.9,1074.4H999.1"/>
+</svg>

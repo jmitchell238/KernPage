@@ -1,0 +1,9 @@
+[package]
+name = "pubdump"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+pub-format = { path = "../pub-format" }
+serde_json = "1.0.154"

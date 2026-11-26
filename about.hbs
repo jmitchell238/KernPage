@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KernPage third-party licences</title>
+<style>
+  body { font-family: "Segoe UI", sans-serif; max-width: 60em; margin: 2em auto; padding: 0 1em; color: #222; }
+  h1 { font-size: 1.5em; } h2 { font-size: 1.15em; margin-top: 2em; }
+  pre { white-space: pre-wrap; background: #f4f4f4; padding: .8em; font-size: .85em; }
+  ul.used { columns: 2; font-size: .9em; }
+</style>
+</head>
+<body>
+<h1>KernPage: third-party licences</h1>
+<p>KernPage is licensed under the MIT License or the Apache License 2.0, at your option (see
+LICENSE-MIT.txt and LICENSE-APACHE.txt). It includes the open-source components listed below, each
+under its own licence. KernPage is an independent project, not affiliated with or endorsed by Microsoft.
+Microsoft and Publisher are trademarks of the Microsoft group of companies.</p>
+
+<h2>Overview</h2>
+<ul>
+{{#each overview}}
+  <li><a href="#{{id}}">{{name}}</a> ({{count}})</li>
+{{/each}}
+</ul>
+
+{{#each licenses}}
+<h2 id="{{id}}">{{name}}</h2>
+<p>Used by:</p>
+<ul class="used">
+{{#each used_by}}
+  <li>{{#if crate.repository}}<a href="{{crate.repository}}">{{crate.name}} {{crate.version}}</a>{{else}}{{crate.name}} {{crate.version}}{{/if}}</li>
+{{/each}}
+</ul>
+<pre>{{text}}</pre>
+{{/each}}
+</body>
+</html>

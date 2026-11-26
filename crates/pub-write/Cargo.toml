@@ -1,0 +1,18 @@
+[package]
+name = "pub-write"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "pubpatch"
+path = "src/main.rs"
+
+[dependencies]
+cfb = "0.16.0"
+pub-format = { path = "../pub-format" }
+thiserror = "2.0.21"
+uuid = "1"
+
+[dev-dependencies]
+kernpage-samples = { path = "../kernpage-samples" }

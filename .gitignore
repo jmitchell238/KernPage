@@ -1,0 +1,36 @@
+/target
+*.pdf
+__pycache__/
+/out
+/samples/external/
+/target-win*
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*
+
+# Never commit signing keys, certificates or local secrets
+*.key
+*.pem
+*.pfx
+*.p12
+*password*.txt
+.env
+.env.*
+.claude/settings.local.json
+THIRD_PARTY_LICENSES.html
+
+# Crash dumps, logs, backups and recovery files
+*.dmp
+*.log
+*.bak
+*.tmp
+*.pwrec
+*.kprec
+*.minisig
+
+# Test-only signing keys (see crates/kernpage-launcher/tests/fixtures/README.md)
+!crates/kernpage-launcher/tests/fixtures/*.key

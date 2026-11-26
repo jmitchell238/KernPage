@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KernPage MSI (WiX 5). Build with package.ps1, which supplies the variables
+     Version, ExePath, LauncherExePath, IconPath, DocIconPath, LicenseRtf and NoticesDir, plus BannerBmp, DialogBmp and
+     CustomArt when built with -CustomArt.
+     The UpgradeCode below identifies this product family forever: never change it. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!-- PkgScope: perUserOrMachine (default; the MSI the launcher installs) or perUser (the copy
+       embedded in Setup.exe: Burn needs a fixed scope to run the bundle without UAC). Both share
+       the UpgradeCode, so either replaces the other in place. -->
+  <?ifndef PkgScope?>
+  <?define PkgScope = "perUserOrMachine"?>
+  <?endif?>
+  <Package Name="KernPage"
+           Manufacturer="The KernPage contributors"
+           Version="$(var.Version)"
+           UpgradeCode="7A952D88-8013-4CAC-85AF-3A3A1722E1DF"
+           Scope="$(PkgScope)"
+           Compressed="yes">
+
+    <SummaryInformation Description="KernPage desktop publishing editor" />
+
+    <!-- Newer builds replace older ones in place; same-version rebuilds are allowed so
+         pre-releases of one X.Y.Z can overwrite each other. Older builds are allowed too, so
+         the launcher's "Install an older version" can go back to a previous release. -->
+    <MajorUpgrade AllowDowngrades="yes" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Add/Remove Programs -->
+    <Icon Id="KernPageIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="KernPageIcon.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/jmitchell238/kernpage" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/jmitchell238/kernpage" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/jmitchell238/kernpage/releases" />
+
+    <!-- Dialogs: WixUI_Minimal (welcome + license, progress, finish) with WiX's stock bitmaps.
+         The navy artwork under assets/ is opt-in (package.ps1 -CustomArt). The finish page
+         offers a launch checkbox, ticked by default; the action runs only on a fresh install
+         and never in silent installs, which skip the finish page. -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+    <?ifdef CustomArt?>
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.BannerBmp)" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.DialogBmp)" />
+    <?endif?>
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="!(loc.LaunchApp)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#KernPageExe]" />
+    <CustomAction Id="LaunchKernPage" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
+    <UI>
+      <ui:WixUI Id="WixUI_Minimal" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchKernPage"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+
+    <!-- Dual-purpose package: Scope="perUserOrMachine" makes WiX write ALLUSERS=2 and
+         MSIINSTALLPERUSER=1, so a plain double-click installs per-user (no UAC) and
+         `ALLUSERS=1` (or MSIINSTALLPERUSER="") on the command line installs per-machine.
+         This folder resolves to %LOCALAPPDATA%\Programs for per-user installs and to
+         Program Files for all-users installs.
+         The perUser copy (Setup.exe) gets no such redirection (it only happens for ALLUSERS=2),
+         so it names %LOCALAPPDATA%\Programs directly: the same folder, no UAC. -->
+    <?if $(PkgScope) = "perUser"?>
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="UserProgramsDir" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="KernPage" />
+      </Directory>
+    </StandardDirectory>
+    <?else?>
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="KernPage" />
+    </StandardDirectory>
+    <?endif?>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <!-- Optional desktop shortcuts. DESKTOPSHORTCUT_APP / DESKTOPSHORTCUT_LAUNCHER are public:
+         1 = create. Precedence: command line, else the choice remembered in the registry by an
+         earlier install (so a launcher-driven upgrade keeps what the user picked), else the
+         defaults (editor 1, launcher 0). The searches fill the private REM_* properties (_U = per-user hive, _M = machine hive). -->
+    <Property Id="REM_APP_U">
+      <RegistrySearch Id="REM_APP_USearch" Root="HKCU" Key="Software\KernPage" Name="DesktopShortcutApp" Type="raw" />
+    </Property>
+    <Property Id="REM_APP_M">
+      <RegistrySearch Id="REM_APP_MSearch" Root="HKLM" Key="Software\KernPage" Name="DesktopShortcutApp" Type="raw" />
+    </Property>
+    <SetProperty Id="DESKTOPSHORTCUT_APP" Action="SetDESKTOPSHORTCUT_APP_1" Value="[REM_APP_U]" After="AppSearch" Condition="DESKTOPSHORTCUT_APP = &quot;&quot; AND REM_APP_U &lt;&gt; &quot;&quot;" />
+    <SetProperty Id="DESKTOPSHORTCUT_APP" Action="SetDESKTOPSHORTCUT_APP_2" Value="[REM_APP_M]" After="AppSearch" Condition="DESKTOPSHORTCUT_APP = &quot;&quot; AND REM_APP_U = &quot;&quot; AND REM_APP_M &lt;&gt; &quot;&quot;" />
+    <SetProperty Id="DESKTOPSHORTCUT_APP" Action="SetDESKTOPSHORTCUT_APP_3" Value="1" After="AppSearch" Condition="DESKTOPSHORTCUT_APP = &quot;&quot; AND REM_APP_U = &quot;&quot; AND REM_APP_M = &quot;&quot;" />
+    <Property Id="REM_LAUNCHER_U">
+      <RegistrySearch Id="REM_LAUNCHER_USearch" Root="HKCU" Key="Software\KernPage" Name="DesktopShortcutLauncher" Type="raw" />
+    </Property>
+    <Property Id="REM_LAUNCHER_M">
+      <RegistrySearch Id="REM_LAUNCHER_MSearch" Root="HKLM" Key="Software\KernPage" Name="DesktopShortcutLauncher" Type="raw" />
+    </Property>
+    <SetProperty Id="DESKTOPSHORTCUT_LAUNCHER" Action="SetDESKTOPSHORTCUT_LAUNCHER_1" Value="[REM_LAUNCHER_U]" After="AppSearch" Condition="DESKTOPSHORTCUT_LAUNCHER = &quot;&quot; AND REM_LAUNCHER_U &lt;&gt; &quot;&quot;" />
+    <SetProperty Id="DESKTOPSHORTCUT_LAUNCHER" Action="SetDESKTOPSHORTCUT_LAUNCHER_2" Value="[REM_LAUNCHER_M]" After="AppSearch" Condition="DESKTOPSHORTCUT_LAUNCHER = &quot;&quot; AND REM_LAUNCHER_U = &quot;&quot; AND REM_LAUNCHER_M &lt;&gt; &quot;&quot;" />
+    <SetProperty Id="DESKTOPSHORTCUT_LAUNCHER" Action="SetDESKTOPSHORTCUT_LAUNCHER_3" Value="0" After="AppSearch" Condition="DESKTOPSHORTCUT_LAUNCHER = &quot;&quot; AND REM_LAUNCHER_U = &quot;&quot; AND REM_LAUNCHER_M = &quot;&quot;" />
+
+    <Feature Id="Main" Title="KernPage" Level="1">
+      <ComponentRef Id="AppExe" />
+      <ComponentRef Id="LauncherExe" />
+      <ComponentRef Id="AppIcon" />
+      <ComponentRef Id="KernDocIcon" />
+      <ComponentRef Id="OpenWithPub" />
+      <ComponentRef Id="KernFileType" />
+      <ComponentRef Id="ShortcutChoices" />
+      <ComponentRef Id="DesktopShortcutApp" />
+      <ComponentRef Id="DesktopShortcutLauncher" />
+      <ComponentGroupRef Id="Notices" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <Component Id="AppExe" Directory="INSTALLFOLDER" Guid="A2726815-7754-41B0-B1C5-B2E765DFD3A4">
+      <File Id="KernPageExe" Source="$(var.ExePath)" KeyPath="yes">
+        <!-- "KernPage" in the Start menu opens the editor itself. The editor checks for
+             updates quietly and offers to start the launcher (the entry below) to install them. -->
+        <Shortcut Id="StartMenuLink" Directory="ProgramMenuFolder"
+                  Name="KernPage" Description="KernPage desktop publishing editor"
+                  WorkingDirectory="INSTALLFOLDER" Icon="KernPageIcon.ico" />
+      </File>
+      <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\kernpage.exe"
+                     Value="[#KernPageExe]" Type="string" />
+    </Component>
+
+    <!-- The launcher (updates, roll back, add-ons) has its own Start-menu entry. Its AppUserModelID
+         must equal AUMID in crates/kernpage-launcher/src/notify.rs so toasts carry our name. -->
+    <Component Id="LauncherExe" Directory="INSTALLFOLDER" Guid="3C1D5E0B-6F4A-4B8E-9A52-7D0E8B2F4C91">
+      <File Id="LauncherExe" Source="$(var.LauncherExePath)" KeyPath="yes">
+        <Shortcut Id="LauncherStartMenuLink" Directory="ProgramMenuFolder"
+                  Name="KernPage Launcher" Description="Update KernPage, go back to an older version, and add-ons"
+                  WorkingDirectory="INSTALLFOLDER" Icon="KernPageIcon.ico">
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="KernPage.Launcher" />
+        </Shortcut>
+      </File>
+    </Component>
+
+    <Component Id="AppIcon" Directory="INSTALLFOLDER" Guid="86C384FC-5CD2-4BBC-B821-C26B601CD46D">
+      <File Id="DocIcon" Source="$(var.IconPath)" Name="kernpage.ico" KeyPath="yes" />
+    </Component>
+
+    <!-- The .kern document icon (white page, folded corner, teal K), installed as its own file. -->
+    <Component Id="KernDocIcon" Directory="INSTALLFOLDER" Guid="3B7D2C54-9E1A-4F68-A0D3-6C58E7B14A92">
+      <File Id="KernDocIconFile" Source="$(var.DocIconPath)" Name="kernpage-doc.ico" KeyPath="yes" />
+    </Component>
+
+    <!-- .pub is offered under "Open with" only. No default is written, so Microsoft
+         Publisher (or anything else) keeps ownership of the extension. -->
+    <Component Id="OpenWithPub" Directory="INSTALLFOLDER" Guid="E5EF8398-CAF7-4796-B38F-D4907567E66B">
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Publication"
+                     Value="Publisher (.pub) file" Type="string" KeyPath="yes" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Publication\DefaultIcon"
+                     Value="[#DocIcon]" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Publication\shell\open"
+                     Name="FriendlyAppName" Value="KernPage" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Publication\shell\open\command"
+                     Value="&quot;[#KernPageExe]&quot; &quot;%1&quot;" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\.pub\OpenWithProgids"
+                     Name="KernPage.Publication" Value="" Type="string" />
+    </Component>
+
+    <!-- .kern is KernPage's own file type, so KernPage is its default program. -->
+    <Component Id="KernFileType" Directory="INSTALLFOLDER" Guid="5211A371-BD82-4232-8C50-768311424B10">
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Document"
+                     Value="KernPage document" Type="string" KeyPath="yes" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Document\DefaultIcon"
+                     Value="[#KernDocIconFile]" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Document\shell\open"
+                     Name="FriendlyAppName" Value="KernPage" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\KernPage.Document\shell\open\command"
+                     Value="&quot;[#KernPageExe]&quot; &quot;%1&quot;" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\.kern"
+                     Value="KernPage.Document" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\.kern" Name="Content Type"
+                     Value="application/x-kernpage" Type="string" />
+      <RegistryValue Root="HKMU" Key="Software\Classes\.kern\OpenWithProgids"
+                     Name="KernPage.Document" Value="" Type="string" />
+    </Component>
+
+    <!-- The remembered shortcut choices (always installed; removed on uninstall). -->
+    <Component Id="ShortcutChoices" Directory="INSTALLFOLDER" Guid="0F6B2C71-4D3A-4E85-8B19-5A7C3E9D1F42">
+      <RegistryValue Root="HKMU" Key="Software\KernPage" Name="DesktopShortcutApp"
+                     Value="[DESKTOPSHORTCUT_APP]" Type="string" KeyPath="yes" />
+      <RegistryValue Root="HKMU" Key="Software\KernPage" Name="DesktopShortcutLauncher"
+                     Value="[DESKTOPSHORTCUT_LAUNCHER]" Type="string" />
+    </Component>
+
+    <Component Id="DesktopShortcutApp" Directory="INSTALLFOLDER" Guid="B4E8D2A6-91C3-4F07-A5D8-2E6B7C0F3A19"
+               Condition="DESKTOPSHORTCUT_APP = 1">
+      <Shortcut Id="DesktopLink" Directory="DesktopFolder" Name="KernPage"
+                Description="KernPage desktop publishing editor" Target="[#KernPageExe]"
+                WorkingDirectory="INSTALLFOLDER" Icon="KernPageIcon.ico" />
+      <RegistryValue Root="HKMU" Key="Software\KernPage" Name="DesktopShortcutAppInstalled"
+                     Value="1" Type="string" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcutLauncher" Directory="INSTALLFOLDER" Guid="C9A1F3E5-7B24-4D68-9E0A-8F5D2B6C4E73"
+               Condition="DESKTOPSHORTCUT_LAUNCHER = 1">
+      <Shortcut Id="DesktopLauncherLink" Directory="DesktopFolder" Name="KernPage Launcher"
+                Description="Update KernPage, go back to an older version, and add-ons"
+                Target="[#LauncherExe]" WorkingDirectory="INSTALLFOLDER" Icon="KernPageIcon.ico">
+        <ShortcutProperty Key="System.AppUserModel.ID" Value="KernPage.Launcher" />
+      </Shortcut>
+      <RegistryValue Root="HKMU" Key="Software\KernPage" Name="DesktopShortcutLauncherInstalled"
+                     Value="1" Type="string" KeyPath="yes" />
+    </Component>
+
+    <ComponentGroup Id="Notices" Directory="INSTALLFOLDER">
+      <Files Include="$(var.NoticesDir)\*" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

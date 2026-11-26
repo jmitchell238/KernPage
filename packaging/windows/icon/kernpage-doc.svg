@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<!-- KernPage .kern document icon master (256 grid): white page, thin grey outline, folded top-right corner, the app icon's teal K centred on the lower page. Used for 40 px and up; kernpage-doc@16/20/24/32.svg are the pixel-hinted small sizes (make_doc_svgs.py). -->
+<path fill="#FFFFFF" stroke="#7B868C" stroke-width="4" stroke-linejoin="round" d="M38,10H160L218,68V246H38Z"/>
+<path fill="#D9E1E4" stroke="#7B868C" stroke-width="4" stroke-linejoin="round" d="M160,10V68H218Z"/>
+<g transform="translate(28.83 66.76) scale(0.13567)">
+<path fill="#7FC9C4" d="M341,285C341,252 395,245 440.8,245V1159C395,1159 341,1152 341,1126Z"/>
+<path fill="#046064" d="M449.8,245C495,245 524.5,250 524.5,278V502L449.8,687Z"/>
+<path fill="#046064" d="M449.8,697L524.5,909V1126C524.5,1154 495,1159 449.8,1159Z"/>
+<path fill="#046064" d="M704,266H1121L775,687H445.3Z"/>
+<path fill="#046064" d="M445.3,697H775L1121,1135H704Z"/>
+</g>
+</svg>

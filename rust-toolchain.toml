@@ -1,0 +1,5 @@
+# Pinned so release builds are reproducible. Windows builds use the GNU host: run `rustup set default-host x86_64-pc-windows-gnu` once.
+[toolchain]
+channel = "1.100.0"
+profile = "minimal"
+components = ["clippy", "rustfmt"]

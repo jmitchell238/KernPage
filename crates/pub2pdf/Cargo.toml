@@ -1,0 +1,17 @@
+[package]
+name = "pub2pdf"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+pub-format = { path = "../pub-format" }
+metafile = { path = "../metafile" }
+pdf-writer = "0.15.0"
+png = "0.18.1"
+miniz_oxide = "0.9"
+ttf-parser = "0.25.1"
+subsetter = "0.2.6"
+
+[dev-dependencies]
+kernpage-samples = { path = "../kernpage-samples" }

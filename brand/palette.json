@@ -1,0 +1,57 @@
+{
+  "teal": {
+    "dark": "#046064",
+    "light": "#7FC9C4",
+    "ink": "#0B5A73",
+    "accent": "#1696A0",
+    "line": "#6FB6C6",
+    "accent_on_dark": "#36C4CF",
+    "line_on_dark": "#8FB9C6",
+    "base": "#1E8C99",
+    "paper": "#FFFFFF"
+  },
+  "blue": {
+    "dark": "#0352B8",
+    "light": "#B8CFE3",
+    "ink": "#0E39C3",
+    "accent": "#2372E6",
+    "line": "#A9B9DF",
+    "accent_on_dark": "#77A2E1",
+    "line_on_dark": "#C5CCE3",
+    "base": "#2F6FDB",
+    "paper": "#FFFFFF"
+  },
+  "purple": {
+    "dark": "#451FAF",
+    "light": "#CFCBE3",
+    "ink": "#6D2ABA",
+    "accent": "#744DCF",
+    "line": "#CBBDDE",
+    "accent_on_dark": "#A893D8",
+    "line_on_dark": "#DDD5E6",
+    "base": "#7B55C8",
+    "paper": "#FFFFFF"
+  },
+  "graphite": {
+    "dark": "#303A44",
+    "light": "#A3ABB1",
+    "ink": "#3A4150",
+    "accent": "#53606F",
+    "line": "#999EA8",
+    "accent_on_dark": "#7B8896",
+    "line_on_dark": "#ACAFB5",
+    "base": "#55606E",
+    "paper": "#FFFFFF"
+  },
+  "orange": {
+    "dark": "#B35A00",
+    "light": "#FFC285",
+    "ink": "#58595B",
+    "accent": "#FF8200",
+    "line": "#F0C08E",
+    "accent_on_dark": "#FF9F3D",
+    "line_on_dark": "#E8C9A8",
+    "base": "#FF8200",
+    "paper": "#FFFFFF"
+  }
+}

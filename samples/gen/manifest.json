@@ -1,0 +1,2873 @@
+{
+  "apple-banana": {
+    "note": "Apple created first (lower), Banana second (upper)",
+    "boxes": [
+      {
+        "name": "Text Box 1",
+        "left_pt": 72,
+        "top_pt": 576,
+        "width_pt": 216,
+        "height_pt": 72,
+        "paragraphs": [
+          {
+            "text": "Apple\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          }
+        ]
+      },
+      {
+        "name": "Text Box 2",
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 216,
+        "height_pt": 72,
+        "paragraphs": [
+          {
+            "text": "Banana\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          }
+        ]
+      }
+    ]
+  },
+  "formatting": {
+    "boxes": [
+      {
+        "name": "Text Box 1",
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 432,
+        "height_pt": 360,
+        "paragraphs": [
+          {
+            "text": "Arial 12\r",
+            "font": "Arial",
+            "size": 12,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Times New Roman 18 italic\r",
+            "font": "Times New Roman",
+            "size": 18,
+            "bold": 0,
+            "italic": -1,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Courier New 10 underline\r",
+            "font": "Courier New",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 1,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Calibri 14 bold italic\r",
+            "font": "Calibri",
+            "size": 14,
+            "bold": -1,
+            "italic": -1,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Red Calibri 11\r",
+            "font": "Calibri",
+            "size": 11,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 255,
+            "alignment": 0
+          },
+          {
+            "text": "Centered\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 2
+          },
+          {
+            "text": "Right aligned\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 3
+          },
+          {
+            "text": "Justified paragraph with enough words to wrap across more than one line of the box.\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 4
+          }
+        ]
+      }
+    ]
+  },
+  "picture": {
+    "picture": {
+      "name": "Picture 1",
+      "left_pt": 144,
+      "top_pt": 144,
+      "width_pt": 200,
+      "height_pt": 120,
+      "source_png": "tools/assets/test-picture.png"
+    }
+  },
+  "legal": {
+    "page_width_pt": 612,
+    "page_height_pt": 1008,
+    "boxes": [
+      {
+        "name": "Text Box 1",
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 216,
+        "height_pt": 72,
+        "paragraphs": [
+          {
+            "text": "Legal page\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          }
+        ]
+      }
+    ]
+  },
+  "bulletin": {
+    "pages": 2,
+    "boxes": [
+      {
+        "name": "Text Box 1",
+        "left_pt": 54,
+        "top_pt": 54,
+        "width_pt": 504,
+        "height_pt": 72,
+        "paragraphs": [
+          {
+            "text": "Grace Community Church\r",
+            "font": "Georgia",
+            "size": 24,
+            "bold": -1,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 2
+          },
+          {
+            "text": "Sunday Morning Worship\r",
+            "font": "Georgia",
+            "size": 14,
+            "bold": 0,
+            "italic": -1,
+            "underline": 0,
+            "color": 0,
+            "alignment": 2
+          }
+        ]
+      },
+      {
+        "name": "Text Box 3",
+        "left_pt": 54,
+        "top_pt": 288,
+        "width_pt": 504,
+        "height_pt": 360,
+        "paragraphs": [
+          {
+            "text": "Order of Service\r",
+            "font": "Calibri",
+            "size": 16,
+            "bold": -1,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Prelude\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Call to Worship\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Hymn: Amazing Grace\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Scripture Reading: Psalm 23\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Prayer\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Sermon: Walking by Faith\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Hymn: Blessed Assurance\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Benediction\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          }
+        ]
+      },
+      {
+        "name": "Text Box 4",
+        "left_pt": 54,
+        "top_pt": 54,
+        "width_pt": 504,
+        "height_pt": 288,
+        "paragraphs": [
+          {
+            "text": "Announcements\r",
+            "font": "Calibri",
+            "size": 16,
+            "bold": -1,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Wednesday Bible Study meets at 6:30 PM in the fellowship hall.\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "The food pantry needs canned vegetables and cereal this month.\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Choir practice is Thursday at 7:00 PM.\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          }
+        ]
+      },
+      {
+        "name": "Text Box 5",
+        "left_pt": 54,
+        "top_pt": 378,
+        "width_pt": 504,
+        "height_pt": 216,
+        "paragraphs": [
+          {
+            "text": "Prayer List\r",
+            "font": "Calibri",
+            "size": 16,
+            "bold": -1,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Those who are sick or recovering\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Our missionaries\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Our community and its leaders\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          }
+        ]
+      }
+    ],
+    "picture": {
+      "left_pt": 206,
+      "top_pt": 144,
+      "width_pt": 200,
+      "height_pt": 120
+    }
+  },
+  "colors": {
+    "note": "color values are BGR integers: 255 = red",
+    "boxes": [
+      {
+        "name": "Text Box 1",
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 432,
+        "height_pt": 216,
+        "paragraphs": [
+          {
+            "text": "Black default\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 0,
+            "alignment": 0
+          },
+          {
+            "text": "Red text\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 255,
+            "alignment": 0
+          },
+          {
+            "text": "Green text\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 65280,
+            "alignment": 0
+          },
+          {
+            "text": "Blue text\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 16711680,
+            "alignment": 0
+          },
+          {
+            "text": "Orange text\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 33023,
+            "alignment": 0
+          },
+          {
+            "text": "Gray text\r",
+            "font": "Calibri",
+            "size": 10,
+            "bold": 0,
+            "italic": 0,
+            "underline": 0,
+            "color": 8421504,
+            "alignment": 0
+          }
+        ]
+      }
+    ]
+  },
+  "shapes": {
+    "note": "rgb values are BGR integers; order: rectangle, oval, line, outline rectangle",
+    "shapes": [
+      {
+        "name": "Rectangle 1",
+        "type": 1,
+        "autoshape": 1,
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 144,
+        "height_pt": 72,
+        "fill_visible": -1,
+        "fill_rgb": 15128749,
+        "line_visible": -1,
+        "line_rgb": 9109504,
+        "line_weight_pt": 2
+      },
+      {
+        "name": "Oval 2",
+        "type": 1,
+        "autoshape": 9,
+        "left_pt": 288,
+        "top_pt": 72,
+        "width_pt": 144,
+        "height_pt": 72,
+        "fill_visible": -1,
+        "fill_rgb": 65535,
+        "line_visible": 0,
+        "line_rgb": 0,
+        "line_weight_pt": 0.75
+      },
+      {
+        "name": "Line 3",
+        "type": 9,
+        "autoshape": -2,
+        "left_pt": 72,
+        "top_pt": 216,
+        "width_pt": 432,
+        "height_pt": 0,
+        "fill_visible": 0,
+        "fill_rgb": 16777215,
+        "line_visible": -1,
+        "line_rgb": 255,
+        "line_weight_pt": 3
+      },
+      {
+        "name": "Rectangle 4",
+        "type": 1,
+        "autoshape": 1,
+        "left_pt": 72,
+        "top_pt": 288,
+        "width_pt": 144,
+        "height_pt": 72,
+        "fill_visible": 0,
+        "fill_rgb": 16777215,
+        "line_visible": -1,
+        "line_rgb": 0,
+        "line_weight_pt": 1
+      }
+    ]
+  },
+  "table": {
+    "left_pt": 72,
+    "top_pt": 72,
+    "width_pt": 288,
+    "height_pt": 72,
+    "rows": 2,
+    "columns": 2,
+    "cells": {
+      "r1c1": "A1",
+      "r1c2": "B1",
+      "r2c1": "A2",
+      "r2c2": "B2"
+    }
+  },
+  "schemes": {
+    "scheme_name": "Black & Gray",
+    "note": "rgb values are BGR integers; one 60x40 pt rectangle per scheme slot",
+    "slots": [
+      {
+        "slot": 1,
+        "rgb": 0,
+        "left_pt": 36,
+        "top_pt": 36
+      },
+      {
+        "slot": 2,
+        "rgb": 6710886,
+        "left_pt": 108,
+        "top_pt": 36
+      },
+      {
+        "slot": 3,
+        "rgb": 10066329,
+        "left_pt": 180,
+        "top_pt": 36
+      },
+      {
+        "slot": 4,
+        "rgb": 13421772,
+        "left_pt": 252,
+        "top_pt": 36
+      },
+      {
+        "slot": 5,
+        "rgb": 13421772,
+        "left_pt": 324,
+        "top_pt": 36
+      },
+      {
+        "slot": 6,
+        "rgb": 16711680,
+        "left_pt": 396,
+        "top_pt": 36
+      },
+      {
+        "slot": 7,
+        "rgb": 10027110,
+        "left_pt": 468,
+        "top_pt": 36
+      },
+      {
+        "slot": 8,
+        "rgb": 16777215,
+        "left_pt": 36,
+        "top_pt": 96
+      }
+    ]
+  },
+  "linked": {
+    "pages": 2,
+    "note": "one story in frames a->b->c; first_chars/length are the part of the story shown in each frame",
+    "story_paragraphs": 30,
+    "frames": [
+      {
+        "name": "Text Box 1",
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 216,
+        "height_pt": 144,
+        "first_chars": "Paragraph 1 of the linked story, long en",
+        "length": 368,
+        "has_next": true,
+        "has_previous": false,
+        "overflowing": false
+      },
+      {
+        "name": "Text Box 3",
+        "left_pt": 72,
+        "top_pt": 288,
+        "width_pt": 216,
+        "height_pt": 144,
+        "first_chars": "Paragraph 5 of the linked story, long en",
+        "length": 368,
+        "has_next": true,
+        "has_previous": true,
+        "overflowing": false
+      },
+      {
+        "name": "Text Box 4",
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 216,
+        "height_pt": 288,
+        "first_chars": "Paragraph 9 of the linked story, long en",
+        "length": 743,
+        "has_next": false,
+        "has_previous": true,
+        "overflowing": true
+      }
+    ],
+    "standalone": {
+      "name": "Text Box 2",
+      "left_pt": 324,
+      "top_pt": 72,
+      "width_pt": 216,
+      "height_pt": 72,
+      "paragraphs": [
+        {
+          "text": "Standalone box\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        }
+      ]
+    }
+  },
+  "spacing": {
+    "note": "space/line values in points; line_spacing_rule is the Publisher enum; top_pt/height_pt are where Publisher laid each paragraph out",
+    "box": {
+      "name": "Text Box 1",
+      "left_pt": 72,
+      "top_pt": 72,
+      "width_pt": 288,
+      "height_pt": 576,
+      "paragraphs": [
+        {
+          "text": "Default paragraph one.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Default paragraph two.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Space before 18 pt.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Space after 24 pt.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Line spacing 2 lines, long enough to wrap onto a second line inside this box so the spacing shows.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Line spacing exactly 30 pt, long enough to wrap onto a second line inside this box so the spacing shows.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Last default paragraph.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        }
+      ]
+    },
+    "defaults": [
+      {
+        "space_before": 0,
+        "space_after": 6,
+        "line_spacing": 1.19,
+        "line_spacing_rule": 5
+      },
+      {
+        "space_before": 0,
+        "space_after": 6,
+        "line_spacing": 1.19,
+        "line_spacing_rule": 5
+      }
+    ],
+    "paragraphs": [
+      {
+        "text": "Default paragraph one.",
+        "space_before": 0,
+        "space_after": 6,
+        "line_spacing": 1.19,
+        "line_spacing_rule": 5,
+        "top_pt": 75.6,
+        "height_pt": 19.8
+      },
+      {
+        "text": "Default paragraph two.",
+        "space_before": 0,
+        "space_after": 6,
+        "line_spacing": 1.19,
+        "line_spacing_rule": 5,
+        "top_pt": 95.4,
+        "height_pt": 21.6
+      },
+      {
+        "text": "Space before 18 pt.",
+        "space_before": 18,
+        "space_after": 6,
+        "line_spacing": 1.19,
+        "line_spacing_rule": 5,
+        "top_pt": 117,
+        "height_pt": 37.8
+      },
+      {
+        "text": "Space after 24 pt.",
+        "space_before": 0,
+        "space_after": 24,
+        "line_spacing": 1.19,
+        "line_spacing_rule": 5,
+        "top_pt": 154.8,
+        "height_pt": 39.6
+      },
+      {
+        "text": "Line spacing 2 lines, long enough to wrap onto a second line inside this box so the spacing shows.",
+        "space_before": 0,
+        "space_after": 6,
+        "line_spacing": 2,
+        "line_spacing_rule": 2,
+        "top_pt": 194.4,
+        "height_pt": 54
+      },
+      {
+        "text": "Line spacing exactly 30 pt, long enough to wrap onto a second line inside this box so the spacing shows.",
+        "space_before": 0,
+        "space_after": 6,
+        "line_spacing": 30,
+        "line_spacing_rule": 4,
+        "top_pt": 248.4,
+        "height_pt": 66.6
+      },
+      {
+        "text": "Last default paragraph.",
+        "space_before": 0,
+        "space_after": 6,
+        "line_spacing": 1.19,
+        "line_spacing_rule": 5,
+        "top_pt": 315,
+        "height_pt": 19.8
+      }
+    ]
+  },
+  "rotate": {
+    "note": "left/top/width/height are the unrotated frame as Publisher reports it; rotation clockwise in degrees",
+    "shapes": [
+      {
+        "kind": "textbox",
+        "rotation": 90,
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 180,
+        "height_pt": 54,
+        "text": "Rotated 90 degrees"
+      },
+      {
+        "kind": "textbox",
+        "rotation": 270,
+        "left_pt": 288,
+        "top_pt": 72,
+        "width_pt": 180,
+        "height_pt": 54,
+        "text": "Rotated 270 degrees"
+      },
+      {
+        "kind": "textbox",
+        "rotation": 30,
+        "left_pt": 72,
+        "top_pt": 360,
+        "width_pt": 180,
+        "height_pt": 54,
+        "text": "Rotated 30 degrees"
+      },
+      {
+        "kind": "rectangle",
+        "rotation": 45,
+        "left_pt": 360,
+        "top_pt": 400,
+        "width_pt": 120,
+        "height_pt": 60
+      }
+    ]
+  },
+  "columns": {
+    "boxes": [
+      {
+        "name": "Text Box 1",
+        "left_pt": 72,
+        "top_pt": 72,
+        "width_pt": 468,
+        "height_pt": 288,
+        "columns": 3,
+        "column_spacing_pt": 18
+      },
+      {
+        "name": "Text Box 2",
+        "left_pt": 72,
+        "top_pt": 432,
+        "width_pt": 468,
+        "height_pt": 216,
+        "columns": 2,
+        "column_spacing_pt": 2.88
+      }
+    ]
+  },
+  "table2": {
+    "left_pt": 72,
+    "top_pt": 72,
+    "width_pt": 432,
+    "height_pt": 216,
+    "rows": 3,
+    "columns": 3,
+    "column_widths_pt": [
+      72,
+      216,
+      144
+    ],
+    "row_heights_pt": [
+      36,
+      108,
+      72
+    ],
+    "cells": {
+      "r1c1": "R1 C1",
+      "r1c2": "R1 C2",
+      "r1c3": "R1 C3",
+      "r2c1": "R2 C1",
+      "r2c2": "First paragraph in B2\rSecond paragraph in B2\rThird",
+      "r2c3": "R2 C3",
+      "r3c1": "Two\rLines",
+      "r3c2": "R3 C2",
+      "r3c3": "R3 C3"
+    },
+    "note": "cell text uses CR between paragraphs"
+  },
+  "group": {
+    "group": {
+      "name": "Group 4",
+      "left_pt": 144,
+      "top_pt": 144,
+      "width_pt": 180,
+      "height_pt": 180,
+      "children": [
+        {
+          "name": "Text Box 1",
+          "left_pt": 144,
+          "top_pt": 144,
+          "width_pt": 180,
+          "height_pt": 54
+        },
+        {
+          "name": "Rectangle 2",
+          "left_pt": 144,
+          "top_pt": 216,
+          "width_pt": 180,
+          "height_pt": 108
+        }
+      ]
+    },
+    "standalone": {
+      "name": "Text Box 3",
+      "left_pt": 360,
+      "top_pt": 144,
+      "width_pt": 144,
+      "height_pt": 54,
+      "paragraphs": [
+        {
+          "text": "Not grouped\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        }
+      ]
+    },
+    "note": "children positions are page coordinates as Publisher reports them"
+  },
+  "wrap": {
+    "box": {
+      "name": "Text Box 1",
+      "left_pt": 72,
+      "top_pt": 72,
+      "width_pt": 468,
+      "height_pt": 648,
+      "paragraphs": [
+        {
+          "text": "Wrap paragraph 1, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 2, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 3, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 4, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 5, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 6, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 7, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 8, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 9, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 10, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 11, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 12, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 13, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 14, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 15, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 16, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 17, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 18, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 19, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        },
+        {
+          "text": "Wrap paragraph 20, written with enough words to fill several lines across the box.\r",
+          "font": "Calibri",
+          "size": 10,
+          "bold": 0,
+          "italic": 0,
+          "underline": 0,
+          "color": 0,
+          "alignment": 0
+        }
+      ]
+    },
+    "wrappers": [
+      {
+        "name": "Rectangle 2",
+        "left_pt": 216,
+        "top_pt": 144,
+        "width_pt": 144,
+        "height_pt": 108,
+        "wrap_type": 2,
+        "side": 0,
+        "dist_left": 2.88,
+        "dist_top": 2.88,
+        "dist_right": 2.88,
+        "dist_bottom": 2.88
+      },
+      {
+        "name": "Oval 3",
+        "left_pt": 216,
+        "top_pt": 360,
+        "width_pt": 144,
+        "height_pt": 108,
+        "wrap_type": 3,
+        "side": 0,
+        "dist_left": 2.88,
+        "dist_top": 2.88,
+        "dist_right": 2.88,
+        "dist_bottom": 2.88
+      },
+      {
+        "name": "Rectangle 4",
+        "left_pt": 216,
+        "top_pt": 576,
+        "width_pt": 144,
+        "height_pt": 72,
+        "wrap_type": 0,
+        "side": 0,
+        "dist_left": 2.88,
+        "dist_top": 2.88,
+        "dist_right": 2.88,
+        "dist_bottom": 2.88
+      }
+    ],
+    "note": "wrap_type: Publisher PbWrapType enum; distances in points"
+  },
+  "picture-new": {
+    "note": "blank page + one embedded PNG (Shapes.AddPicture, LinkToFile false, SaveWithDocument true); each picture-* file is a copy of the blank saved once, except replaced/deleted/cropped/moved which are a second save of picture-new/picture-big",
+    "pictures": [
+      {
+        "name": "Picture 1",
+        "left_pt": 100,
+        "top_pt": 150,
+        "width_pt": 120,
+        "height_pt": 90,
+        "source": "tools/assets/red4x3.png",
+        "store_index": 1,
+        "contents_object": 296
+      }
+    ]
+  },
+  "picture-two": {
+    "note": "two different PNGs",
+    "pictures": [
+      {
+        "name": "Picture 1",
+        "left_pt": 100,
+        "top_pt": 150,
+        "width_pt": 120,
+        "height_pt": 90,
+        "source": "tools/assets/red4x3.png",
+        "store_index": 1,
+        "contents_object": 296
+      },
+      {
+        "name": "Picture 2",
+        "left_pt": 300,
+        "top_pt": 300,
+        "width_pt": 100,
+        "height_pt": 100,
+        "source": "tools/assets/blue5x5.png",
+        "store_index": 2,
+        "contents_object": 298
+      }
+    ]
+  },
+  "picture-same-twice": {
+    "note": "the same PNG inserted twice: one picture-store entry with reference count 2",
+    "pictures": [
+      {
+        "name": "Picture 1",
+        "left_pt": 100,
+        "top_pt": 150,
+        "width_pt": 120,
+        "height_pt": 90,
+        "source": "tools/assets/red4x3.png",
+        "store_index": 1,
+        "contents_object": 296
+      },
+      {
+        "name": "Picture 2",
+        "left_pt": 300,
+        "top_pt": 300,
+        "width_pt": 120,
+        "height_pt": 90,
+        "source": "tools/assets/red4x3.png",
+        "store_index": 1,
+        "contents_object": 298
+      }
+    ]
+  },
+  "picture-jpeg": {
+    "note": "one JPEG (8x6, quality 90)",
+    "pictures": [
+      {
+        "name": "Picture 1",
+        "left_pt": 100,
+        "top_pt": 150,
+        "width_pt": 120,
+        "height_pt": 90,
+        "source": "tools/assets/green8x6.jpg",
+        "store_index": 1,
+        "contents_object": 296
+      }
+    ]
+  },
+  "picture-replaced": {
+    "note": "picture-new, then Shape.PictureFormat.Replace(blue5x5.png); Publisher kept the height and centre, width became 90 pt; store slot 1 emptied, new entry is slot 2",
+    "pictures": [
+      {
+        "name": "Picture 1",
+        "left_pt": 115,
+        "top_pt": 150,
+        "width_pt": 90,
+        "height_pt": 90,
+        "source": "tools/assets/blue5x5.png",
+        "store_index": 2,
+        "contents_object": 296
+      }
+    ]
+  },
+  "picture-deleted": {
+    "note": "picture-new, then Shape.Delete(); the file is structurally the blank again (no picture store, empty delay stream)",
+    "pictures": []
+  },
+  "picture-two-deleted-first": {
+    "note": "picture-two, then the first picture deleted; store slot 1 becomes an empty placeholder, slot 2 stays",
+    "pictures": [
+      {
+        "name": "Picture 2",
+        "left_pt": 300,
+        "top_pt": 300,
+        "width_pt": 100,
+        "height_pt": 100,
+        "source": "tools/assets/blue5x5.png",
+        "store_index": 2,
+        "contents_object": 298
+      }
+    ]
+  },
+  "picture-same-replaced-second": {
+    "note": "picture-same-twice, then the SECOND picture replaced by blue5x5.png; the shared entry drops to reference count 1, new entry appended",
+    "pictures": [
+      {
+        "name": "Picture 1",
+        "left_pt": 100,
+        "top_pt": 150,
+        "width_pt": 120,
+        "height_pt": 90,
+        "source": "tools/assets/red4x3.png",
+        "store_index": 1,
+        "contents_object": 296
+      },
+      {
+        "name": "Picture 2",
+        "left_pt": 315,
+        "top_pt": 300,
+        "width_pt": 90,
+        "height_pt": 90,
+        "source": "tools/assets/blue5x5.png",
+        "store_index": 2,
+        "contents_object": 298
+      }
+    ]
+  },
+  "picture-big": {
+    "note": "one 40x30 PNG (source for the crop sample)",
+    "pictures": [
+      {
+        "name": "Picture 1",
+        "left_pt": 100,
+        "top_pt": 150,
+        "width_pt": 120,
+        "height_pt": 90,
+        "source": "tools/assets/grad40x30.png",
+        "store_index": 1,
+        "contents_object": 296
+      }
+    ]
+  },
+  "picture-over-text": {
+    "note": "formatting.pub (one text box 72,72 432x360 pt) + a PNG that overlaps it; the font table moves two slots",
+    "pictures": [
+      {
+        "name": "Picture 2",
+        "left_pt": 100,
+        "top_pt": 100,
+        "width_pt": 100,
+        "height_pt": 75,
+        "source": "tools/assets/red4x3.png",
+        "store_index": 1,
+        "contents_object": 297
+      }
+    ]
+  },
+  "page-base": {
+    "note": "base: Letter portrait, margins 0.5 in, Rect A + Text A + Rect Far (near bottom-right) on page 1. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "blank.pub (2010 blank) opened in Publisher 2021, three objects added with Shapes.AddShape/AddTextbox, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-base-2pages": {
+    "note": "base: page-base plus a second page with Rect P2 and Text P2. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, Pages.Add(1,1), two objects on page 2, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "shapes": [
+          {
+            "name": "Rect P2",
+            "type": 1,
+            "left_pt": 100,
+            "top_pt": 100,
+            "width_pt": 200,
+            "height_pt": 100,
+            "text": "\r"
+          },
+          {
+            "name": "Text P2",
+            "type": 17,
+            "left_pt": 100,
+            "top_pt": 300,
+            "width_pt": 300,
+            "height_pt": 60,
+            "text": "Second page text box.\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-base-edge": {
+    "note": "base: Letter portrait, 4 shapes overlapping the page edges (on page) and 4 fully outside the page (scratch area). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "blank, AddShape x8, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Right partial",
+            "type": 1,
+            "left_pt": 500,
+            "top_pt": 300,
+            "width_pt": 200,
+            "height_pt": 80,
+            "text": "\r"
+          },
+          {
+            "name": "Bottom partial",
+            "type": 1,
+            "left_pt": 100,
+            "top_pt": 740,
+            "width_pt": 100,
+            "height_pt": 100,
+            "text": "\r"
+          },
+          {
+            "name": "Left partial",
+            "type": 1,
+            "left_pt": -60,
+            "top_pt": 100,
+            "width_pt": 100,
+            "height_pt": 60,
+            "text": "\r"
+          },
+          {
+            "name": "Top partial",
+            "type": 1,
+            "left_pt": 100,
+            "top_pt": -40,
+            "width_pt": 100,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": [
+      {
+        "name": "Right scratch",
+        "type": 1,
+        "left_pt": 650,
+        "top_pt": 100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Bottom scratch",
+        "type": 1,
+        "left_pt": 100,
+        "top_pt": 830,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Left scratch",
+        "type": 1,
+        "left_pt": -150,
+        "top_pt": 300,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Top scratch",
+        "type": 1,
+        "left_pt": 300,
+        "top_pt": -100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      }
+    ]
+  },
+  "page-a4": {
+    "note": "page size set with PageSetup.PageWidth=595.3 / PageHeight=841.9 (custom size, preset name \"Current\"). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 595.3,
+    "page_height_pt": 841.9,
+    "orientation": 1,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 63.649,
+            "top_pt": 96.95,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 63.649,
+            "top_pt": 224.95,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 391.649,
+            "top_pt": 724.95,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-legal": {
+    "note": "PageWidth=612, PageHeight=1008 (custom). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 1008,
+    "orientation": 1,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 180,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 308,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 808,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-custom-5x7": {
+    "note": "PageWidth=360, PageHeight=504 (5 x 7 in); Rect Far no longer touches the page and sits on the scratch area. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 360,
+    "page_height_pt": 504,
+    "orientation": 1,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": -54,
+            "top_pt": -72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": -54,
+            "top_pt": 56,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": [
+      {
+        "name": "Rect Far",
+        "type": 1,
+        "left_pt": 274,
+        "top_pt": 556,
+        "width_pt": 150,
+        "height_pt": 60,
+        "text": "\r"
+      }
+    ]
+  },
+  "page-11x17": {
+    "note": "PageWidth=792, PageHeight=1224 (11 x 17 in, custom). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 792,
+    "page_height_pt": 1224,
+    "orientation": 1,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 162,
+            "top_pt": 288,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 162,
+            "top_pt": 416,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 490,
+            "top_pt": 916,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-custom-odd": {
+    "note": "PageWidth=612.25, PageHeight=792.5 (sub-point sizes, spec 6.2.6 rounding rule). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 612.25,
+    "page_height_pt": 792.5,
+    "orientation": 1,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72.126,
+            "top_pt": 72.249,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72.126,
+            "top_pt": 200.249,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400.126,
+            "top_pt": 700.249,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-custom-300x400": {
+    "note": "PageWidth=300.5, PageHeight=400.7; Rect A and Rect Far fall off the page into the scratch area. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 300.5,
+    "page_height_pt": 400.7,
+    "orientation": 1,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": -83.75,
+            "top_pt": 4.351,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": [
+      {
+        "name": "Rect A",
+        "type": 1,
+        "left_pt": -83.75,
+        "top_pt": -123.649,
+        "width_pt": 144,
+        "height_pt": 72,
+        "text": "\r"
+      },
+      {
+        "name": "Rect Far",
+        "type": 1,
+        "left_pt": 244.25,
+        "top_pt": 504.351,
+        "width_pt": 150,
+        "height_pt": 60,
+        "text": "\r"
+      }
+    ]
+  },
+  "page-landscape": {
+    "note": "orientation changed by swapping PageWidth=792 and PageHeight=612 (PageSetup.Orientation cannot be set through COM: \"not supported\"); preset name \"Current\". Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 792,
+    "page_height_pt": 612,
+    "orientation": 2,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 162,
+            "top_pt": -18,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 162,
+            "top_pt": 110,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 490,
+            "top_pt": 610,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-landscape-preset": {
+    "note": "Page Design > Orientation > Landscape in the UI (equal to PageSetup.PageSize = \"Letter (Landscape)\"); preset name \"Letter (Landscape)\". Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, ribbon Orientation > Landscape (keyboard), Save()",
+    "page_width_pt": 792,
+    "page_height_pt": 612,
+    "orientation": 2,
+    "page_size_name": "Letter (Landscape)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 162,
+            "top_pt": -18,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 162,
+            "top_pt": 110,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 490,
+            "top_pt": 610,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-a4-preset": {
+    "note": "Page Design > Size > A4 (Portrait) in the UI (equal to PageSetup.PageSize = the \"A4 (Portrait)\" entry of AvailablePageSizes); 21 x 29.7 cm exactly. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, ribbon Size gallery (keyboard), Save()",
+    "page_width_pt": 595.2756,
+    "page_height_pt": 841.8898,
+    "orientation": 1,
+    "page_size_name": "A4 (Portrait)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 63.637,
+            "top_pt": 96.945,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 63.637,
+            "top_pt": 224.945,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 391.637,
+            "top_pt": 724.945,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-legal-preset": {
+    "note": "Size gallery > Legal (Portrait). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, ribbon Size gallery (keyboard), Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 1008,
+    "orientation": 1,
+    "page_size_name": "Legal (Portrait)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 180,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 308,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 808,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-tabloid-preset": {
+    "note": "Size gallery > Tabloid (Portrait), 11 x 17 in. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, ribbon Size gallery (keyboard), Save()",
+    "page_width_pt": 792,
+    "page_height_pt": 1224,
+    "orientation": 1,
+    "page_size_name": "Tabloid (Portrait)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 162,
+            "top_pt": 288,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 162,
+            "top_pt": 416,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 490,
+            "top_pt": 916,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-margins-narrow": {
+    "note": "Document.LayoutGuides margins all 18 pt (0.25 in, the UI \"Narrow\" preset). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, LayoutGuides.MarginLeft/Right/Top/Bottom, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 18,
+      "right": 18,
+      "top": 18,
+      "bottom": 18
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-margins-wide": {
+    "note": "margins all 72 pt (1 in, the UI \"Wide\" preset). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, LayoutGuides.Margin*, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 72,
+      "right": 72,
+      "top": 72,
+      "bottom": 72
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-margins-none": {
+    "note": "margins all 0 (the UI \"None\" preset). Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, LayoutGuides.Margin*, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-margins-custom": {
+    "note": "margins left 54, right 36, top 72, bottom 90 pt. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base, LayoutGuides.Margin*, Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 54,
+      "right": 36,
+      "top": 72,
+      "bottom": 90
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-margins-custom-dialog-2pages": {
+    "note": "2-page base; Page Design > Margins > Custom Margins... with Left 1.5 in, Right 1 in, Top 2 in, Bottom 0.75 in. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base-2pages, Custom Margins dialog (keyboard), Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 108,
+      "right": 72,
+      "top": 144,
+      "bottom": 54
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "shapes": [
+          {
+            "name": "Rect P2",
+            "type": 1,
+            "left_pt": 100,
+            "top_pt": 100,
+            "width_pt": 200,
+            "height_pt": 100,
+            "text": "\r"
+          },
+          {
+            "name": "Text P2",
+            "type": 17,
+            "left_pt": 100,
+            "top_pt": 300,
+            "width_pt": 300,
+            "height_pt": 60,
+            "text": "Second page text box.\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-margins-twopage-master": {
+    "note": "2-page base; Custom Margins dialog with \"Two-page master\" ticked and Inside 1.5 in (Outside 0.5 in); COM reports MirrorGuides true, MarginLeft 108. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base-2pages, Custom Margins dialog (keyboard), Save()",
+    "page_width_pt": 612,
+    "page_height_pt": 792,
+    "orientation": 1,
+    "page_size_name": "Letter (Portrait)",
+    "margins_pt": {
+      "left": 108,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": true,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 72,
+            "top_pt": 72,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 72,
+            "top_pt": 200,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          },
+          {
+            "name": "Rect Far",
+            "type": 1,
+            "left_pt": 400,
+            "top_pt": 700,
+            "width_pt": 150,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "shapes": [
+          {
+            "name": "Rect P2",
+            "type": 1,
+            "left_pt": 100,
+            "top_pt": 100,
+            "width_pt": 200,
+            "height_pt": 100,
+            "text": "\r"
+          },
+          {
+            "name": "Text P2",
+            "type": 17,
+            "left_pt": 100,
+            "top_pt": 300,
+            "width_pt": 300,
+            "height_pt": 60,
+            "text": "Second page text box.\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": []
+  },
+  "page-a4-landscape-margins-2pages": {
+    "note": "2-page base; A4 landscape by PageWidth=841.9 / PageHeight=595.3 and margins L54 R36 T72 B90; Rect Far falls into the scratch area. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base-2pages, PageSetup + LayoutGuides, Save()",
+    "page_width_pt": 841.9,
+    "page_height_pt": 595.3,
+    "orientation": 2,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 54,
+      "right": 36,
+      "top": 72,
+      "bottom": 90
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Rect A",
+            "type": 1,
+            "left_pt": 186.95,
+            "top_pt": -26.351,
+            "width_pt": 144,
+            "height_pt": 72,
+            "text": "\r"
+          },
+          {
+            "name": "Text A",
+            "type": 17,
+            "left_pt": 186.95,
+            "top_pt": 101.649,
+            "width_pt": 216,
+            "height_pt": 72,
+            "text": "Page setup text box. This second sentence makes the text wrap over several lines inside the box.\r"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "shapes": [
+          {
+            "name": "Rect P2",
+            "type": 1,
+            "left_pt": 214.95,
+            "top_pt": 1.649,
+            "width_pt": 200,
+            "height_pt": 100,
+            "text": "\r"
+          },
+          {
+            "name": "Text P2",
+            "type": 17,
+            "left_pt": 214.95,
+            "top_pt": 201.649,
+            "width_pt": 300,
+            "height_pt": 60,
+            "text": "Second page text box.\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": [
+      {
+        "name": "Rect Far",
+        "type": 1,
+        "left_pt": 514.95,
+        "top_pt": 601.649,
+        "width_pt": 150,
+        "height_pt": 60,
+        "text": "\r"
+      }
+    ]
+  },
+  "page-edge-5x7-dialog": {
+    "note": "page-base-edge resized to 5 x 7 in with the Page Setup dialog (Width 5, Height 7); the UI re-centres both axes. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base-edge, Page Design > Page Setup dialog (keyboard), Save()",
+    "page_width_pt": 360,
+    "page_height_pt": 504,
+    "orientation": 1,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": []
+      }
+    ],
+    "scratch_shapes": [
+      {
+        "name": "Right partial",
+        "type": 1,
+        "left_pt": 374,
+        "top_pt": 156,
+        "width_pt": 200,
+        "height_pt": 80,
+        "text": "\r"
+      },
+      {
+        "name": "Bottom partial",
+        "type": 1,
+        "left_pt": -26,
+        "top_pt": 596,
+        "width_pt": 100,
+        "height_pt": 100,
+        "text": "\r"
+      },
+      {
+        "name": "Left partial",
+        "type": 1,
+        "left_pt": -186,
+        "top_pt": -44,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Top partial",
+        "type": 1,
+        "left_pt": -26,
+        "top_pt": -184,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Right scratch",
+        "type": 1,
+        "left_pt": 398,
+        "top_pt": 100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Bottom scratch",
+        "type": 1,
+        "left_pt": 100,
+        "top_pt": 542,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Left scratch",
+        "type": 1,
+        "left_pt": -150,
+        "top_pt": 300,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Top scratch",
+        "type": 1,
+        "left_pt": 300,
+        "top_pt": -100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      }
+    ]
+  },
+  "page-edge-a5-preset": {
+    "note": "page-base-edge with Size gallery > A5 (Portrait) (14.8 x 21 cm); one shape stays on the page, seven are on the scratch area. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base-edge, ribbon Size gallery (keyboard), Save()",
+    "page_width_pt": 419.527557,
+    "page_height_pt": 595.2756,
+    "orientation": 1,
+    "page_size_name": "A5 (Portrait)",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Right partial",
+            "type": 1,
+            "left_pt": 403.764,
+            "top_pt": 201.637,
+            "width_pt": 200,
+            "height_pt": 80,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": [
+      {
+        "name": "Bottom partial",
+        "type": 1,
+        "left_pt": 3.764,
+        "top_pt": 641.638,
+        "width_pt": 100,
+        "height_pt": 100,
+        "text": "\r"
+      },
+      {
+        "name": "Left partial",
+        "type": 1,
+        "left_pt": -156.236,
+        "top_pt": 1.638,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Top partial",
+        "type": 1,
+        "left_pt": 3.764,
+        "top_pt": -138.362,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Right scratch",
+        "type": 1,
+        "left_pt": 457.527,
+        "top_pt": 100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Bottom scratch",
+        "type": 1,
+        "left_pt": 100,
+        "top_pt": 633.274,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Left scratch",
+        "type": 1,
+        "left_pt": -150,
+        "top_pt": 300,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Top scratch",
+        "type": 1,
+        "left_pt": 300,
+        "top_pt": -100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      }
+    ]
+  },
+  "page-edge-landscape": {
+    "note": "page-base-edge with PageWidth=792 / PageHeight=612. Positions are those Publisher 2021 reports (points, relative to the top-left of the page) when the shipped file is reopened.",
+    "method": "page-base-edge, PageSetup.PageWidth/PageHeight, Save()",
+    "page_width_pt": 792,
+    "page_height_pt": 612,
+    "orientation": 2,
+    "page_size_name": "Current",
+    "margins_pt": {
+      "left": 36,
+      "right": 36,
+      "top": 36,
+      "bottom": 36
+    },
+    "mirror_guides": false,
+    "pages": [
+      {
+        "index": 1,
+        "shapes": [
+          {
+            "name": "Right partial",
+            "type": 1,
+            "left_pt": 590,
+            "top_pt": 210,
+            "width_pt": 200,
+            "height_pt": 80,
+            "text": "\r"
+          },
+          {
+            "name": "Left partial",
+            "type": 1,
+            "left_pt": 30,
+            "top_pt": 10,
+            "width_pt": 100,
+            "height_pt": 60,
+            "text": "\r"
+          }
+        ]
+      }
+    ],
+    "scratch_shapes": [
+      {
+        "name": "Bottom partial",
+        "type": 1,
+        "left_pt": 190,
+        "top_pt": 650,
+        "width_pt": 100,
+        "height_pt": 100,
+        "text": "\r"
+      },
+      {
+        "name": "Top partial",
+        "type": 1,
+        "left_pt": 190,
+        "top_pt": -130,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Right scratch",
+        "type": 1,
+        "left_pt": 830,
+        "top_pt": 100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Bottom scratch",
+        "type": 1,
+        "left_pt": 100,
+        "top_pt": 650,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Left scratch",
+        "type": 1,
+        "left_pt": -150,
+        "top_pt": 300,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      },
+      {
+        "name": "Top scratch",
+        "type": 1,
+        "left_pt": 300,
+        "top_pt": -100,
+        "width_pt": 100,
+        "height_pt": 60,
+        "text": "\r"
+      }
+    ]
+  }
+}

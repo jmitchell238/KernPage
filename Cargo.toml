@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["crates/metafile", "crates/pub-format", "crates/pub-write", "crates/pubdump", "crates/pub2pdf", "crates/kernpage-core", "crates/kernpage", "crates/kernpage-launcher", "crates/kernpage-release", "crates/kernpage-samples", "crates/kernpage-samples-macros"]
+
+[workspace.package]
+edition = "2021"
+version = "0.2.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jmitchell238/kernpage"

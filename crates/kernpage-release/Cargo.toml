@@ -1,0 +1,21 @@
+[package]
+name = "kernpage-release"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Maintainer tool: generates the update-signing keys and signs the update feed. Never shipped."
+publish = false
+
+[lib]
+name = "kernpage_release"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kernpage-release"
+path = "src/main.rs"
+
+[dependencies]
+minisign = "0.7"
+serde_json = "1"
+sha2 = "0.11"
+semver = "1"
