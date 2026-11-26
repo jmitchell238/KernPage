@@ -147,6 +147,12 @@ ourselves, from comparing the files Publisher writes after known edits made thro
 written from that description. We do not use Microsoft code, icons, artwork or templates.
 KernPage is an independent project. It is not affiliated with, endorsed by or sponsored by Microsoft. Microsoft, Publisher, Office and Windows are trademarks of the Microsoft group of companies.
 
+## Support KernPage
+
+KernPage is free and always will be. If it helps you, you can say thanks at
+[buymeacoffee.com/238apps](https://buymeacoffee.com/238apps) (also under File > About KernPage).
+Reporting problems and sharing ideas helps just as much.
+
 ## Licence
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or

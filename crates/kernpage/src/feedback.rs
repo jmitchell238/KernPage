@@ -4,6 +4,8 @@
 
 /// The project's GitHub repository (the same address the Launcher's feed uses).
 pub const REPO_URL: &str = "https://github.com/jmitchell238/kernpage";
+/// Donation page (Buy Me a Coffee, shared by the 238apps apps); opened only when the user clicks it.
+pub const DONATE_URL: &str = "https://buymeacoffee.com/238apps";
 
 /// Percent-encode `s` for a URL query value (RFC 3986 unreserved characters stay as they are).
 pub fn url_encode(s: &str) -> String {

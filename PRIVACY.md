@@ -10,6 +10,7 @@ KernPage is free, open-source software that runs on your computer. This page say
 ## What happens on the network
 - **Update checks (KernPage Launcher).** By default updates are manual: nothing is sent until you press Check. If you turn on automatic checks, or press Check, the Launcher asks GitHub for a small file (`index.json`) and its signature. The request carries a fixed program name and version (`KernPageLauncher/<version>`) and nothing that identifies you. Downloads of installers also come from GitHub.
 - **GitHub sees your IP address** when you check or download, like any website. We do not receive that information. GitHub's own rules apply: https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement
+- **Links you click** (website, source code, report a problem, and the "Buy me a RedBull" donation page at buymeacoffee.com/238apps under File > About KernPage) open in your web browser. KernPage itself sends nothing; the site you open has its own privacy rules.
 - The editor itself sends nothing. When you start it, it may ask the Launcher whether an update is known; the Launcher follows your update setting above.
 
 ## What is stored on your computer

@@ -1104,6 +1104,13 @@ fn about_page(ui: &mut Ui) {
             ui.add_space(2.0);
         }
         ui.add_space(14.0);
+        section_title(ui, "Support KernPage");
+        text(ui, "KernPage is free and always will be. If it helps you, you can say thanks with a small donation. The link opens in your web browser.");
+        ui.add_space(4.0);
+        if green_link(ui, "Buy me a RedBull: https://buymeacoffee.com/238apps") {
+            crate::feedback::open_url(crate::feedback::DONATE_URL);
+        }
+        ui.add_space(14.0);
         text(ui, "KernPage is an independent project. It is not affiliated with, endorsed by or sponsored by Microsoft.");
     });
 }
