@@ -500,10 +500,16 @@ pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)
         ui.vertical(|ui| group_body(ui, title, launcher, lvl, add))
     };
     let r = inner.response.rect;
-    ui.add_space(TILE_PAD);
-    let rect = Rect::from_min_max(
-        Pos2::new(r.min.x - TILE_PAD, r.min.y),
-        Pos2::new(r.max.x + TILE_PAD, r.max.y),
+    // Leave exactly GROUP_GAP between this card and the next (see the spacing arithmetic:
+    // the cursor advances by the item spacing after every allocation).
+    let sp = ui.spacing().item_spacing.x;
+    ui.add_space((TILE_PAD + GROUP_GAP + 4.0 - 3.0 * sp).max(0.0));
+    let rect = snap_rect(
+        ui.ctx().pixels_per_point(),
+        Rect::from_min_max(
+            Pos2::new(r.min.x - TILE_PAD, r.min.y),
+            Pos2::new(r.max.x + TILE_PAD, r.max.y),
+        ),
     );
     #[cfg(test)]
     if ui.is_visible() {
@@ -515,17 +521,9 @@ pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)
             selected: false,
         });
     }
-    ui.painter().set(
-        tile,
-        egui::epaint::RectShape::new(
-            rect,
-            6.0,
-            crate::theme::tile(),
-            Stroke::new(1.0, crate::theme::tile_line()),
-            egui::StrokeKind::Inside,
-        ),
-    );
-    ui.add_space(4.0);
+    // A flat fill on whole device pixels, no outline: a 1 px outline next to a faint fill made
+    // two thin parallel edges across every gap between cards, which looked soft and busy.
+    ui.painter().set(tile, egui::epaint::RectShape::filled(rect, TILE_RADIUS, crate::theme::tile()));
     fit::leave_group(title, ui.cursor().min.x - x0);
 }
 
@@ -605,7 +603,18 @@ fn col_inner<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&m
 }
 
 /// Inner horizontal padding of a Modern group tile.
-const TILE_PAD: f32 = 4.0;
+const TILE_PAD: f32 = 8.0;
+/// Corner radius of a group card.
+const TILE_RADIUS: f32 = 5.0;
+/// Space between two neighbouring group cards.
+pub const GROUP_GAP: f32 = 6.0;
+
+/// `rect` with every edge on a whole device pixel at `ppp` pixels per point, so fills and
+/// 1 px strokes are crisp at any scaling (1.25x, 1.5x ...).
+pub fn snap_rect(ppp: f32, r: Rect) -> Rect {
+    let s = |v: f32| (v * ppp).round() / ppp;
+    Rect::from_min_max(Pos2::new(s(r.min.x), s(r.min.y)), Pos2::new(s(r.max.x), s(r.max.y)))
+}
 
 /// Status bar geometry (logical px), measured from Publisher 2021 at 125%.
 pub const STATUS_BAR_H: f32 = 21.0;
@@ -657,20 +666,20 @@ fn group_body(ui: &mut Ui, title: &str, launcher: bool, lvl: usize, add: impl Fn
         probe::record(probe::Seen {
             label: format!("grouptitle:{title}"),
             tip: String::new(),
-            rect: Rect::from_min_size(Pos2::new(r.min.x + 2.0, r.min.y), Vec2::new(label_w, 16.0)),
+            rect: Rect::from_min_size(Pos2::new(r.min.x, r.min.y), Vec2::new(label_w, 16.0)),
             enabled: true,
             selected: false,
         });
     }
     ui.painter().text(
-        Pos2::new(r.min.x + 2.0, r.center().y),
+        Pos2::new(r.min.x, r.center().y),
         Align2::LEFT_CENTER,
         title,
         FontId::proportional(GROUP_PX),
         crate::theme::group_label(),
     );
     if launcher {
-        let lr = Rect::from_center_size(Pos2::new(r.max.x - 6.0, r.center().y), Vec2::splat(10.0));
+        let lr = Rect::from_center_size(Pos2::new(r.max.x - 5.0, r.center().y), Vec2::splat(10.0));
         let live = title == "Page Setup";
         let resp = ui.interact(
             lr,

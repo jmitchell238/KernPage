@@ -338,7 +338,7 @@ accessors!(
 
 /// Fill of a Modern ribbon group tile: a hair off the card colour.
 pub fn tile() -> Color32 {
-    mix(card(), text(), if is_dark() { 0.07 } else { 0.035 })
+    mix(card(), text(), if is_dark() { 0.09 } else { 0.05 })
 }
 
 /// Outline of a Modern ribbon group tile.

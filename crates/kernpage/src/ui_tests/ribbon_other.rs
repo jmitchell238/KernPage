@@ -74,7 +74,7 @@ const INSERT_GREYED: [&str; 18] = [
 fn the_insert_tab_has_working_and_greyed_controls_as_planned() {
     let mut ui = ui_with_shapes();
     // Segoe UI 9pt labels are wider: the Insert tab needs a wider window to show every group in full.
-    ui.h.set_size(eframe::egui::Vec2::new(1400.0, 800.0));
+    ui.h.set_size(eframe::egui::Vec2::new(1600.0, 800.0));
     ui.settle();
     ui.click_tab("Insert");
     for n in ["Page", "Table", "Pictures", "Shapes", "Draw Text Box"] {
@@ -732,14 +732,14 @@ fn narrowing_the_window_shrinks_groups_and_widening_it_restores_them() {
         "wide: the Font group is shown in full"
     );
     let wide_cut = ui.ribbon("Cut").rect;
-    resize(&mut ui, 600.0);
+    resize(&mut ui, 700.0);
     // The narrowest layout turns whole groups into single drop-down buttons named after the group.
     for g in ["Font", "Paragraph", "Arrange"] {
         let b = ui.ribbon(g);
         assert!(b.enabled && b.tip == g, "{g} is collapsed into one button");
     }
     assert!(!ui.has_ribbon("Bold (Ctrl+B)"), "the Font controls are inside the pop-up now");
-    assert_eq!(fit_problems(&ui, 600.0), Vec::<String>::new());
+    assert_eq!(fit_problems(&ui, 700.0), Vec::<String>::new());
     resize(&mut ui, 1600.0);
     assert!(ui.has_ribbon("Bold (Ctrl+B)"), "wide again: the Font group is back in full");
     assert_eq!(ui.ribbon("Cut").rect, wide_cut, "and everything is where it was");
@@ -749,7 +749,7 @@ fn narrowing_the_window_shrinks_groups_and_widening_it_restores_them() {
 fn a_collapsed_group_opens_a_pop_up_with_its_controls_and_closes_on_an_outside_click() {
     let mut ui = ui_with_shapes();
     ui.click_at(ui.center_of(B));
-    resize(&mut ui, 600.0);
+    resize(&mut ui, 700.0);
     ui.click_ribbon("Arrange");
     assert!(
         ui.has_ribbon("Send Backward") && ui.has_ribbon("Align") && ui.has_ribbon("Rotate"),
@@ -906,4 +906,97 @@ fn every_toggle_button_on_every_tab_uses_the_same_on_style_inside_its_card() {
     assert_ne!(hover_fill, fill, "hover on an ON button stays visible");
     assert_ne!(fill, crate::theme::tile(), "the on fill is not the card's grey");
     assert_eq!(TOGGLE_RADIUS, 3.0);
+}
+
+// ---- Ribbon cards: padding, launcher, crisp edges -----------------------------------------------------------------
+
+fn tiles(ui: &TestUi) -> Vec<(String, eframe::egui::Rect)> {
+    ui.ribbon_buttons()
+        .into_iter()
+        .filter_map(|b| b.label.strip_prefix("grouptile:").map(|n| (n.to_owned(), b.rect)))
+        .collect()
+}
+
+fn card_of(tiles: &[(String, eframe::egui::Rect)], r: eframe::egui::Rect) -> Option<eframe::egui::Rect> {
+    tiles.iter().filter(|(_, t)| t.contains(r.center())).map(|(_, t)| *t).min_by(|a, b| a.area().total_cmp(&b.area()))
+}
+
+#[test]
+fn every_control_keeps_the_card_padding_on_both_sides_at_any_scaling() {
+    for ppp in [1.0, 1.25, 1.5] {
+        for w in [1500.0, 1000.0] {
+            let mut ui = ui_with_shapes();
+            ui.h.set_pixels_per_point(ppp);
+            ui.h.set_size(Vec2::new(w, 800.0));
+            ui.settle();
+            ui.wait_for_fonts();
+            for tab in FIXED_TABS {
+                ui.click_tab(tab);
+                ui.settle();
+                let t = tiles(&ui);
+                for (name, r) in labelled_controls(&ui) {
+                    let Some(card) = card_of(&t, r) else { continue };
+                    assert!(r.min.x - card.min.x >= 7.0 - 1e-3, "{tab} {w}@{ppp}: {name:?} starts {} px inside its card", r.min.x - card.min.x);
+                    assert!(card.max.x - r.max.x >= 7.0 - 1e-3, "{tab} {w}@{ppp}: {name:?} ends {} px inside its card", card.max.x - r.max.x);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_dialog_launcher_is_inset_like_the_title_and_centred_on_its_line() {
+    for ppp in [1.0, 1.25] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        let mut found = 0;
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let all = ui.ribbon_buttons();
+            let t = tiles(&ui);
+            for l in all.iter().filter(|b| b.label.starts_with("launcher:")) {
+                let name = &l.label["launcher:".len()..];
+                let card = t.iter().find(|(n, _)| n == name).unwrap().1;
+                let title = all.iter().find(|b| b.label == format!("grouptitle:{name}")).unwrap().rect;
+                let right = card.max.x - l.rect.max.x;
+                let left = title.min.x - card.min.x;
+                assert!((right - left).abs() <= 1.0, "{name}@{ppp}: launcher {right} px from the right edge, title {left} px from the left");
+                assert!(left >= 7.0, "{name}: title inset {left}");
+                assert!((l.rect.center().y - title.center().y).abs() <= 0.5, "{name}: launcher not centred on the title line");
+                assert!(l.rect.min.y - card.min.y >= 6.0, "{name}: launcher crowds the top edge");
+                found += 1;
+            }
+        }
+        assert!(found >= 3, "Clipboard, Font and Paragraph have launchers");
+    }
+}
+
+#[test]
+fn group_cards_sit_on_whole_pixels_with_an_even_gap() {
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let mut t = tiles(&ui);
+            t.sort_by(|a, b| a.1.min.x.total_cmp(&b.1.min.x));
+            for (n, r) in &t {
+                for v in [r.min.x, r.min.y, r.max.x, r.max.y] {
+                    let px = v * ppp;
+                    assert!((px - px.round()).abs() < 1e-3, "{tab}@{ppp}: card {n:?} edge {v} is not on a device pixel");
+                }
+            }
+            for p in t.windows(2) {
+                let gap = p[1].1.min.x - p[0].1.max.x;
+                assert!((gap - 6.0).abs() <= 1.0 / ppp + 1e-3, "{tab}@{ppp}: gap {gap} between {:?} and {:?}", p[0].0, p[1].0);
+            }
+        }
+    }
 }
