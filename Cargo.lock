@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "kernpage"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "eframe",
  "egui_kittest",
@@ -1663,7 +1663,7 @@ dependencies = [
 
 [[package]]
 name = "kernpage-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "kernpage-samples",
  "pub-format",
@@ -1677,7 +1677,7 @@ dependencies = [
 
 [[package]]
 name = "kernpage-launcher"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "eframe",
  "egui_kittest",
@@ -1700,7 +1700,7 @@ dependencies = [
 
 [[package]]
 name = "kernpage-release"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "minisign",
  "semver",
@@ -1710,14 +1710,14 @@ dependencies = [
 
 [[package]]
 name = "kernpage-samples"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "kernpage-samples-macros",
 ]
 
 [[package]]
 name = "kernpage-samples-macros"
-version = "0.2.0"
+version = "0.2.1"
 
 [[package]]
 name = "keyboard-types"
@@ -1856,7 +1856,7 @@ dependencies = [
 
 [[package]]
 name = "metafile"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "kernpage-samples",
  "pub-format",
@@ -2648,7 +2648,7 @@ checksum = "3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5"
 
 [[package]]
 name = "pub-format"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "cfb",
  "kernpage-samples",
@@ -2660,7 +2660,7 @@ dependencies = [
 
 [[package]]
 name = "pub-write"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "cfb",
  "kernpage-samples",
@@ -2671,7 +2671,7 @@ dependencies = [
 
 [[package]]
 name = "pub2pdf"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "kernpage-samples",
  "metafile",
@@ -2685,7 +2685,7 @@ dependencies = [
 
 [[package]]
 name = "pubdump"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "pub-format",
  "serde_json",
