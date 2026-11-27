@@ -1152,9 +1152,37 @@ impl App {
 /// date. In demo mode the made-up date is shown.
 fn opened_text(list: &recent::Recent, path: &Path) -> Option<String> {
     if crate::demo::is_on() {
-        return crate::demo::date_of(path).map(str::to_owned);
+        return crate::demo::date_of(path).map(demo_date);
     }
-    list.opened_at(path).map(recent::opened_label_now)
+    list.opened_at(path).map(|at| column_label(&recent::opened_label_now(at)))
+}
+
+/// The Opened column already has the heading "Opened": "Opened today 10:24" -> "Today 10:24".
+pub(crate) fn column_label(label: &str) -> String {
+    let rest = label.strip_prefix("Opened ").unwrap_or(label);
+    let mut c = rest.chars();
+    c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
+}
+
+/// Demo dates are stored as "2026-11-24"; show them the way real dates look ("24 Nov 2026").
+fn demo_date(iso: &str) -> String {
+    const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let p: Vec<&str> = iso.split('-').collect();
+    match (p.first(), p.get(1).and_then(|m| m.parse::<usize>().ok()), p.get(2).and_then(|d| d.parse::<u32>().ok())) {
+        (Some(y), Some(m @ 1..=12), Some(d)) => format!("{d} {} {y}", MONTHS[m - 1]),
+        _ => iso.to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod column_label_tests {
+    #[test]
+    fn the_opened_column_drops_the_repeated_word() {
+        assert_eq!(super::column_label("Opened today 10:24"), "Today 10:24");
+        assert_eq!(super::column_label("Opened yesterday"), "Yesterday");
+        assert_eq!(super::column_label("Opened 23 Nov 2026"), "23 Nov 2026");
+        assert_eq!(super::demo_date("2026-11-09"), "9 Nov 2026");
+    }
 }
 
 fn trim(v: f64) -> String {

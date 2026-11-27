@@ -623,7 +623,7 @@ fn recent_rows_show_name_folder_and_opened_text_newest_first() {
         assert_eq!(name.tip, *n);
         assert!(folder.rect.min.y > name.rect.min.y, "{n}: the folder is under the name");
         let opened = ui.ribbon(&format!("ropened:{n}"));
-        assert_eq!(opened.tip, crate::recent::opened_label_now(t), "{n}: Opened text");
+        assert_eq!(opened.tip, crate::backstage::column_label(&crate::recent::opened_label_now(t)), "{n}: Opened text (without the repeated word)");
         assert!(opened.rect.min.x > name.rect.max.x && opened.rect.max.x <= row.max.x, "{n}: Opened is its own column on the right");
         let _ = f;
     }
