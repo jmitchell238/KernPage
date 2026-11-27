@@ -1256,3 +1256,40 @@ fn the_notices_link_needs_the_installed_file() {
     assert!(crate::backstage::notices_in(&dir).is_some());
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn a_newly_saved_kern_file_appears_as_a_recent_card_with_its_first_page() {
+    let mut ui = TestUi::with_doc(letter_doc(vec![rect_shape(1.0, 1.0, 2.0, 2.0)]));
+    let target = ui.env.files.join("fresh.kern");
+    ui.dialogs.script_save(Some(target.clone()));
+    ui.key(CTRL, Key::S);
+    assert_eq!(ui.app().recent.items(), &[target]);
+    ui.click_tab("File");
+    ui.app().section = Section::Home;
+    ui.settle();
+    ui.app().start_thumbs.wait_idle();
+    ui.settle();
+    assert!(has_seen(&ui, "preview:fresh.kern"), "the saved file's first page is drawn on its Recent card");
+}
+
+#[test]
+fn the_new_cards_page_is_a_cut_corner_polygon_with_a_one_pixel_pixel_snapped_outline() {
+    // Every page picture is drawn by `tile`; the church bulletin one has a preview on top.
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = TestUi::start();
+        ui.h.set_pixels_per_point(ppp);
+        ui.settle();
+        let all = ui.ribbon_buttons();
+        let mut n = 0;
+        for name in ["Blank 8.5 x 11\"", "Blank 11 x 8.5\"", "More Blank Page Sizes", "Church Bulletin"] {
+            let tile = all.iter().find(|b| b.label == format!("tile:{name}")).expect("tile").rect;
+            let page = all.iter().find(|b| b.label == format!("page:{name}")).expect("page").rect;
+            assert!(tile.contains_rect(page), "{name}: the page stays inside its card");
+            for v in [page.min.x, page.min.y, page.max.x, page.max.y] {
+                assert!((v * ppp - (v * ppp).round()).abs() < 1e-3, "{name}@{ppp}: page edge {v} off the device pixels");
+            }
+            n += 1;
+        }
+        assert_eq!(n, 4);
+    }
+}

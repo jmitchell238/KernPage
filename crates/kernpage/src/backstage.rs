@@ -163,17 +163,36 @@ fn tile(
     }
     let ink = if enabled { crate::theme::group_label() } else { crate::theme::frame() };
     let (w, h) = if landscape { (116.0, 90.0) } else { (92.0, 116.0) };
-    let page = Rect::from_center_size(frame.center(), Vec2::new(w, h));
-    p.rect_filled(page, 2.0, crate::theme::card());
-    let fold = 20.0;
-    let s = Stroke::new(1.0, ink);
-    let (tl, tr, br, bl) = (page.left_top(), page.right_top(), page.right_bottom(), page.left_bottom());
-    let (a, b, c) = (tr - Vec2::new(fold, 0.0), tr + Vec2::new(0.0, fold), tr + Vec2::new(-fold, fold));
-    for (p1, p2) in [(tl, a), (a, b), (a, c), (c, b), (b, br), (br, bl), (bl, tl)] {
-        p.line_segment([p1, p2], s);
-    }
+    let ppp = ui.ctx().pixels_per_point();
+    let page = crate::widgets::snap_rect(ppp, Rect::from_center_size(frame.center(), Vec2::new(w, h)));
+    #[cfg(test)]
+    seen(format!("page:{label}"), page, enabled, false);
+    let px = 1.0 / ppp;
+    // The page is a polygon with its top-right corner cut diagonally; every point sits on a
+    // device-pixel centre so the 1 px outline is crisp. Nothing is drawn outside it.
+    let (l, t, r, bt) = (
+        page.min.x + px / 2.0,
+        page.min.y + px / 2.0,
+        page.max.x - px / 2.0,
+        page.max.y - px / 2.0,
+    );
+    let fold = (20.0 * ppp).round() / ppp;
+    let (tl, bl, br) = (Pos2::new(l, t), Pos2::new(l, bt), Pos2::new(r, bt));
+    let (a, b, c) = (Pos2::new(r - fold, t), Pos2::new(r, t + fold), Pos2::new(r - fold, t + fold));
+    let tr = Pos2::new(r, t);
+    p.add(egui::Shape::convex_polygon(vec![tl, a, b, br, bl], crate::theme::card(), Stroke::NONE));
     if let Some(art) = art {
         art(ui, page);
+        // The preview is a plain rectangle: hide what it drew in the cut-off corner.
+        p.add(egui::Shape::convex_polygon(
+            vec![a, tr + Vec2::new(px, -px), b],
+            crate::theme::tile(),
+            Stroke::NONE,
+        ));
+    }
+    let s = Stroke::new(px, ink);
+    for (p1, p2) in [(tl, a), (a, b), (a, c), (c, b), (b, br), (br, bl), (bl, tl)] {
+        p.line_segment([p1, p2], s);
     }
     p.text(
         Pos2::new(rect.center().x, rect.max.y - 8.0),
