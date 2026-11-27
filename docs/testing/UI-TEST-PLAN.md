@@ -141,7 +141,7 @@ Spacing menu + "Line Spacing Options..."), Objects (Rectangle/Oval/Line/Text Box
 menu, Pictures, Group, Ungroup), Arrange (Align menu incl. Relative to Margin Guides, Distribute
 H/V, Text Wrapping menu: Square/Tight/Through/Top and Bottom/None, Columns One/Two/Three,
 Rotate/Flip, Bring Forward/to Front, Send Backward/to Back), Pages group.
-Greyed ➖: Format Painter, Styles, Find, Replace, Select, Subscript, Superscript, Edit Wrap Points,
+Greyed ➖: Copy Formatting, Styles, Find, Replace, Select, Subscript, Superscript, Edit Wrap Points,
 More Layout Options..., More Columns..., More Rotation Options..., Insert Blank/Duplicate Page live in Page group.
 
 | Feature | Behaviour | Test | Status |
@@ -170,7 +170,7 @@ Ribbon look (pw-r3i0 step 1, pw-23e6): `the_ui_font_is_segoe_ui_when_installed` 
 
 ## 5. Insert tab (module `ribbon_other`) 9 tests, all pass
 
-Enabled: Pages (Insert Blank Page, Insert Duplicate Page), Illustrations (Pictures, Shapes menu), Tables (Table, see 7a), Text (Draw Text Box). Greyed ➖ (18, exactly these and nothing else): Catalog Pages, Online Pictures, Picture Placeholder, Page Parts, Calendars, Borders & Accents, Advertisements, Business Information, WordArt, Insert File, Symbol, Date & Time, Object, Link, Bookmark, Header, Footer, Page Number.
+Enabled: Pages (Insert Blank Page, Insert Duplicate Page), Illustrations (Pictures, Shapes menu), Tables (Table, see 7a), Text (Draw Text Box). Greyed ➖ (17, exactly these and nothing else): Online Pictures, Picture Placeholder, Page Elements, Calendars, Borders & Accents, Advertisements, Contact Details, Styled Text, Insert File, Symbol, Date & Time, Object, Link, Bookmark, Header, Footer, Page Number.
 
 | Feature | Test | Status |
 |---|---|---|
@@ -282,7 +282,7 @@ Same buttons on the Text Box Tools tab (shared Font group): counted in `ribbon_c
 | Window close with unsaved | close request shows the prompt (Pending::Exit), Cancel keeps the window | `documents::exit_*` (the close request is injected as a `ViewportEvent::Close`) | ✅ |
 | Gallery drop-downs (Margins, Orientation, Size, Wrap, Columns) | open, pick item, close on outside click / Esc | `a_gallery_closes_on_escape_and_on_an_outside_click_without_changing_anything` (Margins, Orientation, Size; Wrap/Columns menus are in section 4) | ✅ (fixed: Esc was swallowed by the canvas shortcuts) |
 
-## 9. Backstage / File view (module `backstage`) 60 tests, all pass
+## 9. File screen (module `backstage`) 60 tests, all pass
 
 Left nav: Home, New, Open, Info, Save, Save As, Share, Export, Print, Close, Account, Feedback, Options, Back arrow. Entries, tiles, recent rows, links and buttons are found through the `backstage::seen` probe labels; page text through AccessKit; the Open / Save dialogs are the scripted fakes; Explorer and the PDF viewer are recorded (`output::test_os`).
 
@@ -400,7 +400,7 @@ choosing an older version arrive in the next step." and the greyed "Version" box
 | 6 Other tabs, minimize, ribbon fit | 26 | 26 (`ribbon_other`; 1 ignored) |
 | 7 Contextual tabs | 41 | 41 |
 | 8 Dialogs and prompts | ~18 | prompts done in `documents` (counted in 11) |
-| 9 Backstage | 60 | 60 |
+| 9 File screen | 60 | 60 |
 | 10 Chrome (pages pane, rulers, zoom, status) | 24 | 24 |
 | 11 Documents / AutoRecover | 99 | 99 (`documents` 62, `autorecover` 37) |
 | 12 Launcher | ~40 | 127 (`dashboard` 35, `cards` 28, `details` 17, `download` 20, `settings` 19, `fit` 8) |
@@ -421,7 +421,7 @@ Priority = where unseen input bugs hurt most (real mouse/keyboard on the editing
 7. Batch 8: Pages pane + Insert page/duplicate/delete/move + page keys; rulers, zoom and status bar.
 8. Batch 9 (done as batch 5): native-dialog seam, Save / Save As / Open / unsaved prompts / error dialog / close handling / pictures / Export PDF (module `documents`).
 9. Batch 10 (done as batch 5): AutoRecover + Options page (module `autorecover`).
-10. Batch 11 (done as batch 6): Backstage pages (nav, New, Open, Info, Print, Export, Account, Feedback; module `backstage`).
+10. Batch 11 (done as batch 6): File screen pages (nav, New, Open, Info, Print, Export, Account, Feedback; module `backstage`).
 11. Batch 12 (done as batch 6): Contextual tabs (shape/text box/picture/table), pictures, tables, groups (module `ribbon_contextual`).
 12. Batch 13 (done as batch 6): View / Insert / Page Design / Review / Help tabs, ribbon collapse and fit, all greyed buttons (➖) (module `ribbon_other`).
 13. Batch 7 (launcher, done): harness + seams, dashboard, cards, details / rollback, download / install, settings, fit.

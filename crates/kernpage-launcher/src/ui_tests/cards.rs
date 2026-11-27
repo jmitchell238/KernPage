@@ -310,7 +310,7 @@ fn refresh_reloads_the_recent_list_from_disk() {
 #[test]
 fn clicking_the_card_name_or_tagline_opens_the_details() {
     // Regression: selectable labels used to swallow the click.
-    for l in ["KernPage", "Page layout and publishing. Opens and saves Publisher (.pub) files."] {
+    for l in ["KernPage", "Desktop publishing for bulletins, newsletters and flyers. Opens Publisher (.pub) files too."] {
         let mut ui = TestUi::start();
         ui.click(l);
         assert!(ui.has("01 / FEATURES"), "clicking {l:?} opens the details");

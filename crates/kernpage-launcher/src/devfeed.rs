@@ -235,7 +235,7 @@ pub fn sample_index(o: &SampleOpts) -> Value {
         "items": [
             {
                 "id": "kernpage", "kind": "app", "name": "KernPage",
-                "tagline": "Page layout and publishing. Opens and saves Publisher (.pub) files.",
+                "tagline": "Desktop publishing for bulletins, newsletters and flyers. Opens Publisher (.pub) files too.",
                 "icon": format!("{b}/icons/kernpage.png"),
                 "website": "https://example.org/kernpage",
                 "repo": "https://github.com/example/kernpage",
@@ -253,7 +253,7 @@ pub fn sample_index(o: &SampleOpts) -> Value {
                     "stable": stable,
                     "beta": [{
                         "version": "0.3.0-beta.1", "released": "2027-01-10", "prerelease": true,
-                        "notes": "## Added\n- Mail merge preview (#240)\n",
+                        "notes": "## Added\n- Data tab preview (#240)\n",
                         "changelog_url": "https://github.com/example/kernpage/blob/main/CHANGELOG.md",
                         "files": [file(b, "kernpage-0.3.0-beta.1-x64.msi", "msi", "windows", false, 31_100_000)]
                     }]

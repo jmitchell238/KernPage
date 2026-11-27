@@ -1,14 +1,16 @@
 # KernPage roadmap
 
-KernPage aims to be a free, open-source alternative for people who have Publisher (`.pub`) files. It opens
-and saves `.pub` files and uses a ribbon-style interface. Once it covers the features people use, the
-goal is to keep improving it in the places Publisher stopped.
+KernPage is free, open-source desktop publishing for Windows: bulletins, newsletters, flyers, programs and
+posters, with text, pictures, tables and shapes, printed or saved as a PDF. It is made to replace Microsoft
+Publisher for people who used it before, so it opens and saves Publisher (`.pub`) files too (and has its own
+`.kern` format) and uses a ribbon-style interface. Once it covers the features people use, the goal is to
+keep improving it in the places Publisher stopped.
 
 This file tracks where we are and what is left, so new contributors can find something to work on.
 
 > **The authoritative list of features is [`docs/FEATURES.md`](docs/FEATURES.md).** It catalogues every Publisher 2021 feature one by one, with its status and the issue that tracks it. Goal: cover the features people use in Publisher 2021 and keep `.pub` files round-tripping. The catalogue tracks each feature and its status. This roadmap is the summary; when the two differ, the catalogue wins.
 
-*Last updated: 2026-11-24. Progress is measured against the feature catalogue; the per-area percentages in the table are rough estimates.*
+*Last updated: 2026-11-27. Progress is measured against the feature catalogue; the per-area percentages in the table are rough estimates.*
 
 ## How to read this
 
@@ -27,7 +29,7 @@ for our own sample files; open only files you made yourself in Publisher. Never 
 
 ## Where we are
 
-**Status: the first installable version works. Overall about 10% of the 742 catalogued Publisher 2021 features** (48 done, 55 partly done, counted at half; see [`docs/FEATURES.md`](docs/FEATURES.md)). KernPage already opens, edits and saves real `.pub` files, so the everyday basics are there; counting every feature one by one is deliberately strict, which is why the percentage is low. The area percentages below are rough estimates of the main file-reading, saving and look-and-feel work. **Next up:** master pages (headers, footers, page numbers), styles, text box margins and autofit, more of the greyed-out ribbon commands, then a public 0.x release.
+**Status: version 0.2.0 is released (public GitHub release, signed updates). Overall about 10% of the 742 catalogued Publisher 2021 features** (48 done, 55 partly done, counted at half; see [`docs/FEATURES.md`](docs/FEATURES.md)). KernPage already opens, edits and saves real `.pub` files, so the everyday basics are there; counting every feature one by one is deliberately strict, which is why the percentage is low. The area percentages below are rough estimates of the main file-reading, saving and look-and-feel work. **Next up:** master pages (headers, footers, page numbers), styles, text box margins and autofit, more of the greyed-out ribbon commands, then more 0.x releases.
 
 | Area | Done | Summary |
 |---|---|---|
@@ -37,7 +39,7 @@ for our own sample files; open only files you made yourself in Publisher. Never 
 | Look and feel (ribbon-style window) | ~80% | Window, every ribbon tab, object tabs, File screen, ribbon shrinking, Light/Dark themes, accents, command search |
 | Ribbon commands that actually work | ~45% | Most of Home, much of Insert, Page Design and the table tabs; the rest are shown greyed out in place |
 | Printing and PDF | ~60% | PDF export; File > Print sends pages straight to a chosen printer |
-| Mail merge, spelling, templates, connected features | ~0% | Not started |
+| Data tab (data-driven publishing), spelling, more templates, connected features | ~0% | Not started; the Data tab is a mock-up and there is one template (Church Bulletin) |
 
 ## Phase 1: cover what Publisher users rely on
 
@@ -61,7 +63,7 @@ for our own sample files; open only files you made yourself in Publisher. Never 
 | Document save counter | ✅ | |
 | Insert, replace and delete pictures | ✅ | Linked pictures and cropping 🔬 |
 | Insert tables; add/delete rows and columns; resize | ✅ | Merge and split cells 🔬, borders and shading 🔬 |
-| Master pages (headers, footers, page numbers) | 🔬 | High priority |
+| Master pages (headers, footers, page numbers) | 🟡 | Shown, printed and kept when saving (0.2.0); editing them is 🔬, high priority |
 | Bullets and numbering | ✅ | Bullet picker, numbering styles, indent buttons |
 | Styles (apply, create, edit) | 🔬 | |
 | Linking text boxes (create and break links), text overflow | 🟡 | Linked text flows between frames and shows overflow marks; see FEATURES.md for what is left |
@@ -70,15 +72,15 @@ for our own sample files; open only files you made yourself in Publisher. Never 
 | Page size, margins, orientation | ✅ | Page Setup galleries and dialog; guides beyond the margins 🔬 |
 | Text Effects | 🔬 | |
 | Hyperlinks and bookmarks | 🔬 | |
-| Page elements, calendars, borders and accents, advertisements, business information | 🔬 | |
+| Page elements, calendars, borders and accents, advertisements, Contact Details | 🔬 | |
 | Very old `.pub` files (Publisher 2000 and earlier) | 🔬 | |
 | Fills beyond solid colour (gradient, pattern, texture, picture), transparency, shadows, glow, 3-D, border art | 🔬 | |
 | Print and prepress settings (marks, bleed, colour separations, trapping, imposition, booklet and fold printing) | 🔬 | See the Print and prepress area |
 | Colour models (RGB, CMYK, spot, tints), custom colour schemes, font schemes | 🔬 | |
 | Fonts: embedding, substitution, Package for Printing | ⬜ | |
 | Web publishing, forms, hotspots, navigation bars | 🔬 | Low priority |
-| Catalogue merge | ⬜ | |
-| Content blocks and business information | 🔬 | |
+| Repeating area (data-driven publishing; Publisher's catalog merge) | ⬜ | |
+| Content blocks and Contact Details | 🔬 | |
 | Text effects, OpenType features, East Asian and complex-script text | 🔬 | |
 | Macros, add-ins and automation hooks | ⬜ | Low priority |
 | Files saved by Publisher 2013–2021 | 🟡 | Open fine; extra settings 2021 adds are kept but not all understood |
@@ -88,7 +90,10 @@ for our own sample files; open only files you made yourself in Publisher. Never 
 | Feature | Status | Notes |
 |---|---|---|
 | Ribbon-style window, ribbon tabs, object tabs, themes | ✅ | Our own icons and colours by design; Light, Dark, accents |
-| File screen (Home, New, Open, Info, Save As, Print, Export) | ✅ | |
+| File screen (Home, New, Open, Info, Save As, Print, Export, About, Feedback, Options) | ✅ | About page has a Support KernPage link |
+| KernPage's own `.kern` format (new publications save as `.kern`; Save As can write `.pub`) | ✅ | Described in `docs/spec/KERN-FORMAT.md`; `.kern` files open by double-click |
+| Signed updates and KernPage Launcher (open KernPage and recent files, check for updates, go back to an older version) | ✅ | Released in 0.2.0 |
+| Demo screenshot mode (`--demo`) and install guide ([INSTALL.md](INSTALL.md)) | ✅ | |
 | Ribbon shrinks to fit the window | ✅ | |
 | Multi-select, right-click menus, split buttons, align | ✅ | |
 | Snap to guides and objects | ⬜ | |
@@ -99,20 +104,20 @@ for our own sample files; open only files you made yourself in Publisher. Never 
 | Touch mode, Quick Access Toolbar customisation | ⬜ | |
 | Right-click menus for pictures, tables, pages, masters, rulers and guides | 🔬 | The item lists are not yet recorded from Publisher |
 | Keyboard shortcuts (about 25 still unmapped) | 🟡 | |
-| Task panes (Styles, Format Publication, Picture Manager, Design Checker, Find and Replace) | ⬜ | |
+| Task panes (Styles, Format Publication, Picture Manager, Check Publication, Find and Replace) | ⬜ | |
 | Options window and document properties | 🟡 | File > Options has Save (AutoRecover) and Appearance; document properties not yet |
 
 ### Output and tools
 
 | Feature | Status | Notes |
 |---|---|---|
-| Export to PDF | ✅ | |
+| Create a PDF | ✅ | Under File > Export (XPS is not supported) |
 | Print (printer, copies, page range, duplex) | 🟡 | Printer, copies, pages and collation print directly; duplex, paper size and colour mode are not yet |
 | Spell check | ⬜ | Offline dictionaries such as Hunspell |
 | Thesaurus | ⬜ | |
-| Design Checker, AutoCorrect, hyphenation, word count, proofing language | ⬜ | |
+| Check Publication, AutoCorrect, hyphenation, word count, proofing language | ⬜ | |
 | Print preview, booklet and fold printing, envelope and label printing | ⬜ | |
-| Data tab: fields, numbering, one copy per row, repeating areas (replaces mail merge; no email sending) | 🟡 tab shown as a mock-up; features not built yet | |
+| Data tab (data-driven publishing): Data Source, Insert Field, Picture Field, Make copies (one copy per row), Repeating area, Preview, Create | 🟡 | Tab shown as a mock-up; features not built yet. Email sending is not planned: export and attach in your email client |
 | Package for Printing | ⬜ | |
 | XPS export | ⬜ | Low priority |
 
@@ -138,10 +143,10 @@ services, and only when the user asks. Nothing is sent anywhere unless the user 
 Ideas for after parity. Not ordered.
 
 - **Faithful `.pub` open and save for Publisher 98 through 2021**, with a public fidelity report (page-by-page comparison against real Publisher output on a shared sample set).
-- **Launcher, updater and add-ons:** a separate KernPage Launcher with signed automatic updates, and an add-ons catalogue (spelling dictionaries, template packs, offline translation models, open fonts; plugins later). Tracked as pw-dsi and the Launcher area of the catalogue.
+- **Launcher, updater and add-ons:** the KernPage Launcher with signed updates is released; still to come are automatic updates and an add-ons catalogue (spelling dictionaries, template packs, offline translation models, open fonts; plugins later). Tracked as pw-dsi and the Launcher area of the catalogue.
 - **Print-shop output:** PDF/X-1a and X-4, CMYK and spot colours, bleed, crop marks, font embedding and a preflight report.
 - **Batch `.pub` to PDF** with folder recursion, parallel runs and a problem log, with no Office needed.
-- **Merge from CSV and Excel** with labels, envelopes, name tags and repeatable data-driven layouts.
+- **Data Source from CSV and Excel** (Data tab) with labels, envelopes, name tags and repeatable data-driven layouts.
 - **Private by design:** no telemetry, no account, offline spelling and translation, AI-free by default.
 - **Modern essentials** on top of the Publisher interface: autosave and crash recovery, unlimited undo with a history list, dark mode, high-DPI, touch and keyboard-only use.
 - **Mac and Linux** versions (the code is Rust and egui, so this is mostly packaging and testing), and later tablets.
@@ -161,13 +166,10 @@ These ideas are catalogued, with issues, in the "Beyond Publisher" and "Launcher
 
 ## Releases
 
-There is no public release yet. The installer, the signed update feed and the release workflow are in place
-(see [`docs/RELEASING.md`](docs/RELEASING.md)); the first public release will be a 0.x version once the basics
-listed under "Next up" are in. Version 1.0 will come when KernPage covers everyday publishing tasks end to end.
-Local test builds use 0.1.x version numbers.
+**0.2.0 is released** on [GitHub](https://github.com/jmitchell238/kernpage/releases/latest): signed updates through the KernPage Launcher, the `.kern` format, the About page with a Support KernPage link, Create a PDF, and an [install guide](INSTALL.md). See [`docs/release-notes/0.2.0.md`](docs/release-notes/0.2.0.md) and the release process in [`docs/RELEASING.md`](docs/RELEASING.md). Further 0.x releases follow the "Next up" list above. Version 1.0 will come when KernPage covers everyday publishing tasks end to end.
 
 ## How to help
 
-When the project goes public: pick a 🔬 or 🛠️ row in [`docs/FEATURES.md`](docs/FEATURES.md) (or an item above), open or claim its issue to say you are working on it, and read
+Pick a 🔬 or 🛠️ row in [`docs/FEATURES.md`](docs/FEATURES.md) (or an item above), open or claim its issue to say you are working on it, and read
 [`docs/spec/PUB-FORMAT-SPEC.md`](docs/spec/PUB-FORMAT-SPEC.md) and the research rules in CONTRIBUTING first. Research results go
 into the spec before any code that depends on them.

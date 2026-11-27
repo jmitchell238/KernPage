@@ -29,6 +29,8 @@ bd import .beads/issues.jsonl
 - AI tools: you are responsible for what you submit. Do not submit AI output you cannot show is yours to license, and say in the pull request if AI wrote a significant part.
 
 ## Names and trademarks
+Use KernPage's own feature names (for example Data tab, Contact Details, Check Publication); see FEATURES.md "Names in KernPage" ([docs/FEATURES.md](docs/FEATURES.md#names-in-kernpage)).
+
 "Microsoft", "Office" and "Publisher" are Microsoft trademarks, used only to name the file format. Do not use them in names, icons or logos.
 
 ## Practicalities

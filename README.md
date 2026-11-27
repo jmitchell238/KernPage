@@ -5,7 +5,7 @@
   </picture>
 </h1>
 
-<p align="center"><strong>Free, open-source desktop publishing for Windows. Opens, edits and saves your <code>.pub</code> files.</strong></p>
+<p align="center"><strong>Free, open-source desktop publishing for Windows: bulletins, newsletters, flyers, programs and posters.</strong></p>
 
 <p align="center">
   <img alt="Licence: MIT or Apache-2.0" src="https://img.shields.io/badge/licence-MIT%20or%20Apache--2.0-blue">
@@ -15,10 +15,14 @@
 
 ![KernPage editing a newsletter](docs/images/editor-light.png)
 
-Microsoft retired Publisher in October 2026, and a lot of bulletins, newsletters, flyers and
-programs are still sitting in `.pub` files. KernPage is an alternative for people who used Publisher:
-it opens those files, lets you change them, and saves the result back into the same `.pub` file. No
-account, no subscription, no telemetry, and the source is yours to read.
+KernPage is a free desktop publishing program for Windows. Lay out bulletins, newsletters, flyers,
+programs and posters: place text, pictures, tables and shapes on the page, then print it or save it as
+a PDF. No account, no subscription, no telemetry, and the source is yours to read.
+
+KernPage is made to replace Microsoft Publisher for people who used it before. Microsoft retired
+Publisher in October 2026, and a lot of bulletins, newsletters, flyers and programs are still sitting
+in `.pub` files, so KernPage opens those files, lets you change them, and saves the result back into
+the same `.pub` file (it also has its own `.kern` format).
 
 KernPage is early software. It already does the everyday basics (see below), and it says plainly what
 it cannot do yet, so you can decide whether it fits a job today.
@@ -50,14 +54,14 @@ KernPage is an independent project. It is not affiliated with, endorsed by or sp
 - A ribbon-style window with tabs, groups and a File screen, using KernPage's own icons and colours.
   Light, Dark or Follow Windows themes, five accent colours (Teal, Blue, Purple, Graphite, Orange), all under
   File > Options > Appearance.
-- Export to PDF, and print through your system's PDF viewer.
+- Create a PDF, and print straight to a printer you choose.
 - **KernPage Launcher**, a small companion program that opens KernPage and your recent files, checks
   for signed updates and can go back to an older version.
 
 - Master pages and page numbers from opened files are shown, printed and kept when you save
   (editing master pages comes later).
 
-**Not there yet:** editing master pages, styles, spell check, mail merge, more templates, fill effects, and many ribbon commands that are shown greyed out. Every feature we track
+**Not there yet:** editing master pages, styles, text box margins and autofit, spell check, data-driven publishing (the Data tab is shown as a mock-up), more templates, fill effects, Package for Printing, and many ribbon commands that are shown greyed out. Every feature we track
 is listed in [docs/FEATURES.md](docs/FEATURES.md), and [ROADMAP.md](ROADMAP.md) shows the plan.
 
 ## Screenshots
@@ -128,7 +132,7 @@ To regenerate the sample newsletter: `cargo run -p kernpage-core --example make_
 
 ## Project status
 
-Early development: the first installable version works, and a public release is being prepared. See
+Early development: version 0.2.0 is released (see the [latest release](https://github.com/jmitchell238/kernpage/releases/latest) and [docs/release-notes/0.2.0.md](docs/release-notes/0.2.0.md)). See
 [ROADMAP.md](ROADMAP.md) for what is done and what is next, and [docs/FEATURES.md](docs/FEATURES.md)
 for the feature-by-feature list. Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md). Privacy: [PRIVACY.md](PRIVACY.md).

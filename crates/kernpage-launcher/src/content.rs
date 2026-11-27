@@ -14,31 +14,31 @@ pub struct AppInfo {
 
 pub const KERNPAGE: AppInfo = AppInfo {
     name: "KernPage",
-    tagline: "Page layout and publishing. Opens and saves Publisher (.pub) files.",
+    tagline: "Desktop publishing for bulletins, newsletters and flyers. Opens Publisher (.pub) files too.",
     features: &[
         Feature {
-            title: "Opens Publisher files",
-            text: "Reads .pub files and shows text, shapes, pictures, tables, groups and linked text boxes.",
+            title: "Lay out your pages",
+            text: "Add text boxes, rectangles, ovals, lines, tables and pictures; use bullets and numbering; add, move, duplicate and delete pages; set page size and margins.",
         },
         Feature {
-            title: "Edits and saves .pub",
-            text: "Change text and formatting, move and resize objects, and save back into the same file.",
+            title: "Print or create a PDF",
+            text: "Print straight to a printer you choose, or save a publication as a PDF to email or post.",
         },
         Feature {
             title: "A familiar layout",
             text: "A ribbon and File screen with tabs and groups arranged in a way many Publisher users will recognise, with our own icons and colours. Some commands are still greyed out.",
         },
         Feature {
-            title: "New content and pages",
-            text: "Add text boxes, rectangles, ovals, lines, tables and pictures; use bullets and numbering; add, move, duplicate and delete pages; set page size and margins.",
+            title: "Opens Publisher files",
+            text: "Used Publisher before? KernPage reads .pub files and shows text, shapes, pictures, tables, groups and linked text boxes.",
         },
         Feature {
-            title: "Export to PDF",
-            text: "Save a publication as a PDF. Printing goes through your PDF viewer for now.",
+            title: "Edits and saves .pub",
+            text: "Change text and formatting, move and resize objects, and save back into the same file, or save as KernPage's own .kern format.",
         },
         Feature {
             title: "Open source, works offline",
-            text: "Licensed MIT or Apache-2.0. Not affiliated with Microsoft. Still in development: no master pages, spell check, mail merge or templates yet.",
+            text: "Licensed MIT or Apache-2.0. Not affiliated with Microsoft. Still in development: no master page editing, spell check or data-driven publishing yet.",
         },
     ],
 };
