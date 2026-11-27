@@ -190,11 +190,16 @@ pub fn subheading(ui: &mut Ui, text: &str) {
     ui.add_space(6.0);
 }
 
+/// Paper is white whatever the theme, like the page on the canvas.
+const PAPER: Color32 = Color32::WHITE;
+/// The grey text lines drawn on a page picture.
+const PAPER_LINE: Color32 = Color32::from_rgb(0xC9, 0xCE, 0xD3);
+
 /// A plain page outline: the stand-in for a first-page picture that is loading or unreadable.
 fn outline_page_glyph(ui: &Ui, area: Rect) {
     let page = snap(ui, area);
     let p = ui.painter();
-    p.rect_filled(page, 0.0, crate::theme::card());
+    p.rect_filled(page, 0.0, PAPER);
     p.rect_filled(
         Rect::from_min_size(page.min + Vec2::new(4.0, 5.0), Vec2::new(page.width() - 12.0, 3.0)),
         0.0,
@@ -205,7 +210,7 @@ fn outline_page_glyph(ui: &Ui, area: Rect) {
         p.rect_filled(
             Rect::from_min_size(page.min + Vec2::new(4.0, 12.0 + k as f32 * 5.0), Vec2::new(w, 2.0)),
             0.0,
-            crate::theme::line(),
+            PAPER_LINE,
         );
     }
     outline(ui, area, crate::theme::frame());
@@ -267,7 +272,8 @@ fn tile(
     );
     #[cfg(test)]
     seen(format!("page:{label}"), page, enabled, false);
-    ui.painter().rect_filled(page, 0.0, crate::theme::card());
+    // Page pictures are paper: white in both themes (a disabled item is only a faint outline).
+    ui.painter().rect_filled(page, 0.0, if enabled { PAPER } else { Color32::TRANSPARENT });
     if let Some(art) = art {
         art(ui, page);
     }
