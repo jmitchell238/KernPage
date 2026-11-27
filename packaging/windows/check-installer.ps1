@@ -50,7 +50,7 @@ Expect ((Query "SELECT Action FROM CustomAction WHERE Action='LaunchKernPage'").
 $events = Query 'SELECT `Dialog_`, `Argument`, `Condition` FROM `ControlEvent`'
 Expect (@($events | Where-Object { $_[0] -eq 'ExitDialog' -and $_[1] -eq 'LaunchKernPage' -and $_[2] -like '*NOT Installed*' }).Count -eq 1) 'launch fires from ExitDialog only on fresh install'
 Expect ((Prop 'UpgradeCode') -eq '{7A952D88-8013-4CAC-85AF-3A3A1722E1DF}') 'UpgradeCode is the stable one'
-Expect ((Prop 'ARPHELPLINK') -eq 'https://github.com/jmitchell238/kernpage') 'ARPHELPLINK'
+Expect ((Prop 'ARPHELPLINK') -eq 'https://github.com/jmitchell238/KernPage') 'ARPHELPLINK'
 Expect ((Prop 'ARPPRODUCTICON')) 'ARPPRODUCTICON set'
 Expect ((Query "SELECT Name FROM Icon").Count -ge 1) 'Icon table populated'
 

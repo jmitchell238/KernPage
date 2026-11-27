@@ -28,9 +28,9 @@
     <!-- Add/Remove Programs -->
     <Icon Id="KernPageIcon.ico" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="KernPageIcon.ico" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/jmitchell238/kernpage" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/jmitchell238/kernpage" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/jmitchell238/kernpage/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/jmitchell238/KernPage" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/jmitchell238/KernPage" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/jmitchell238/KernPage/releases" />
 
     <!-- Dialogs: WixUI_Minimal (welcome + license, progress, finish) with WiX's stock bitmaps.
          The navy artwork under assets/ is opt-in (package.ps1 -CustomArt). The finish page

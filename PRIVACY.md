@@ -31,6 +31,6 @@ KernPage does not knowingly collect information from anyone, including children.
 If the software ever collects anything, this page and the program's About box will say so before the change ships.
 
 ## Contact
-Privacy questions: open an issue or a Discussion on the repository (https://github.com/jmitchell238/kernpage). For something you don't want to post publicly, use the private "Report a vulnerability" form on the repository's Security page.
+Privacy questions: open an issue or a Discussion on the repository (https://github.com/jmitchell238/KernPage). For something you don't want to post publicly, use the private "Report a vulnerability" form on the repository's Security page.
 
 KernPage is an independent project. It is not affiliated with, endorsed by or sponsored by Microsoft. Microsoft, Publisher, Office and Windows are trademarks of the Microsoft group of companies.

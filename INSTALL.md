@@ -5,7 +5,7 @@ rights, because KernPage installs just for you, and you don't need an internet c
 
 ## 1. Download the installer
 
-Go to the **[latest release](https://github.com/jmitchell238/kernpage/releases/latest)** and download
+Go to the **[latest release](https://github.com/jmitchell238/KernPage/releases/latest)** and download
 **`KernPage-<version>-Setup.exe`** (for example `KernPage-0.2.0-Setup.exe`).
 
 You can ignore the other files on that page:
@@ -94,6 +94,6 @@ touched. To remove your settings too, delete the `%APPDATA%\KernPage` folder aft
 
 ## Problems?
 
-Report a problem at [github.com/jmitchell238/kernpage/issues](https://github.com/jmitchell238/kernpage/issues)
+Report a problem at [github.com/jmitchell238/KernPage/issues](https://github.com/jmitchell238/KernPage/issues)
 or from **File > Feedback** in KernPage. For silent installs and other details for IT departments, see
 [packaging/windows/INSTALLATION.md](packaging/windows/INSTALLATION.md).

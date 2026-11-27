@@ -1116,8 +1116,8 @@ fn about_page(ui: &mut Ui) {
         section_title(ui, "Links");
         for (label, url) in [
             ("Website: https://238apps.com/kernpage", "https://238apps.com/kernpage"),
-            ("Source code: https://github.com/jmitchell238/kernpage", crate::feedback::REPO_URL),
-            ("Report a problem: https://github.com/jmitchell238/kernpage/issues", "https://github.com/jmitchell238/kernpage/issues"),
+            ("Source code: https://github.com/jmitchell238/KernPage", crate::feedback::REPO_URL),
+            ("Report a problem: https://github.com/jmitchell238/KernPage/issues", "https://github.com/jmitchell238/KernPage/issues"),
         ] {
             if green_link(ui, label) {
                 crate::feedback::open_url(url);

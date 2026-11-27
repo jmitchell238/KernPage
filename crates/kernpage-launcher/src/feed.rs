@@ -45,7 +45,7 @@ const TEST_PUBLIC_KEY_FILE: &str = include_str!("../tests/fixtures/test-signing.
 /// time to use another feed.
 pub const FEED_URL: &str = match option_env!("KERNPAGE_FEED_URL") {
     Some(u) => u,
-    None => "https://github.com/jmitchell238/kernpage/releases/latest/download/index.json",
+    None => "https://github.com/jmitchell238/KernPage/releases/latest/download/index.json",
 };
 
 /// Lower-case hex of a digest.
@@ -664,7 +664,7 @@ mod tests {
                 FileSpec { kind: "msi".into(), path: temp_file(&format!("{version}-x64.msi"), msi) },
                 FileSpec { kind: "setup".into(), path: temp_file(&format!("{version}-Setup.exe"), setup) },
             ],
-            base_url: format!("https://github.com/jmitchell238/kernpage/releases/download/v{version}"),
+            base_url: format!("https://github.com/jmitchell238/KernPage/releases/download/v{version}"),
             now_unix: now,
             expires_days: DEFAULT_EXPIRES_DAYS,
             keep: DEFAULT_KEEP,
@@ -685,7 +685,7 @@ mod tests {
         // MSI for a plain install, Setup.exe for a bundle install; sizes and hashes match the files.
         let msi = r.file_for(false).unwrap();
         let setup = r.file_for(true).unwrap();
-        assert!(msi.is_msi() && msi.url.starts_with("https://github.com/jmitchell238/kernpage/releases/download/v0.2.0/"));
+        assert!(msi.is_msi() && msi.url.starts_with("https://github.com/jmitchell238/KernPage/releases/download/v0.2.0/"));
         assert_eq!(setup.kind, SETUP_KIND);
         assert_eq!(msi.size, 9);
         assert_eq!(setup.sha256, hex(sha2::Sha256::digest(b"setup bytes")));
@@ -731,7 +731,7 @@ mod tests {
     #[test]
     fn production_keys_and_feed_url_are_the_real_ones() {
         assert_eq!(PRODUCTION_PUBLIC_KEYS.len(), 2, "primary + backup");
-        assert!(FEED_URL.starts_with("https://github.com/jmitchell238/kernpage/releases/latest/download/"));
+        assert!(FEED_URL.starts_with("https://github.com/jmitchell238/KernPage/releases/latest/download/"));
         assert!(FEED_URL.ends_with("/index.json"));
         // The release tool reads the same list out of this very file.
         let src = include_str!("feed.rs");

@@ -369,7 +369,7 @@ fn online_pictures_is_greyed_with_its_own_tip() {
     assert_eq!(b.tip, "Coming soon: search free-to-use photo sites and insert a picture.");
 }
 
-const REPO_ISSUES: &str = "https://github.com/jmitchell238/kernpage/issues/new?";
+const REPO_ISSUES: &str = "https://github.com/jmitchell238/KernPage/issues/new?";
 
 #[test]
 fn help_report_a_problem_and_suggest_an_idea_are_enabled_with_tooltips() {
