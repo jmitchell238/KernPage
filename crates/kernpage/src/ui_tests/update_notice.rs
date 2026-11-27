@@ -8,10 +8,12 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-/// Let the (instant) fake check answer and the frames after it run.
+/// Let the fake check (on its own thread) answer and the frames after it run. The wait is long
+/// because a busy machine (a CI runner) may not start that thread for a while; it ends as soon
+/// as the answer is in.
 fn answer(ui: &mut TestUi) {
     let t = Instant::now();
-    while ui.app().update.available.is_none() && t.elapsed() < Duration::from_millis(300) {
+    while ui.app().update.available.is_none() && t.elapsed() < Duration::from_secs(20) {
         std::thread::sleep(Duration::from_millis(5));
         ui.h.run_steps(1);
     }
