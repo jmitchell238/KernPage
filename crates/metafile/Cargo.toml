@@ -2,7 +2,7 @@
 name = "metafile"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
+license = "GPL-3.0-only"
 description = "Windows Metafile (WMF/EMF) parser producing a renderer-agnostic display list, written from [MS-WMF] and [MS-EMF]"
 
 [dependencies]

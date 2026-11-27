@@ -8,7 +8,7 @@
 <p align="center"><strong>Free, open-source desktop publishing for Windows: bulletins, newsletters, flyers, programs and posters.</strong></p>
 
 <p align="center">
-  <img alt="Licence: MIT or Apache-2.0" src="https://img.shields.io/badge/licence-MIT%20or%20Apache--2.0-blue">
+  <img alt="Licence: GPL-3.0" src="https://img.shields.io/badge/licence-GPL--3.0-blue">
   <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-0F766E">
   <img alt="Written in Rust" src="https://img.shields.io/badge/written%20in-Rust-orange">
 </p>
@@ -118,7 +118,7 @@ To regenerate the sample newsletter: `cargo run -p kernpage-core --example make_
 | `crates/kernpage` | The desktop editor (egui): ribbon, canvas, File screen, dialogs |
 | `crates/kernpage-core` | Editable document model, commands with undo/redo, and the save planner; no GUI code |
 | `crates/kernpage-launcher` | KernPage Launcher: open KernPage and recent files, signed updates |
-| `kernicons` (crates.io) | The icon set, a separate project (MIT OR Apache-2.0), used as an ordinary dependency from crates.io |
+| `kernicons` (crates.io) | The icon set, a separate project (MIT OR Apache-2.0, published separately), used as an ordinary dependency from crates.io |
 | `crates/kernpage-release` | Release tool that signs the update list (not shipped in the installer) |
 | `crates/pub-format` | Reads `.pub` files (Publisher 2003 to 2021) |
 | `crates/pub-write` | Writes changes back into `.pub` files |
@@ -158,13 +158,14 @@ Reporting problems and sharing ideas helps just as much.
 
 ## Licence
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT license](LICENSE-MIT) at your option.
+KernPage is licensed under the [GNU General Public License, version 3 only](LICENSE) (GPL-3.0-only).
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for
-inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed
-as above, without any additional terms or conditions.
+Versions up to and including 0.2.0 were released under MIT OR Apache-2.0 and remain available under those
+terms at the [v0.2.0 tag](https://github.com/jmitchell238/kernpage/tree/v0.2.0).
+
+Contributions are accepted under the GPL-3.0 and the [Contributor Licence Agreement](CLA.md); see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 Third-party licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-The icons come from Kernicons, the icon set of KernPage by the same author (MIT OR Apache-2.0).
+The icons come from Kernicons, the icon set of KernPage by the same author (published separately under MIT OR Apache-2.0).

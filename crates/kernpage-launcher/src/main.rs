@@ -13,6 +13,7 @@ mod devserver;
 mod devcli;
 mod download;
 mod feed;
+mod fonts;
 mod install;
 mod instance;
 mod mark;

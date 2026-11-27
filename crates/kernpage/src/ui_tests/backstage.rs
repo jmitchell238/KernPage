@@ -1203,7 +1203,7 @@ fn the_about_page_shows_version_licence_privacy_and_independence() {
     nav(&mut ui, "About KernPage");
     assert!(in_section(&mut ui, Section::About));
     assert!(has_label(&ui, &format!("KernPage {}", crate::app_version())));
-    assert!(has_label_containing(&ui, "Free and open source under the MIT or Apache 2.0 licence."));
+    assert!(has_label_containing(&ui, "Free and open source under the GNU General Public License, version 3 (GPL-3.0)."));
     assert!(has_label_containing(&ui, "Nothing is sent from KernPage."));
     assert!(has_label_containing(&ui, "only if you turn them on or press Check."));
     assert!(has_label_containing(&ui, "not affiliated with, endorsed by or sponsored by Microsoft"));

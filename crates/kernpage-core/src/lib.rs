@@ -13,6 +13,7 @@ pub mod picture;
 pub mod recent;
 pub mod save;
 pub mod story;
+pub mod sysfonts;
 pub mod sysexe;
 pub mod table;
 pub mod template;

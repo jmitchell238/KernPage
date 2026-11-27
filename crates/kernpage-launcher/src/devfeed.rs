@@ -240,14 +240,14 @@ pub fn sample_index(o: &SampleOpts) -> Value {
                 "website": "https://example.org/kernpage",
                 "repo": "https://github.com/example/kernpage",
                 "releases_url": "https://github.com/example/kernpage/releases",
-                "license": "MIT OR Apache-2.0",
+                "license": "GPL-3.0-only",
                 "features": [
                     {"title": "Opens Publisher files", "text": "Reads .pub files and shows text, shapes, pictures, tables, groups and linked text boxes."},
                     {"title": "Edits and saves .pub", "text": "Change text and formatting, move and resize objects, and save back into the same file."},
                     {"title": "Spell check", "text": "Underlines mistakes as you type. Dictionaries for other languages install from the launcher."},
                     {"title": "Templates", "text": "Start a newsletter, flyer or bulletin from a ready-made page design."},
                     {"title": "Export to PDF", "text": "Save a publication as a PDF with its fonts embedded, ready for a print shop."},
-                    {"title": "Open source, works offline", "text": "Licensed MIT or Apache-2.0. Nothing is sent anywhere unless you ask for it."}
+                    {"title": "Open source, works offline", "text": "Licensed GPL-3.0. Nothing is sent anywhere unless you ask for it."}
                 ],
                 "channels": {
                     "stable": stable,

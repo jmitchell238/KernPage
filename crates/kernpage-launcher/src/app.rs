@@ -228,6 +228,7 @@ fn load_rows() -> Vec<Row> {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, opts: Options) -> Self {
+        crate::fonts::install(&cc.egui_ctx);
         let mut cfg = Config::load();
         if opts.screenshot.is_none() && cfg!(windows) {
             // The registry is the truth for "start at login".
