@@ -32,17 +32,33 @@ pub const PAGE_FALLBACK: &str = "pw-page-fallback";
 #[cfg(test)]
 pub const UI_FONT_KEY: &str = sysfonts::UI_FONT_KEY;
 
-/// The system's Segoe UI (Publisher's UI font); never bundled, it is not ours to ship.
+/// The system's Segoe UI (Publisher's UI font); never bundled, it is not ours to ship (Noto Sans, from the
+/// `fonts` folder next to the program, stands in when it is missing).
 #[cfg(test)]
 pub fn ui_font_file() -> Option<PathBuf> {
     sysfonts::locate().ui
 }
 
-/// The fonts egui starts with. Nothing is bundled on Windows: they all come from the Windows
-/// fonts folder (Segoe UI, Consolas, Segoe UI Symbol and Emoji, Arial). Without any of them
+/// The fonts egui starts with. Nothing is compiled in on Windows: they come from the Windows
+/// fonts folder (Segoe UI, Consolas, Segoe UI Symbol and Emoji, Arial) plus the bundled Noto Sans file
+/// next to the program (the UI font when Segoe UI is missing). Without any of them
 /// (a non-Windows development machine) one small embedded font is used so egui can still draw text.
 pub fn base_definitions() -> FontDefinitions {
+    #[cfg(test)]
+    if NO_SEGOE_UI.with(std::cell::Cell::get) {
+        // A computer without Segoe UI: the bundled Noto Sans takes over the interface text.
+        let mut found = sysfonts::locate();
+        found.ui = None;
+        found.page.retain(|p| p.file_name().is_none_or(|n| !n.eq_ignore_ascii_case("segoeui.ttf")));
+        return definitions_from(&sysfonts::plan_from(&found));
+    }
     definitions_from(&sysfonts::plan())
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Set by a test (on its own thread) to start the app as if Segoe UI were not installed.
+    pub static NO_SEGOE_UI: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// Turns a font plan into egui font definitions.

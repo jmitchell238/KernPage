@@ -7,8 +7,8 @@ grey text lines, meeting at the middle with a thin teal gap.
 - `kernpage.svg` - master (1408 grid), used for 32 px and up.
 - `kernpage@16.svg`, `@20`, `@24` - pixel-hinted versions (every edge on a whole pixel, stepped tile corners, no shadows, no text lines)
   for the smallest sizes: a two-tone stem and two solid arms.
-- `kernpage-wordmark.svg` - the word "Kernpage" in dark teal (#0B5A73) for light backgrounds; `kernpage-wordmark-white.svg` is the
-  version for dark backgrounds. The K is the icon's K recoloured; the "p" bowl is a page outline with a folded corner in the accent
+- `kernpage-wordmark.svg` - the word "KernPage" (capital P built from the K's parts) in dark teal (#0B5A73) for light backgrounds; `kernpage-wordmark-white.svg` is the
+  version for dark backgrounds. The K is the icon's K recoloured; the "P" repeats the K's light strip beside a dark stem and bowl, and its top-right corner is folded over in the accent
   teal (#1696A0). Every glyph is a path (no font reference and no text elements).
   Wordmark letters outlined from Poppins (SIL Open Font License 1.1, Indian Type Foundry).
 - `png-master/`, `png-hinted/`, `png/` - rendered outputs; `png/` holds the sizes packed into `../assets/kernpage.ico`

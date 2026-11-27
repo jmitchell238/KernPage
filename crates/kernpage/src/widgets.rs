@@ -180,7 +180,7 @@ impl<'a> Btn<'a> {
         let text_w = widths.iter().cloned().fold(0.0, f32::max);
         let arrow = if self.dropdown { 10.0 } else { 0.0 };
         let size = match self.size {
-            Size::Large => Vec2::new((text_w + arrow + 6.0).max(44.0), 64.0),
+            Size::Large => Vec2::new((text_w + arrow + 6.0).max(44.0), 70.0),
             Size::Small => {
                 let w = if lines.is_empty() {
                     24.0 + arrow
@@ -210,22 +210,24 @@ impl<'a> Btn<'a> {
                 let col = self.fg.map(|c| if self.selected && self.enabled { sel_col } else { c }).unwrap_or(sel_col);
                 icons::paint(p, Rect::from_center_size(snap(rect.center()), Vec2::splat(15.0)), self.icon, col);
             } else if self.selected || hovered {
-                let bg = if self.fg.is_some() {
-                    Color32::from_white_alpha(if self.selected { 70 } else { 40 })
-                } else if self.selected && !hovered {
-                    crate::theme::selected_bg()
-                } else if self.selected {
-                    crate::theme::hover_pressed()
+                if self.selected && self.fg.is_none() {
+                    let (fill, line) = on_style(hovered);
+                    p.rect_filled(rect, TOGGLE_RADIUS, fill);
+                    p.rect_stroke(rect, TOGGLE_RADIUS, Stroke::new(1.0, line), StrokeKind::Inside);
                 } else {
-                    crate::theme::hover_bg()
-                };
-                p.rect_filled(rect, 3.0, bg);
-                p.rect_stroke(
-                    rect,
-                    3.0,
-                    Stroke::new(1.0, crate::theme::button_outline()),
-                    StrokeKind::Inside,
-                );
+                    let bg = if self.fg.is_some() {
+                        Color32::from_white_alpha(if self.selected { 70 } else { 40 })
+                    } else {
+                        crate::theme::hover_bg()
+                    };
+                    p.rect_filled(rect, TOGGLE_RADIUS, bg);
+                    p.rect_stroke(
+                        rect,
+                        TOGGLE_RADIUS,
+                        Stroke::new(1.0, crate::theme::button_outline()),
+                        StrokeKind::Inside,
+                    );
+                }
             }
             if crate::search::flash::matches(self.label, tip, ui.input(|i| i.time)) {
                 p.rect_stroke(rect, 4.0, Stroke::new(2.0, crate::theme::accent()), StrokeKind::Inside);
@@ -354,6 +356,57 @@ impl<'a> Btn<'a> {
     }
 }
 
+/// Corner radius of a ribbon button's hover and "on" highlight.
+pub const TOGGLE_RADIUS: f32 = 3.0;
+
+/// The one "on" look of every ribbon toggle button (View > Normal, Single Page, Whole Page ...):
+/// a light tint of the accent colour with a thin accent border, drawn over the button's own
+/// rectangle (the same one the hover highlight uses, so it stays inside the group card's
+/// padding). Returns `(fill, border)`; hovering an ON button deepens the tint.
+pub fn on_style(hovered: bool) -> (Color32, Color32) {
+    let tint = crate::theme::accent_tint();
+    let fill = if hovered { crate::theme::mix(tint, crate::theme::accent(), 0.18) } else { tint };
+    (fill, crate::theme::accent())
+}
+
+/// Ink rectangle of a laid-out galley, relative to its top-left corner: the union of the
+/// glyph bitmaps (not the line box, which has leading above and below).
+fn ink_rect(g: &egui::Galley) -> Option<Rect> {
+    let mut out: Option<Rect> = None;
+    for pr in &g.rows {
+        for gl in &pr.row.glyphs {
+            if gl.uv_rect.is_nothing() {
+                continue;
+            }
+            let min = pr.pos + gl.pos.to_vec2() + gl.uv_rect.offset;
+            let r = Rect::from_min_size(min, gl.uv_rect.size);
+            out = Some(out.map_or(r, |o| o.union(r)));
+        }
+    }
+    out
+}
+
+/// Draw `text` optically centred in `pill`: the ink width between the pill's left and right
+/// edges equally, and the capital-letter band (top of an "H" to the baseline) between its top and
+/// bottom equally, with the origin on a whole device pixel. Returns the on-screen ink rectangle
+/// of the text with the cap band as its vertical extent.
+pub fn centered_label(ui: &Ui, pill: Rect, text: &str, font: FontId, col: Color32) -> Rect {
+    let ppp = ui.ctx().pixels_per_point();
+    let g = ui.painter().layout_no_wrap(text.to_owned(), font.clone(), col);
+    let cap = ink_rect(&ui.painter().layout_no_wrap("H".to_owned(), font, col));
+    let ink = ink_rect(&g).unwrap_or_else(|| Rect::from_min_size(Pos2::ZERO, g.size()));
+    let cap = cap.unwrap_or(ink);
+    let x = pill.center().x - ink.center().x;
+    let y = pill.center().y - cap.center().y;
+    let s = |v: f32| (v * ppp).round() / ppp;
+    let at = Pos2::new(s(x), s(y));
+    ui.painter().galley(at, g, col);
+    Rect::from_min_max(
+        Pos2::new(at.x + ink.min.x, at.y + cap.min.y),
+        Pos2::new(at.x + ink.max.x, at.y + cap.max.y),
+    )
+}
+
 /// The icon a collapsed group shows on its drop-down button.
 fn group_icon(title: &str) -> Icon {
     match title {
@@ -424,6 +477,7 @@ fn two_line(title: &str) -> String {
 /// controls at full size.
 pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)) {
     let lvl = fit::enter_group(title);
+    let ppp = ui.ctx().pixels_per_point();
     let x0 = ui.cursor().min.x;
     // Each group is its own soft rounded tile, painted behind the controls.
     ui.add_space(TILE_PAD);
@@ -485,10 +539,17 @@ pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)
         ui.vertical(|ui| group_body(ui, title, launcher, lvl, add))
     };
     let r = inner.response.rect;
-    ui.add_space(TILE_PAD);
-    let rect = Rect::from_min_max(
-        Pos2::new(r.min.x - TILE_PAD, r.min.y),
-        Pos2::new(r.max.x + TILE_PAD, r.max.y),
+    // Leave exactly GROUP_GAP between this card and the next (see the spacing arithmetic:
+    // the cursor advances by the item spacing after every allocation).
+    let sp = ui.spacing().item_spacing.x;
+    // The gap is a whole number of device pixels, so the snapped neighbours are exactly that far apart.
+    ui.add_space((TILE_PAD + gap_px(ppp) / ppp + 4.0 - 3.0 * sp).max(0.0));
+    let rect = snap_rect(
+        ppp,
+        Rect::from_min_max(
+            Pos2::new(r.min.x - TILE_PAD, r.min.y),
+            Pos2::new(r.max.x + TILE_PAD, r.max.y),
+        ),
     );
     #[cfg(test)]
     if ui.is_visible() {
@@ -500,17 +561,37 @@ pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)
             selected: false,
         });
     }
+    // One crisp outline per card: the rect is on whole device pixels and the stroke is exactly
+    // one device pixel wide, drawn inside the rect, so its centre is a pixel centre and it never
+    // straddles two pixels. The fill is the panel's own colour (no second tone, so no second
+    // soft edge beside the line); the small radius keeps the 1 px curve from smearing.
+    let stroke_w = 1.0 / ppp;
+    if ui.is_visible() {
+        CARDS.with(|c| {
+            let u = c.get().map_or(rect, |o: Rect| o.union(rect));
+            c.set(Some(u));
+        });
+    }
+    #[cfg(test)]
+    if ui.is_visible() {
+        probe::record(probe::Seen {
+            label: format!("groupstroke:{title}"),
+            tip: stroke_w.to_string(),
+            rect,
+            enabled: true,
+            selected: false,
+        });
+    }
     ui.painter().set(
         tile,
         egui::epaint::RectShape::new(
             rect,
-            6.0,
-            crate::theme::tile(),
-            Stroke::new(1.0, crate::theme::tile_line()),
-            egui::StrokeKind::Inside,
+            TILE_RADIUS,
+            crate::theme::card(),
+            Stroke::new(stroke_w, crate::theme::card_line()),
+            StrokeKind::Inside,
         ),
     );
-    ui.add_space(4.0);
     fit::leave_group(title, ui.cursor().min.x - x0);
 }
 
@@ -545,8 +626,26 @@ pub fn col2<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> R {
     col_padded(ui, COL2_TOP, Some(COL2_GAP), add)
 }
 
+/// Extra space between two neighbouring stacks, so the widest label of one never touches the
+/// check box or icon of the next.
+pub const COL_GAP: f32 = 8.0;
+
 fn col_padded<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let end_id = ui.id().with("col_end_x");
+    let r = col_inner(ui, top_pad, gap, add, end_id);
+    let end = ui.min_rect().max.x;
+    ui.data_mut(|d| d.insert_temp(end_id, end));
+    r
+}
+
+fn col_inner<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&mut Ui) -> R, end_id: egui::Id) -> R {
     let wrap = ui.layout().main_wrap();
+    // Directly right of the previous stack (not the first one of the group): leave a gap.
+    let prev_end: Option<f32> = ui.data(|d| d.get_temp(end_id));
+    let adjacent = prev_end.is_some_and(|x| (ui.cursor().min.x - (x + ui.spacing().item_spacing.x)).abs() < 0.5);
+    if adjacent && !wrap {
+        ui.add_space(COL_GAP);
+    }
     let body = move |ui: &mut Ui| {
         if !wrap {
             ui.add_space(top_pad);
@@ -572,7 +671,36 @@ fn col_padded<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&
 }
 
 /// Inner horizontal padding of a Modern group tile.
-const TILE_PAD: f32 = 4.0;
+const TILE_PAD: f32 = 8.0;
+/// Corner radius of a group card.
+const TILE_RADIUS: f32 = 4.0;
+/// Union of the cards drawn since [`begin_cards`] (snapped rects), for the panel behind them.
+thread_local! {
+    static CARDS: std::cell::Cell<Option<Rect>> = const { std::cell::Cell::new(None) };
+}
+pub fn begin_cards() {
+    CARDS.with(|c| c.set(None));
+}
+pub fn cards_bounds() -> Option<Rect> {
+    CARDS.with(|c| c.get())
+}
+/// The gap between cards, and the white space from a card to the panel's border line, in whole
+/// device pixels at `ppp`.
+pub fn gap_px(ppp: f32) -> f32 {
+    (GROUP_GAP * ppp).round()
+}
+
+/// Corner radius of the ribbon panel: the card radius plus the gap, so the corners are concentric.
+pub const PANEL_RADIUS: f32 = TILE_RADIUS + GROUP_GAP;
+/// Space between two neighbouring group cards.
+pub const GROUP_GAP: f32 = 6.0;
+
+/// `rect` with every edge on a whole device pixel at `ppp` pixels per point, so fills and
+/// 1 px strokes are crisp at any scaling (1.25x, 1.5x ...).
+pub fn snap_rect(ppp: f32, r: Rect) -> Rect {
+    let s = |v: f32| (v * ppp).round() / ppp;
+    Rect::from_min_max(Pos2::new(s(r.min.x), s(r.min.y)), Pos2::new(s(r.max.x), s(r.max.y)))
+}
 
 /// Status bar geometry (logical px), measured from Publisher 2021 at 125%.
 pub const STATUS_BAR_H: f32 = 21.0;
@@ -624,20 +752,20 @@ fn group_body(ui: &mut Ui, title: &str, launcher: bool, lvl: usize, add: impl Fn
         probe::record(probe::Seen {
             label: format!("grouptitle:{title}"),
             tip: String::new(),
-            rect: Rect::from_min_size(Pos2::new(r.min.x + 2.0, r.min.y), Vec2::new(label_w, 16.0)),
+            rect: Rect::from_min_size(Pos2::new(r.min.x, r.min.y), Vec2::new(label_w, 16.0)),
             enabled: true,
             selected: false,
         });
     }
     ui.painter().text(
-        Pos2::new(r.min.x + 2.0, r.center().y),
+        Pos2::new(r.min.x, r.center().y),
         Align2::LEFT_CENTER,
         title,
         FontId::proportional(GROUP_PX),
         crate::theme::group_label(),
     );
     if launcher {
-        let lr = Rect::from_center_size(Pos2::new(r.max.x - 6.0, r.center().y), Vec2::splat(10.0));
+        let lr = Rect::from_center_size(Pos2::new(r.max.x - 5.0, r.center().y), Vec2::splat(10.0));
         let live = title == "Page Setup";
         let resp = ui.interact(
             lr,

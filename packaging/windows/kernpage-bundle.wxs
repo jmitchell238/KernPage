@@ -4,7 +4,8 @@
      LogoPng. The bundle UpgradeCode below is separate from the MSI's and must never change.
      Per-user: the embedded MSI is built perUser (package.ps1 PkgScope), so Burn marks the bundle perUser:
      asInvoker stub (no UAC) and the ARP entry under HKCU. Bundle Scope is not an attribute in WiX 5. -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Bundle Name="KernPage"
           Manufacturer="The KernPage contributors"
           Version="$(var.Version)"
@@ -21,9 +22,32 @@
     </BootstrapperApplication>
     <!-- The MSI's finish page (with its launch checkbox) is hidden inside the bundle, so the
          bundle's success page offers the Launch button instead. Path matches the perUser MSI. -->
-    <!-- Bound to the two checkboxes on the license page (bundle-theme.xml); passed to the MSI. -->
-    <Variable Name="DESKTOPSHORTCUT_APP" Type="numeric" Value="1" Persisted="yes" bal:Overridable="yes" />
-    <Variable Name="DESKTOPSHORTCUT_LAUNCHER" Type="numeric" Value="0" Persisted="yes" bal:Overridable="yes" />
+    <!-- Bound to the two checkboxes on the license page (bundle-theme.xml); passed to the MSI.
+         Deliberately declared WITHOUT a value (and not Persisted): a new bundle does not inherit the
+         previous bundle's persisted variables, so a default here would be sent to the MSI and hide the
+         choice the MSI remembers (HKCU/HKLM Software\KernPage). They are filled in during detect by the
+         searches and SetVariable entries below.
+         Order in Burn (verified against the WiX source, src/burn/engine and src/ext/Bal/stdbas):
+           1. the bundle starts with the values declared here (none);
+           2. WixStandardBootstrapperApplication copies bal:Overridable values from the Setup.exe command
+              line into the variables (ProcessCommandLine, before detect starts);
+           3. detect then runs the searches in order, and a search overwrites its variable unconditionally.
+         So the command line does NOT automatically beat a search; here it wins only because every
+         SetVariable below has the condition "NOT DESKTOPSHORTCUT_x", which is false once the command line
+         gave a value (both the command-line value and the strings set below, even "0", count as set). Precedence: command line, else the remembered
+         per-user value, else the remembered all-users value, else the default (app 1, launcher 0). -->
+    <Variable Name="DESKTOPSHORTCUT_APP" bal:Overridable="yes" />
+    <Variable Name="DESKTOPSHORTCUT_LAUNCHER" bal:Overridable="yes" />
+    <util:RegistrySearch Id="RememberedAppUser" Variable="REMEMBERED_APP_U" Root="HKCU" Key="Software\KernPage" Value="DesktopShortcutApp" />
+    <util:RegistrySearch Id="RememberedAppMachine" Variable="REMEMBERED_APP_M" Root="HKLM" Key="Software\KernPage" Value="DesktopShortcutApp" After="RememberedAppUser" />
+    <util:RegistrySearch Id="RememberedLauncherUser" Variable="REMEMBERED_LAUNCHER_U" Root="HKCU" Key="Software\KernPage" Value="DesktopShortcutLauncher" After="RememberedAppMachine" />
+    <util:RegistrySearch Id="RememberedLauncherMachine" Variable="REMEMBERED_LAUNCHER_M" Root="HKLM" Key="Software\KernPage" Value="DesktopShortcutLauncher" After="RememberedLauncherUser" />
+    <SetVariable Id="AppFromUser" Variable="DESKTOPSHORTCUT_APP" Type="string" Value="[REMEMBERED_APP_U]" Condition="NOT DESKTOPSHORTCUT_APP AND REMEMBERED_APP_U" After="RememberedLauncherMachine" />
+    <SetVariable Id="AppFromMachine" Variable="DESKTOPSHORTCUT_APP" Type="string" Value="[REMEMBERED_APP_M]" Condition="NOT DESKTOPSHORTCUT_APP AND REMEMBERED_APP_M" After="AppFromUser" />
+    <SetVariable Id="AppDefault" Variable="DESKTOPSHORTCUT_APP" Type="string" Value="1" Condition="NOT DESKTOPSHORTCUT_APP" After="AppFromMachine" />
+    <SetVariable Id="LauncherFromUser" Variable="DESKTOPSHORTCUT_LAUNCHER" Type="string" Value="[REMEMBERED_LAUNCHER_U]" Condition="NOT DESKTOPSHORTCUT_LAUNCHER AND REMEMBERED_LAUNCHER_U" After="AppDefault" />
+    <SetVariable Id="LauncherFromMachine" Variable="DESKTOPSHORTCUT_LAUNCHER" Type="string" Value="[REMEMBERED_LAUNCHER_M]" Condition="NOT DESKTOPSHORTCUT_LAUNCHER AND REMEMBERED_LAUNCHER_M" After="LauncherFromUser" />
+    <SetVariable Id="LauncherDefault" Variable="DESKTOPSHORTCUT_LAUNCHER" Type="string" Value="0" Condition="NOT DESKTOPSHORTCUT_LAUNCHER" After="LauncherFromMachine" />
     <Variable Name="LaunchTarget" Value="[LocalAppDataFolder]Programs\KernPage\kernpage.exe" />
     <Variable Name="LaunchWorkingFolder" Value="[LocalAppDataFolder]Programs\KernPage" />
 

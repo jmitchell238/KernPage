@@ -73,6 +73,17 @@ Expect (($files -contains 'LICENSE.txt') -and ($files -contains 'LICENSE-MS-RL.t
 Expect (-not ($files -contains 'LICENSE-MIT.txt') -and -not ($files -contains 'LICENSE-APACHE.txt')) 'no MIT/Apache notice files packaged'
 Expect ($files -contains 'THIRD_PARTY_LICENSES.html') 'THIRD_PARTY_LICENSES.html (dependency licences) packaged'
 Expect ($files -contains 'THIRD_PARTY_NOTICES.txt') 'THIRD_PARTY_NOTICES.txt packaged'
+# Fallback interface font (Noto Sans, OFL 1.1): separate files in INSTALLFOLDER\fonts, with the licence text.
+Expect (($files -contains 'NotoSans-Regular.ttf') -and ($files -contains 'OFL.txt')) 'Noto Sans Regular and OFL.txt (fallback interface font) packaged'
+$fontRows = @((Query 'SELECT `File`, `Component_`, `FileName` FROM `File`') | Where-Object { (($_[2] -split '\|')[-1]) -in 'NotoSans-Regular.ttf', 'OFL.txt' })
+$compDirs = Query 'SELECT `Component`, `Directory_` FROM `Component`'
+$dirRows = Query 'SELECT `Directory`, `Directory_Parent`, `DefaultDir` FROM `Directory`'
+function InFontsFolder($fileRow) {
+    $cd = @($compDirs | Where-Object { $_[0] -eq $fileRow[1] })[0]
+    $d = @($dirRows | Where-Object { $_[0] -eq $cd[1] })[0]
+    ((($d[2] -split '\|')[-1]) -eq 'fonts') -and ($d[1] -eq 'INSTALLFOLDER')
+}
+Expect (($fontRows.Count -eq 2) -and (@($fontRows | Where-Object { -not (InFontsFolder $_) }).Count -eq 0)) 'the font files install into INSTALLFOLDER\fonts (next to kernpage.exe)'
 $scRows = Query 'SELECT `Name`, `Directory_` FROM `Shortcut`'
 $start = @($scRows | Where-Object { $_[1] -eq 'ProgramMenuFolder' } | ForEach-Object { ($_[0] -split '\|')[-1] })
 Expect (($start.Count -eq 2) -and ($start -contains 'KernPage') -and ($start -contains 'KernPage Launcher')) 'two Start menu shortcuts: "KernPage" and "KernPage Launcher"'
@@ -161,6 +172,11 @@ if (Test-Path $setup) {
         $theme = Get-ChildItem (Join-Path $tmp 'oba') -Recurse -Filter '*.xml' | Where-Object { (Get-Content $_.FullName -Raw) -match 'Name="DESKTOPSHORTCUT_APP"' }
         Expect (@($theme).Count -ge 1) 'Setup.exe theme has the two desktop-shortcut checkboxes'
         Expect ($man -notmatch 'PerMachine="yes"') 'no per-machine package in the chain'
+        # An upgrade must start from the remembered shortcut choice (a bundle default would hide it from the MSI).
+        Expect ($man -match '<Variable Id="DESKTOPSHORTCUT_LAUNCHER" Hidden="no" Persisted="no" />' -and $man -match '<Variable Id="DESKTOPSHORTCUT_APP" Hidden="no" Persisted="no" />') 'bundle shortcut variables have no built-in default value (so the remembered choice is not hidden)'
+        Expect (([regex]::Matches($man, '<RegistrySearch [^>]*Root="HK(CU|LM)"[^>]*Key="Software.KernPage"[^>]*Value="DesktopShortcut(App|Launcher)"')).Count -eq 4) 'bundle searches the remembered shortcut choices (HKCU and HKLM, app and launcher)'
+        Expect (([regex]::Matches($man, '<SetVariable [^>]*Variable="DESKTOPSHORTCUT_(APP|LAUNCHER)"[^>]*Condition="NOT DESKTOPSHORTCUT_(APP|LAUNCHER)')).Count -eq 6) 'bundle fills the shortcut variables from the remembered value, then the default, only when still unset (command line wins)'
+        Expect (($man -match 'Id="LauncherDefault"[^>]*Value="0"') -and ($man -match 'Id="AppDefault"[^>]*Value="1"')) 'bundle defaults: editor shortcut 1, launcher shortcut 0'
     } finally { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 }
 

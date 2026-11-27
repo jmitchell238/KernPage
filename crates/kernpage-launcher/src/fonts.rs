@@ -1,5 +1,5 @@
-//! The launcher's fonts: loaded from the Windows fonts folder at start-up, never bundled
-//! (see `kernpage_core::sysfonts`).
+//! The launcher's fonts: loaded from the Windows fonts folder at start-up, with the bundled Noto Sans
+//! (next to the program) taking over when Segoe UI is missing (see `kernpage_core::sysfonts`).
 
 use eframe::egui::{Context, FontData, FontDefinitions, FontFamily};
 use kernpage_core::sysfonts::{self, FontPlan};

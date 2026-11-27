@@ -1080,6 +1080,45 @@ fn fonts_come_from_the_system_and_every_family_has_one() {
     }
 }
 
+/// The size of `text` drawn with the UI font of `plan` (two frames: fonts apply at the start of the next).
+fn ui_text_size(plan: &kernpage_core::sysfonts::FontPlan, text: &str) -> egui::Vec2 {
+    let ctx = egui::Context::default();
+    ctx.set_fonts(crate::fontmgr::definitions_from(plan));
+    let mut out = ctx.run_ui(egui::RawInput::default(), |_| {});
+    out.textures_delta.clear();
+    let mut size = egui::Vec2::ZERO;
+    let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+        size = ui
+            .painter()
+            .layout_no_wrap(text.to_owned(), egui::FontId::proportional(14.0), egui::Color32::BLACK)
+            .size();
+    });
+    out.textures_delta.clear();
+    size
+}
+
+#[test]
+fn adding_noto_sans_to_the_fallback_chain_does_not_change_segoe_ui_text() {
+    use kernpage_core::sysfonts;
+    let mut found = sysfonts::locate();
+    if found.ui.is_none() || found.fallback_ui.is_none() {
+        return; // needs both Segoe UI and the bundled Noto Sans on this computer
+    }
+    let with = sysfonts::plan_from(&found);
+    found.fallback_ui = None;
+    let without = sysfonts::plan_from(&found);
+    for text in ["Home Insert Page Design 12 10.5", "Paste Cut Copy Format Painter", "The quick brown fox"] {
+        assert_eq!(ui_text_size(&with, text), ui_text_size(&without, text), "{text}");
+    }
+}
+
+#[test]
+fn the_page_font_family_does_not_gain_noto_sans() {
+    let defs = crate::fontmgr::base_definitions();
+    let page = defs.families.get(&egui::FontFamily::Name(crate::fontmgr::PAGE_FALLBACK.into())).unwrap();
+    assert!(!page.iter().any(|k| k == kernpage_core::sysfonts::FALLBACK_UI_KEY));
+}
+
 #[test]
 fn the_size_box_is_wide_enough_for_12_and_10_5() {
     let ctx = egui::Context::default();

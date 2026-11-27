@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- KernPage MSI (WiX 5). Build with package.ps1, which supplies the variables
-     Version, ExePath, LauncherExePath, IconPath, DocIconPath, LicenseRtf and NoticesDir, plus BannerBmp, DialogBmp and
+     Version, ExePath, LauncherExePath, IconPath, DocIconPath, LicenseRtf, NoticesDir and FontsDir, plus BannerBmp, DialogBmp and
      CustomArt when built with -CustomArt.
      The UpgradeCode below identifies this product family forever: never change it. -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
@@ -107,6 +107,7 @@
       <ComponentRef Id="DesktopShortcutApp" />
       <ComponentRef Id="DesktopShortcutLauncher" />
       <ComponentGroupRef Id="Notices" />
+      <ComponentGroupRef Id="FallbackFont" />
     </Feature>
   </Package>
 
@@ -207,6 +208,14 @@
 
     <ComponentGroup Id="Notices" Directory="INSTALLFOLDER">
       <Files Include="$(var.NoticesDir)\*" />
+    </ComponentGroup>
+
+    <!-- Noto Sans Regular (SIL OFL 1.1) with its licence text, unmodified, as separate files in
+         INSTALLFOLDER\fonts next to kernpage.exe. The programs use it as the interface font only when Segoe UI
+         is missing (crates/kernpage-core/src/sysfonts.rs). It is not compiled into the programs. -->
+    <ComponentGroup Id="FallbackFont" Directory="INSTALLFOLDER" Subdirectory="fonts">
+      <Files Include="$(var.FontsDir)\NotoSans-Regular.ttf" />
+      <Files Include="$(var.FontsDir)\OFL.txt" />
     </ComponentGroup>
   </Fragment>
 </Wix>

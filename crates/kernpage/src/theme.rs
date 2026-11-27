@@ -332,18 +332,23 @@ macro_rules! accessors {
 accessors!(
     accent, accent_text, accent_tint,
     window_bg, card, line, workspace, text, disabled, group_label, hover_bg,
-    selected_bg, hover_pressed, button_outline, frame, status_bg, status_text,
+    button_outline, frame, status_bg, status_text,
     status_dim, ink, shadow, on_accent,
 );
 
 /// Fill of a Modern ribbon group tile: a hair off the card colour.
 pub fn tile() -> Color32 {
-    mix(card(), text(), if is_dark() { 0.07 } else { 0.035 })
+    mix(card(), text(), if is_dark() { 0.09 } else { 0.05 })
 }
 
 /// Outline of a Modern ribbon group tile.
 pub fn tile_line() -> Color32 {
     mix(card(), text(), if is_dark() { 0.14 } else { 0.09 })
+}
+
+/// The 1 px outline of a ribbon group card: a calm grey clearly stronger than `tile_line`.
+pub fn card_line() -> Color32 {
+    mix(card(), text(), if is_dark() { 0.24 } else { 0.18 })
 }
 
 pub fn is_dark() -> bool {

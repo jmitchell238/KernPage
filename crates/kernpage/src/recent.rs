@@ -1,7 +1,7 @@
 //! The list of recently opened or saved publications. The logic lives in
 //! `kernpage_core::recent` so the KernPage Launcher shares the same file and format.
 
-pub use kernpage_core::recent::{breadcrumb, date_text, Recent};
+pub use kernpage_core::recent::{breadcrumb, date_text, opened_label_now, Recent};
 
 #[cfg(test)]
 mod tests {
