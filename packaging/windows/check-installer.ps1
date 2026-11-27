@@ -161,6 +161,11 @@ if (Test-Path $setup) {
         $theme = Get-ChildItem (Join-Path $tmp 'oba') -Recurse -Filter '*.xml' | Where-Object { (Get-Content $_.FullName -Raw) -match 'Name="DESKTOPSHORTCUT_APP"' }
         Expect (@($theme).Count -ge 1) 'Setup.exe theme has the two desktop-shortcut checkboxes'
         Expect ($man -notmatch 'PerMachine="yes"') 'no per-machine package in the chain'
+        # An upgrade must start from the remembered shortcut choice (a bundle default would hide it from the MSI).
+        Expect ($man -match '<Variable Id="DESKTOPSHORTCUT_LAUNCHER" Hidden="no" Persisted="no" />' -and $man -match '<Variable Id="DESKTOPSHORTCUT_APP" Hidden="no" Persisted="no" />') 'bundle shortcut variables have no built-in default value (so the remembered choice is not hidden)'
+        Expect (([regex]::Matches($man, '<RegistrySearch [^>]*Root="HK(CU|LM)"[^>]*Key="Software.KernPage"[^>]*Value="DesktopShortcut(App|Launcher)"')).Count -eq 4) 'bundle searches the remembered shortcut choices (HKCU and HKLM, app and launcher)'
+        Expect (([regex]::Matches($man, '<SetVariable [^>]*Variable="DESKTOPSHORTCUT_(APP|LAUNCHER)"[^>]*Condition="NOT DESKTOPSHORTCUT_(APP|LAUNCHER)')).Count -eq 6) 'bundle fills the shortcut variables from the remembered value, then the default, only when still unset (command line wins)'
+        Expect (($man -match 'Id="LauncherDefault"[^>]*Value="0"') -and ($man -match 'Id="AppDefault"[^>]*Value="1"')) 'bundle defaults: editor shortcut 1, launcher shortcut 0'
     } finally { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 }
 

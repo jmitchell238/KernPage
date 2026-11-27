@@ -160,7 +160,7 @@ Copy-Item (Join-Path $here 'icon\png-master\64.png') $logo
 
 Write-Host "Building $setup ..."
 & wix build -arch x64 -culture en-us `
-    -ext WixToolset.BootstrapperApplications.wixext `
+    -ext WixToolset.BootstrapperApplications.wixext -ext WixToolset.Util.wixext `
     -d "Version=$version" `
     -d "MsiPath=$bundleMsi" `
     -d "IconPath=$(Join-Path $art 'kernpage.ico')" `
