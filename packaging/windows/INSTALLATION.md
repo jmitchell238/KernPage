@@ -31,8 +31,18 @@ Both installers can add desktop shortcuts: "KernPage" (on by default) and "KernP
 `DESKTOPSHORTCUT_APP` and `DESKTOPSHORTCUT_LAUNCHER` (`1` = create, `0` = none), e.g.
 `msiexec /i <msi> /qn DESKTOPSHORTCUT_LAUNCHER=1 DESKTOPSHORTCUT_APP=0`; `Setup.exe /quiet` accepts the
 same names. The choice is remembered under `Software\KernPage` (HKCU, or HKLM for all-users), so an
-upgrade without those properties (the launcher's update) keeps it; a value given on the command line wins.
-Uninstalling removes the shortcuts. Re-running `Setup.exe` over an existing install starts with the defaults again.
+upgrade without those properties (the launcher's update) keeps it.
+
+How `Setup.exe` decides (the bundle declares the two variables with no value, then fills them during
+detect): a value on the command line, else the remembered per-user value, else the remembered all-users
+value, else the default (editor 1, launcher 0). Burn itself does not protect command-line values: the
+Setup.exe's bootstrapper application copies them into the variables first, and the searches that run
+afterwards would overwrite them (see `ProcessCommandLine` in the WiX standard BA and `SearchesExecute` in
+Burn's `search.cpp`, https://github.com/wixtoolset/wix/tree/main/src/burn/engine). The command line wins
+only because each fill-in step is conditioned on the variable still being unset. Re-running `Setup.exe` by hand therefore
+shows the remembered choice on its license page. (Burn persisted variables are not used: a new bundle
+version does not inherit them, which is how an upgrade once lost the launcher shortcut.)
+Uninstalling removes the shortcuts.
 
 ### Setup.exe vs the MSI
 

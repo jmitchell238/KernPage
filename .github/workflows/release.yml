@@ -95,11 +95,35 @@ jobs:
           cargo test --locked --workspace -j 2 -- --test-threads=4
           if ($LASTEXITCODE -ne 0) { throw 'tests failed' }
 
+      # Runs on the CI runner only (never on a developer machine): installs an old build with the
+      # launcher desktop shortcut ticked, then upgrades it with a plain quiet Setup.exe (what the
+      # Launcher does) and checks the shortcut survived.
+      - name: Build an old version for the upgrade test
+        shell: pwsh
+        run: ./packaging/windows/package.ps1 -OverrideVersion 0.0.1
+
       - name: Build the MSI and Setup.exe
         shell: pwsh
         run: |
           ./packaging/windows/package.ps1
           ./packaging/windows/check-installer.ps1
+
+      - name: Upgrade test - the launcher desktop shortcut survives a quiet Setup.exe upgrade
+        if: env.GITHUB_ACTIONS == 'true'
+        shell: pwsh
+        run: |
+          $old = "target-win\installer\KernPage-0.0.1-Setup.exe"
+          $new = "target-win\installer\KernPage-$env:VERSION-Setup.exe"
+          $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'KernPage Launcher.lnk'
+          $p = Start-Process $old -ArgumentList '/quiet','/norestart','DESKTOPSHORTCUT_LAUNCHER=1' -Wait -PassThru
+          if ($p.ExitCode -notin 0,3010) { throw "old install failed: $($p.ExitCode)" }
+          if (-not (Test-Path $lnk)) { throw 'old install did not create the launcher desktop shortcut' }
+          $p = Start-Process $new -ArgumentList '/quiet','/norestart' -Wait -PassThru
+          if ($p.ExitCode -notin 0,3010) { throw "upgrade failed: $($p.ExitCode)" }
+          $ok = Test-Path $lnk
+          $p = Start-Process $new -ArgumentList '/uninstall','/quiet','/norestart' -Wait -PassThru
+          if (-not $ok) { throw 'the launcher desktop shortcut was lost on upgrade' }
+          Write-Host 'upgrade kept the launcher desktop shortcut'
 
       - name: Build the release tool
         shell: pwsh
