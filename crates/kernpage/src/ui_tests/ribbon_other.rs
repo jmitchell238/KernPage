@@ -642,6 +642,44 @@ fn strip_problems(ui: &TestUi) -> Vec<String> {
     bad
 }
 
+/// Starts the app as on a computer without Segoe UI (the bundled Noto Sans is the interface font).
+fn ui_with_noto_sans_only() -> TestUi {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            crate::fontmgr::NO_SEGOE_UI.with(|c| c.set(false));
+        }
+    }
+    crate::fontmgr::NO_SEGOE_UI.with(|c| c.set(true));
+    let _reset = Reset;
+    ui_with_shapes()
+}
+
+#[test]
+fn without_segoe_ui_the_ribbon_is_drawn_with_noto_sans_and_still_fits() {
+    let mut ui = ui_with_noto_sans_only();
+    let (first, has_segoe) = ui.h.ctx.fonts(|f| {
+        let d = f.definitions();
+        (
+            d.families.get(&eframe::egui::FontFamily::Proportional).and_then(|l| l.first().cloned()),
+            d.font_data.contains_key(crate::fontmgr::UI_FONT_KEY),
+        )
+    });
+    assert_eq!(first.as_deref(), Some(kernpage_core::sysfonts::FALLBACK_UI_KEY), "Noto Sans is the first UI font");
+    assert!(!has_segoe, "Segoe UI is not loaded");
+    // The same ribbon-fit checks as with Segoe UI, at the minimum width and wider.
+    for w in [1280.0, 1000.0, 800.0] {
+        resize(&mut ui, w);
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            assert!(!ui.ribbon_body().is_empty(), "{tab} at {w}: the ribbon is drawn");
+            assert_eq!(fit_problems(&ui, w), Vec::<String>::new(), "{tab} at {w} (Noto Sans)");
+            assert_eq!(strip_problems(&ui), Vec::<String>::new(), "{tab} at {w}: tab strip (Noto Sans)");
+        }
+    }
+}
+
 #[test]
 fn every_fixed_tab_fits_the_window_at_the_minimum_width_and_wider() {
     let mut ui = ui_with_shapes();

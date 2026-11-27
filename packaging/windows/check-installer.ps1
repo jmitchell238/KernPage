@@ -73,6 +73,17 @@ Expect (($files -contains 'LICENSE.txt') -and ($files -contains 'LICENSE-MS-RL.t
 Expect (-not ($files -contains 'LICENSE-MIT.txt') -and -not ($files -contains 'LICENSE-APACHE.txt')) 'no MIT/Apache notice files packaged'
 Expect ($files -contains 'THIRD_PARTY_LICENSES.html') 'THIRD_PARTY_LICENSES.html (dependency licences) packaged'
 Expect ($files -contains 'THIRD_PARTY_NOTICES.txt') 'THIRD_PARTY_NOTICES.txt packaged'
+# Fallback interface font (Noto Sans, OFL 1.1): separate files in INSTALLFOLDER\fonts, with the licence text.
+Expect (($files -contains 'NotoSans-Regular.ttf') -and ($files -contains 'OFL.txt')) 'Noto Sans Regular and OFL.txt (fallback interface font) packaged'
+$fontRows = @((Query 'SELECT `File`, `Component_`, `FileName` FROM `File`') | Where-Object { (($_[2] -split '\|')[-1]) -in 'NotoSans-Regular.ttf', 'OFL.txt' })
+$compDirs = Query 'SELECT `Component`, `Directory_` FROM `Component`'
+$dirRows = Query 'SELECT `Directory`, `Directory_Parent`, `DefaultDir` FROM `Directory`'
+function InFontsFolder($fileRow) {
+    $cd = @($compDirs | Where-Object { $_[0] -eq $fileRow[1] })[0]
+    $d = @($dirRows | Where-Object { $_[0] -eq $cd[1] })[0]
+    ((($d[2] -split '\|')[-1]) -eq 'fonts') -and ($d[1] -eq 'INSTALLFOLDER')
+}
+Expect (($fontRows.Count -eq 2) -and (@($fontRows | Where-Object { -not (InFontsFolder $_) }).Count -eq 0)) 'the font files install into INSTALLFOLDER\fonts (next to kernpage.exe)'
 $scRows = Query 'SELECT `Name`, `Directory_` FROM `Shortcut`'
 $start = @($scRows | Where-Object { $_[1] -eq 'ProgramMenuFolder' } | ForEach-Object { ($_[0] -split '\|')[-1] })
 Expect (($start.Count -eq 2) -and ($start -contains 'KernPage') -and ($start -contains 'KernPage Launcher')) 'two Start menu shortcuts: "KernPage" and "KernPage Launcher"'

@@ -114,6 +114,9 @@ Set-Content -Path $rtf -Encoding ASCII `
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $msi = Join-Path $outDir "KernPage-$version-x64.msi"
 $art = Join-Path $here 'assets'
+# The bundled fallback interface font (Noto Sans Regular, OFL 1.1) and its licence: installed in INSTALLFOLDER\fonts.
+$fontsDir = Join-Path $repo 'assets\fonts\noto-sans'
+foreach ($f in 'NotoSans-Regular.ttf', 'OFL.txt') { if (-not (Test-Path (Join-Path $fontsDir $f))) { throw "Missing $fontsDir\$f" } }
 
 $artArgs = @()
 if ($CustomArt) {
@@ -134,6 +137,7 @@ Write-Host "Building $msi ..."
     @artArgs `
     -d "LicenseRtf=$rtf" `
     -d "NoticesDir=$(Join-Path $stage 'notices')" `
+    -d "FontsDir=$fontsDir" `
     -o $msi (Join-Path $here 'kernpage.wxs')
 if ($LASTEXITCODE -ne 0) { throw 'wix build failed.' }
 
@@ -151,6 +155,7 @@ Write-Host "Building $bundleMsi ..."
     -d "DocIconPath=$(Join-Path $art 'kernpage-doc.ico')" `
     @artArgs `
     -d "LicenseRtf=$rtf" -d "NoticesDir=$(Join-Path $stage 'notices')" `
+    -d "FontsDir=$fontsDir" `
     -o $bundleMsi (Join-Path $here 'kernpage.wxs')
 if ($LASTEXITCODE -ne 0) { throw 'wix build (per-user MSI for bundle) failed.' }
 

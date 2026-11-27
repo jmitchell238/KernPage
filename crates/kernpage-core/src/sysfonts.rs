@@ -1,7 +1,8 @@
 //! Finds the Windows fonts the programs draw their own text with (the UI and the page fallback).
 //!
-//! Nothing is bundled on Windows: the fonts are read from the Windows fonts folder at start-up.
-//! On a computer without them (a non-Windows development machine) [`embedded_fallback`] gives one
+//! Nothing is compiled into the Windows programs: the fonts are read from the Windows fonts folder at
+//! start-up. The one bundled font, Noto Sans (OFL 1.1), is a separate file in the `fonts` folder next to
+//! the program; it is the interface font only when Segoe UI is missing. On a computer without them (a non-Windows development machine) [`embedded_fallback`] gives one
 //! small GPL-compatible font (Hack, MIT) so egui always has something to draw with.
 
 use std::path::PathBuf;
@@ -17,6 +18,23 @@ pub struct SystemFonts {
     pub symbols: Vec<PathBuf>,
     /// Arial, then Segoe UI: what page text falls back to when its own font is missing.
     pub page: Vec<PathBuf>,
+    /// The bundled Noto Sans file (next to the program), the interface font when Segoe UI is missing.
+    pub fallback_ui: Option<PathBuf>,
+}
+
+/// File name of the bundled fallback interface font (Noto Sans Regular, unmodified).
+pub const FALLBACK_UI_FILE: &str = "NotoSans-Regular.ttf";
+
+/// Folders searched for [`FALLBACK_UI_FILE`]: `fonts` next to the running program (where the installer
+/// puts it) and, in debug and test builds only, `assets/fonts/noto-sans` of this repository.
+pub fn bundled_font_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.join("fonts"))) {
+        dirs.push(dir);
+    }
+    #[cfg(any(test, debug_assertions))]
+    dirs.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/noto-sans"));
+    dirs
 }
 
 /// The Windows fonts folder.
@@ -30,13 +48,19 @@ fn find_in(dir: &std::path::Path, file: &str) -> Option<PathBuf> {
     p.is_file().then_some(p)
 }
 
-/// Looks for the fonts in the Windows fonts folder.
+/// Looks for the fonts in the Windows fonts folder and the bundled font next to the program.
 pub fn locate() -> SystemFonts {
-    locate_in(&fonts_dir())
+    locate_with(&fonts_dir(), &bundled_font_dirs())
 }
 
-/// Looks for the fonts in `dir` (tests point this at a temporary folder).
+/// Looks for the fonts in `dir` (tests point this at a temporary folder); no bundled font.
 pub fn locate_in(dir: &std::path::Path) -> SystemFonts {
+    locate_with(dir, &[])
+}
+
+/// Looks for the system fonts in `dir` and the bundled Noto Sans in the first of `bundled` that has it.
+/// Nothing here fails when a file is missing: the field is simply empty.
+pub fn locate_with(dir: &std::path::Path, bundled: &[PathBuf]) -> SystemFonts {
     let one = |f: &str| find_in(dir, f);
     let many = |fs: &[&str]| fs.iter().filter_map(|f| one(f)).collect::<Vec<_>>();
     SystemFonts {
@@ -44,6 +68,7 @@ pub fn locate_in(dir: &std::path::Path) -> SystemFonts {
         mono: one("consola.ttf"),
         symbols: many(&["seguisym.ttf", "seguiemj.ttf"]),
         page: many(&["arial.ttf", "segoeui.ttf"]),
+        fallback_ui: bundled.iter().find_map(|d| find_in(d, FALLBACK_UI_FILE)),
     }
 }
 
@@ -64,6 +89,8 @@ pub fn embedded_fallback() -> Option<&'static [u8]> {
 
 /// Key of the UI font (Segoe UI) in a [`FontPlan`].
 pub const UI_FONT_KEY: &str = "ui-segoe";
+/// Key of the bundled Noto Sans in a [`FontPlan`].
+pub const FALLBACK_UI_KEY: &str = "ui-noto-sans";
 
 /// Font data and the font lists of each family, ready to hand to egui (this crate has no GUI code).
 #[derive(Clone, Debug, Default)]
@@ -119,14 +146,31 @@ pub fn plan_from(found: &SystemFonts) -> FontPlan {
             page.insert(0, k);
         }
     }
+    // The bundled Noto Sans; a file that is missing or unreadable is skipped, never an error.
+    let mut noto = Vec::new();
+    if let Some(p) = &found.fallback_ui {
+        if load(&mut plan, FALLBACK_UI_KEY, p) {
+            noto.push(FALLBACK_UI_KEY.to_owned());
+        }
+    }
     let mut embedded = Vec::new();
     if let Some(bytes) = embedded_fallback() {
         plan.data.push(("embedded-hack".to_owned(), bytes.into()));
         embedded.push("embedded-hack".to_owned());
     }
-    // UI text: Segoe UI, or Arial when it is missing, then symbols, then the embedded font.
-    plan.proportional = if ui.is_empty() { page.clone() } else { ui.clone() };
-    plan.proportional.extend(symbols.iter().cloned());
+    // UI text. With Segoe UI: Segoe UI, symbols, then Noto Sans (it only supplies glyphs the others lack,
+    // so Segoe UI text is drawn exactly as before: egui takes the line height from the first font only),
+    // then the embedded font. Without Segoe UI: Noto Sans, then Arial, symbols, the embedded font.
+    // Without Noto Sans either, this is the old plan (Arial, symbols, embedded).
+    if ui.is_empty() {
+        plan.proportional = noto.clone();
+        plan.proportional.extend(page.iter().cloned());
+        plan.proportional.extend(symbols.iter().cloned());
+    } else {
+        plan.proportional = ui.clone();
+        plan.proportional.extend(symbols.iter().cloned());
+        plan.proportional.extend(noto.iter().cloned());
+    }
     plan.proportional.extend(embedded.iter().cloned());
     plan.monospace = mono;
     plan.monospace.extend(symbols.iter().cloned());
@@ -168,6 +212,94 @@ mod tests {
         assert_eq!(names(&f.symbols), ["seguisym.ttf", "seguiemj.ttf"]);
         assert_eq!(names(&f.page), ["arial.ttf", "segoeui.ttf"]);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        // A folder of its own per call: the tests run in parallel.
+        static N: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = N.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let d = std::env::temp_dir().join(format!("kernpage-sysfonts-{name}-{}-{n}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    fn found(with_segoe: bool, noto: Option<&std::path::Path>) -> SystemFonts {
+        let sys = scratch(if with_segoe { "sys-segoe" } else { "sys-nosegoe" });
+        let mut files = vec!["arial.ttf", "seguisym.ttf"];
+        if with_segoe {
+            files.push("segoeui.ttf");
+        }
+        for n in files {
+            std::fs::write(sys.join(n), n.as_bytes()).unwrap();
+        }
+        let bundled: Vec<PathBuf> = noto.map(|p| vec![p.to_path_buf()]).unwrap_or_default();
+        locate_with(&sys, &bundled)
+    }
+
+    fn bundle() -> PathBuf {
+        let d = scratch("bundle");
+        std::fs::write(d.join(FALLBACK_UI_FILE), b"noto").unwrap();
+        d
+    }
+
+    fn bytes_of<'a>(plan: &'a FontPlan, key: &str) -> &'a [u8] {
+        &plan.data.iter().find(|(k, _)| k == key).unwrap().1
+    }
+
+    #[test]
+    fn noto_sans_is_the_ui_font_when_segoe_ui_is_absent() {
+        let plan = plan_from(&found(false, Some(&bundle())));
+        assert_eq!(plan.proportional.first().map(String::as_str), Some(FALLBACK_UI_KEY));
+        assert_eq!(bytes_of(&plan, FALLBACK_UI_KEY), b"noto");
+        assert!(!plan.data.iter().any(|(k, _)| k == UI_FONT_KEY));
+        // Arial and the symbol fonts still follow it for glyphs Noto Sans lacks.
+        assert!(plan.proportional.len() >= 3);
+        assert!(plan.proportional.iter().all(|k| plan.data.iter().any(|(d, _)| d == k)));
+    }
+
+    #[test]
+    fn without_segoe_ui_and_noto_sans_the_plan_is_the_old_one() {
+        let plan = plan_from(&found(false, None));
+        assert!(!plan.proportional.iter().any(|k| k == FALLBACK_UI_KEY));
+        assert_eq!(plan.proportional.first().map(String::as_str), Some("page-0"));
+    }
+
+    #[test]
+    fn with_segoe_ui_the_plan_only_gains_noto_sans_at_the_end_of_the_ui_list() {
+        let without = plan_from(&found(true, None));
+        let with = plan_from(&found(true, Some(&bundle())));
+        assert_eq!(with.proportional.first().map(String::as_str), Some(UI_FONT_KEY));
+        let mut expected = without.proportional.clone();
+        expected.push(FALLBACK_UI_KEY.to_owned());
+        assert_eq!(with.proportional, expected, "Noto Sans is appended after Segoe UI and the symbols");
+        // The monospace and page lists (the document must not change) are exactly as before.
+        assert_eq!(with.monospace, without.monospace);
+        assert_eq!(with.page, without.page);
+        assert!(!with.page.iter().chain(&with.monospace).any(|k| k == FALLBACK_UI_KEY));
+    }
+
+    #[test]
+    fn a_missing_or_unreadable_noto_file_does_not_panic() {
+        // No such folder: nothing found, the plan is the old one.
+        let nowhere = std::env::temp_dir().join("kernpage-sysfonts-no-such-folder");
+        let f = found(false, Some(&nowhere));
+        assert!(f.fallback_ui.is_none());
+        let _ = plan_from(&f);
+        // A path that is named but cannot be read (a folder where the file should be).
+        let mut f = found(false, None);
+        f.fallback_ui = Some(scratch("unreadable"));
+        let plan = plan_from(&f);
+        assert!(!plan.proportional.iter().any(|k| k == FALLBACK_UI_KEY));
+        assert!(!plan.data.iter().any(|(k, _)| k == FALLBACK_UI_KEY));
+    }
+
+    #[test]
+    fn the_bundled_font_is_in_the_repo_for_tests_and_is_noto_sans() {
+        let f = locate_with(&std::env::temp_dir().join("kernpage-sysfonts-none"), &bundled_font_dirs());
+        let p = f.fallback_ui.expect("assets/fonts/noto-sans/NotoSans-Regular.ttf");
+        let len = std::fs::metadata(p).unwrap().len();
+        assert!(len > 100_000, "a real font file, {len} bytes");
     }
 
     #[test]
