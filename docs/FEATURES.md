@@ -4,6 +4,27 @@ This is the authoritative list of what KernPage must do. Goal: **cover the featu
 
 *Last updated: 2026-11-25.*
 
+## Names in KernPage
+
+KernPage uses its own names for features. Use these words in the app, in documentation and in code comments that users or readers see. The Publisher name appears only to help people who used Publisher find the matching feature, and only when it is clearly attributed to Publisher.
+
+| KernPage name | Publisher name it replaces |
+|---|---|
+| Data tab, data-driven publishing (Data Source, Insert Field, Picture Field, Make copies, Preview, Create) | Mail merge, Mailings tab |
+| Repeating area | Catalog merge |
+| Email: not planned (export and attach in your email client) | Email merge |
+| Contact Details | Business Information |
+| Check Publication | Design Checker |
+| Content Blocks | Building Blocks |
+| Page Elements | Page Parts |
+| Picture Manager | Graphics Manager |
+| Package for Printing | Pack and Go |
+| File screen | Backstage |
+| Text Effects | WordArt |
+| Copy Formatting | Format Painter |
+| Create a PDF (XPS is not supported) | PDF/XPS |
+
+
 ## Sources
 
 The catalogue merges these research notes, removing duplicates by meaning (a handful of near-duplicate rows were merged and are noted in the surviving row):
@@ -49,8 +70,8 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | [Pictures](#pictures) | 25 | 2 | 1 | 22 |  |  |  | pw-shtg |
 | [Tables](#tables) | 24 | 6 | 3 | 15 |  |  |  | pw-ysrc |
 | [Colour](#colour) | 21 |  | 1 | 20 |  |  |  | pw-lsps |
-| [Templates, content blocks and business information](#templates-content-blocks-and-business-information) | 29 |  |  | 28 |  | 1 |  | pw-5a8b |
-| [Mail, catalogue and email merge](#mail-catalogue-and-email-merge) | 49 |  |  | 49 |  |  |  | pw-kiry |
+| [Templates, content blocks and contact details](#templates-content-blocks-and-contact-details) | 29 |  |  | 28 |  | 1 |  | pw-5a8b |
+| [Data tab (data-driven publishing)](#data-tab-data-driven-publishing) | 49 |  |  | 49 |  |  |  | pw-kiry |
 | [Web and forms](#web-and-forms) | 50 |  |  | 50 |  |  |  | pw-x4zi |
 | [Review and proofing](#review-and-proofing) | 22 |  |  | 1 |  | 21 |  | pw-pe40 |
 | [View and user interface](#view-and-user-interface) | 149 | 6 | 39 | 11 |  | 92 | 1 | pw-h12i |
@@ -137,8 +158,8 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | PRT-TO-FILE | Print to file | Print to file | — | — | ⬜ | ⬜ | pw-3op |
 | PRT-FIND-PRINTER | Find a printer | Find a printer; advanced printer setup | — | — | ⬜ | ⬜ | pw-t8o |
 | PRT-STATUS | Show printer status, type, location, comment, driver | Show printer status, type, location, comment, driver | — | — | ⬜ | ⬜ | pw-6a4 |
-| PRT-MERGE-TEST | Print a single publication of a merge as a test | Print a single publication of a merge as a test | — | — | ⬜ | ⬜ | pw-553 |
-| PRT-MERGE-SKIP-EMPTY | Do not print lines that contain only empty merge fields | Do not print lines that contain only empty merge fields | — | — | ⬜ | ⬜ | pw-26p |
+| PRT-MERGE-TEST | Print a single copy as a test | Print a single copy of a data-driven publication as a test | — | — | ⬜ | ⬜ | pw-553 |
+| PRT-MERGE-SKIP-EMPTY | Do not print lines that contain only empty data fields | Do not print lines that contain only empty data fields | — | — | ⬜ | ⬜ | pw-26p |
 | PRT-TILE-SINGLE | Print a single tile of a large page by row and column | Print a single tile of a large page by row and column | — | — | ⬜ | ⬜ | pw-658 |
 | PRT-TILE-OVERLAP | Horizontal and vertical tile overlap | Horizontal and vertical tile overlap; start row and column; gaps | — | — | ⬜ | ⬜ | pw-211 |
 | PRT-SHOW-PAPER | Show how to insert paper, and show paper after printing | Show how to insert paper, and show paper after printing | — | — | ⬜ | ⬜ | pw-04z |
@@ -163,7 +184,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | FILE-EXPORT-HTMLMAIL | Export a page as email HTML | Export a page as email HTML | — | — | ⬜ | ⬜ | pw-21e |
 | FILE-PUBLISH-INTENT | Publish pane that picks intent | Publish pane that picks intent (print, commercial, web, e-mail) and shows fixes needed | — | — | ⬜ | ⬜ | pw-cm2 |
 | FILE-PUBLISH-DOWNSAMPLE | Downsample colour and greyscale pictures to a target dpi above a threshold | Downsample colour and greyscale pictures to a target dpi above a threshold | — | — | ⬜ | ⬜ | pw-5bj |
-| FILE-PUBLISH-DC-WARN | Choose which Design Checker checks | Choose which Design Checker checks (transparency, colour) run at publish | — | — | ⬜ | ⬜ | pw-d13 |
+| FILE-PUBLISH-DC-WARN | Choose which Check Publication checks | Choose which Check Publication checks (transparency, colour) run at publish | — | — | ⬜ | ⬜ | pw-d13 |
 | FILE-PDFA | PDF/A compliant output | PDF/A compliant output | — | — | ⬜ | ⬜ | pw-eny |
 | FILE-PDF-ENCRYPT | Encrypt the PDF with a password | Encrypt the PDF with a password | — | — | ⬜ | ⬜ | pw-8t7 |
 | FILE-PDF-TAGS | Document structure tags for accessibility | Document structure tags for accessibility | — | — | ⬜ | ⬜ | pw-h91 |
@@ -360,7 +381,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | SHP-TAG | Custom tags on objects | Custom tags on objects | 🔬 | 🔬 | ⬜ | 🔬 | pw-ksae |
 | SHP-INLINE | Anchor object inline in text | Anchor object inline in text (character, left, right) | 🔬 | 🔬 | ⬜ | 🔬 | pw-tpuc |
 | SHP-LOCK | Lock aspect ratio | Lock aspect ratio | 🔬 | 🔬 | ⬜ | 🔬 | pw-3oc2 |
-| SHP-CANVAS | Canvas arrangement for merged catalog items | Canvas arrangement for merged catalog items | 🔬 | 🔬 | ⬜ | 🔬 | pw-wmgg |
+| SHP-CANVAS | Canvas arrangement for Repeating area items | Canvas arrangement for Repeating area items | 🔬 | 🔬 | ⬜ | 🔬 | pw-wmgg |
 | FMT-WRAP-TYPE | Text wrap type | Text wrap type *Note: All five wrap types; custom wrap points are FMT-WRAP-EDIT.* | ✅ | ✅ | ✅ | ✅ | — |
 | FMT-WRAP-SIDE | Wrap sides | Wrap sides | 🔬 | 🔬 | ⬜ | 🔬 | pw-sbac |
 | FMT-WRAP-DISTANCE | Wrap distance, automatic or per side | Wrap distance, automatic or per side | 🔬 | 🔬 | ⬜ | 🔬 | pw-k86o |
@@ -502,95 +523,95 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | CLR-SAMPLER | Print colour sampler for a scheme | Print colour sampler for a scheme | 🔬 | 🔬 | ⬜ | 🔬 | pw-y387 |
 | CLR-SCHEME-DELETE | Delete a custom colour scheme | Delete a custom colour scheme | 🔬 | 🔬 | ⬜ | 🔬 | pw-8r3l |
 
-## Templates, content blocks and business information
+## Templates, content blocks and contact details
 
 | ID | Feature | Publisher behaviour | Read | Save | UI | Status | Bead |
 |---|---|---|---|---|---|---|---|
 | TPL-CATALOG | Template catalog on start and on demand | Template catalog on start and on demand | 🔬 | 🔬 | ⬜ | 🔬 | pw-rwrf |
 | TPL-WIZARD-TYPES | Publication types | Publication types (business cards, newsletters, brochures and so on) | 🔬 | 🔬 | ⬜ | 🔬 | pw-ml11 |
-| TPL-WIZARD-OPTIONS | Per-template design options pane | Per-template design options pane (layout, colour, font, business info) | 🔬 | 🔬 | ⬜ | 🔬 | pw-5g4t |
+| TPL-WIZARD-OPTIONS | Per-template design options pane | Per-template design options pane (layout, colour, font, contact details) | 🔬 | 🔬 | ⬜ | 🔬 | pw-5g4t |
 | TPL-WIZARD-PAGE | Add a starter page layout to newsletters, catalogs, web sites | Add a starter page layout to newsletters, catalogs, web sites | 🔬 | 🔬 | ⬜ | 🔬 | pw-ultr |
 | TPL-WIZARD-GROUP | Design Gallery parts | Design Gallery parts (borders, mastheads, sidebars, calendars, coupons and so on) | 🔬 | 🔬 | ⬜ | 🔬 | pw-sp4c |
-| TPL-WIZARD-TAGS | Template roles of objects, used to refill business information | Template roles of objects, used to refill business information | 🔬 | 🔬 | ⬜ | 🔬 | pw-9hbu |
+| TPL-WIZARD-TAGS | Template roles of objects, used to refill contact details | Template roles of objects, used to refill contact details | 🔬 | 🔬 | ⬜ | 🔬 | pw-9hbu |
 | TPL-CHANGE-TEMPLATE | Change template without losing content | Change template without losing content | 🔬 | 🔬 | ⬜ | 🔬 | pw-2502 |
 | TPL-ISWIZARD | Know whether a publication is template-based | Know whether a publication is template-based | 🔬 | 🔬 | ⬜ | 🔬 | pw-6nv5 |
 | TPL-WIZARD-AFTER | React when a template option changes | React when a template option changes | 🔬 | 🔬 | ⬜ | 🔬 | pw-ofpm |
 | TPL-FOLDER | Template folder location | Template folder location | 🔬 | 🔬 | ⬜ | 🔬 | pw-eg15 |
-| BB-GALLERY | Content block galleries | Content block galleries (advertisements, accents, calendars, business info, page elements) | 🔬 | 🔬 | ⬜ | 🔬 | pw-2xvs |
+| BB-GALLERY | Content block galleries | Content block galleries (advertisements, accents, calendars, contact details, page elements) | 🔬 | 🔬 | ⬜ | 🔬 | pw-2xvs |
 | BB-INSERT | Insert a content block onto a page | Insert a content block onto a page | 🔬 | 🔬 | ⬜ | 🔬 | pw-sn4h |
 | BB-SAVE | Save selected objects as a content block with name | Save selected objects as a content block with name, category, keywords | 🔬 | 🔬 | ⬜ | 🔬 | pw-w08v |
 | BB-DELETE | Delete a user content block | Delete a user content block | 🔬 | 🔬 | ⬜ | 🔬 | pw-ge9q |
 | BB-SHOW | Show or hide a block in its gallery | Show or hide a block in its gallery | 🔬 | 🔬 | ⬜ | 🔬 | pw-ej6l |
 | BB-WORKGROUP | Shared workgroup content blocks | Shared workgroup content blocks | 🔬 | 🔬 | ⬜ | 🔬 | pw-s4im |
-| BIZINFO-SETS | Four business-information sets | Four business-information sets (primary, secondary, other, home) | 🔬 | 🔬 | ⬜ | 🔬 | pw-jw9g |
-| BIZINFO-EDIT | Edit business information and apply to publication | Edit business information and apply to publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-n3vx |
-| BIZINFO-FIELDS | Insert business-information fields into text | Insert business-information fields into text | 🔬 | 🔬 | ⬜ | 🔬 | pw-vnby |
-| BIZINFO-UPDATE | Update business info on save | Update business info on save | 🔬 | 🔬 | ⬜ | 🔬 | pw-qe1b |
+| BIZINFO-SETS | Four Contact Details sets | Four Contact Details sets (primary, secondary, other, home) | 🔬 | 🔬 | ⬜ | 🔬 | pw-jw9g |
+| BIZINFO-EDIT | Edit Contact Details and apply to publication | Edit Contact Details and apply to publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-n3vx |
+| BIZINFO-FIELDS | Insert Contact Details fields into text | Insert Contact Details fields into text | 🔬 | 🔬 | ⬜ | 🔬 | pw-vnby |
+| BIZINFO-UPDATE | Update contact details on save | Update contact details on save | 🔬 | 🔬 | ⬜ | 🔬 | pw-qe1b |
 | TPL-CALENDAR-DATES | Calendar template | Calendar template: choose date range, one page per month or year | 🔬 | 🔬 | ⬜ | 🔬 | pw-3kva |
 | TPL-VERSE | Suggested verse picker for cards | Suggested verse picker for cards (category, message parts) | 🔬 | 🔬 | ⬜ | 🔬 | pw-03k5 |
 | TPL-APPLY-PANE | Apply a template from a pane, to current or new publication | Apply a template from a pane, to current or new publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-4klg |
 | TPL-WIZARD-BLANK | Option to use a wizard for blank publications | Option to use a wizard for blank publications | 🔬 | 🔬 | ⬜ | 🔬 | pw-gse5 |
 | BB-LIBRARY-PANE | Content block library pane with title | Content block library pane with title, description, size, date, keywords | 🔬 | 🔬 | ⬜ | 🔬 | pw-b3u2 |
 | BB-PUB-CONTENT | Content from your publication | Content from your publication: insert, delete, delete all | 🔬 | 🔬 | ⬜ | 🔬 | pw-a198 |
-| BIZINFO-SET-CRUD | Create, edit, delete named business information sets | Create, edit, delete named business information sets | 🔬 | 🔬 | ⬜ | 🔬 | pw-bor4 |
-| BIZINFO-LOGO | Logo in a business information set | Logo in a business information set | 🔬 | 🔬 | ⬜ | 🔬 | pw-nvm3 |
+| BIZINFO-SET-CRUD | Create, edit, delete named Contact Details sets | Create, edit, delete named Contact Details sets | 🔬 | 🔬 | ⬜ | 🔬 | pw-bor4 |
+| BIZINFO-LOGO | Logo in a Contact Details set | Logo in a Contact Details set | 🔬 | 🔬 | ⬜ | 🔬 | pw-nvm3 |
 | TPL-OWN-PACK | Our own template collection (newsletters, flyers, cards, order of service, prayer list) | Bundled, freely licensed templates in the same categories Publisher offers. | — | 🔬 | ⬜ | ⬜ | pw-1qfy |
 
-## Mail, catalogue and email merge
+## Data tab (data-driven publishing)
 
-*Note 2026-11-24: merge features will be redesigned as our own Data tab (pw-3iuc) rather than copied from Publisher; the Mailings ribbon tab has been removed. The Data tab is now shown as a mock-up (every control inert, bead pw-3iuc.1; rows RIB-DATA-* in the ribbon section); none of the features below are built yet.*
+*Note 2026-11-24: data-driven publishing is KernPage's own Data tab (pw-3iuc), not a copy of Publisher's mail merge and catalog merge; the Mailings-style ribbon tab has been removed. KernPage does not send email: export and attach in your email client, so the email rows below are not planned. The Data tab is now shown as a mock-up (every control inert, bead pw-3iuc.1; rows RIB-DATA-* in the ribbon section); none of the features below are built yet.*
 
 | ID | Feature | Publisher behaviour | Read | Save | UI | Status | Bead |
 |---|---|---|---|---|---|---|---|
-| MM-WIZARD | Mail merge step-by-step pane | Mail merge step-by-step pane | 🔬 | 🔬 | ⬜ | 🔬 | pw-ju88 |
-| MM-TYPE | Choose letter/catalog/email merge | Choose letter/catalog/email merge | 🔬 | 🔬 | ⬜ | 🔬 | pw-0j6p |
-| MM-SOURCE-OPEN | Connect to recipient list | Connect to recipient list (Excel, Access, text, Outlook, other) | 🔬 | 🔬 | ⬜ | 🔬 | pw-kphz |
-| MM-SOURCE-CREATE | Create a new recipient list | Create a new recipient list | 🔬 | 🔬 | ⬜ | 🔬 | pw-7mpm |
+| MM-WIZARD | Data tab step-by-step pane | Step-by-step pane for data-driven publishing (Publisher's mail merge wizard) | 🔬 | 🔬 | ⬜ | 🔬 | pw-ju88 |
+| MM-TYPE | Choose Make copies or Repeating area | Choose one copy per row (Make copies) or a Repeating area (Publisher's letter, catalog and email merge types) | 🔬 | 🔬 | ⬜ | 🔬 | pw-0j6p |
+| MM-SOURCE-OPEN | Connect a Data Source | Connect a Data Source (recipient list in Publisher; Excel, Access, text, Outlook, other) | 🔬 | 🔬 | ⬜ | 🔬 | pw-kphz |
+| MM-SOURCE-CREATE | Create a new Data Source | Create a new Data Source (recipient list) | 🔬 | 🔬 | ⬜ | 🔬 | pw-7mpm |
 | MM-RECIPIENTS | Select and exclude recipients | Select and exclude recipients | 🔬 | 🔬 | ⬜ | 🔬 | pw-ays6 |
 | MM-SORT | Sort recipients | Sort recipients | 🔬 | 🔬 | ⬜ | 🔬 | pw-a26l |
 | MM-FILTER | Filter recipients by conditions | Filter recipients by conditions | 🔬 | 🔬 | ⬜ | 🔬 | pw-pfqv |
 | MM-EDIT-RECORD | Edit a recipient | Edit a recipient | 🔬 | 🔬 | ⬜ | 🔬 | pw-iw42 |
-| MM-FIELD-INSERT | Insert merge fields in text | Insert merge fields in text | 🔬 | 🔬 | ⬜ | 🔬 | pw-7zic |
-| MM-FIELD-PICTURE | Insert picture merge fields | Insert picture merge fields | 🔬 | 🔬 | ⬜ | 🔬 | pw-8wkt |
+| MM-FIELD-INSERT | Insert Field in text | Insert data fields in text | 🔬 | 🔬 | ⬜ | 🔬 | pw-7zic |
+| MM-FIELD-PICTURE | Picture Field | Insert picture data fields | 🔬 | 🔬 | ⬜ | 🔬 | pw-8wkt |
 | MM-FIELD-MAP | Match fields to standard address fields | Match fields to standard address fields | 🔬 | 🔬 | ⬜ | 🔬 | pw-y3up |
 | MM-FIELD-ADD | Add a recipient column | Add a recipient column | 🔬 | 🔬 | ⬜ | 🔬 | pw-3fy7 |
 | MM-ADDRESS-BLOCK | Address block and greeting line insertion | Address block and greeting line insertion | 🔬 | 🔬 | ⬜ | 🔬 | pw-vmo5 |
-| MM-PREVIEW | Preview merged results | Preview merged results | 🔬 | 🔬 | ⬜ | 🔬 | pw-2bsz |
+| MM-PREVIEW | Preview | Preview the result for each row | 🔬 | 🔬 | ⬜ | 🔬 | pw-2bsz |
 | MM-SUPPRESS-BLANK | Suppress blank lines | Suppress blank lines | 🔬 | 🔬 | ⬜ | 🔬 | pw-td0h |
-| MM-MERGE-PRINT | Merge to printer | Merge to printer | 🔬 | 🔬 | ⬜ | 🔬 | pw-r141 |
-| MM-MERGE-NEW-PUB | Merge to a new publication | Merge to a new publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-ldrx |
-| MM-MERGE-EXISTING | Merge to an existing publication | Merge to an existing publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-x3ef |
-| MM-MERGE-EMAIL | Merge to email with To, subject, priority | Merge to email with To, subject, priority | 🔬 | 🔬 | ⬜ | 🔬 | pw-bvod |
-| MM-EMAIL-ATTACH | Attach files to merged email | Attach files to merged email | 🔬 | 🔬 | ⬜ | 🔬 | pw-45dt |
-| MM-EMAIL-CCBCC | Cc and Bcc | Cc and Bcc | 🔬 | 🔬 | ⬜ | 🔬 | pw-tidt |
+| MM-MERGE-PRINT | Make copies: print | Print one copy per row | 🔬 | 🔬 | ⬜ | 🔬 | pw-r141 |
+| MM-MERGE-NEW-PUB | Create: new publication | Create a new publication with one copy per row | 🔬 | 🔬 | ⬜ | 🔬 | pw-ldrx |
+| MM-MERGE-EXISTING | Create: existing publication | Add one copy per row to an existing publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-x3ef |
+| MM-MERGE-EMAIL | Email copies (not planned) | Not planned: KernPage does not send email; export and attach in your email client (Publisher's email merge with To, subject, priority) | 🔬 | 🔬 | ⬜ | 🔬 | pw-bvod |
+| MM-EMAIL-ATTACH | Attach files to emailed copies (not planned) | Not planned: KernPage does not send email | 🔬 | 🔬 | ⬜ | 🔬 | pw-45dt |
+| MM-EMAIL-CCBCC | Cc and Bcc (not planned) | Not planned: KernPage does not send email | 🔬 | 🔬 | ⬜ | 🔬 | pw-tidt |
 | MM-EXPORT-LIST | Export recipient list to .mdb or .csv | Export recipient list to .mdb or .csv | 🔬 | 🔬 | ⬜ | 🔬 | pw-6ak1 |
-| MM-SHORTCUT | Create shortcut to merge | Create shortcut to merge | 🔬 | 🔬 | ⬜ | 🔬 | pw-u6zd |
+| MM-SHORTCUT | Create shortcut to a data-driven publication | Create a shortcut to a data-driven publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-u6zd |
 | MM-VALIDATE | Validate addresses | Validate addresses; flag invalid with comments **[ONLINE]** | 🔬 | 🔬 | ⬜ | 🔬 | pw-jztn |
 | MM-FOLLOWUP | Third-party send and follow-up hooks | Third-party send and follow-up hooks **[ONLINE]** | 🔬 | 🔬 | ⬜ | 🔬 | pw-3xa4 |
-| MM-BARCODE | Merge barcodes and postal codes | Merge barcodes and postal codes | 🔬 | 🔬 | ⬜ | 🔬 | pw-yaq9 |
-| MM-EVENTS | Hooks before and after merge and records | Hooks before and after merge and records | 🔬 | 🔬 | ⬜ | 🔬 | pw-suwb |
-| CAT-AREA | Catalog merge area on a page | Catalog merge area on a page | 🔬 | 🔬 | ⬜ | 🔬 | pw-730p |
-| CAT-FIELD | Insert catalog text and picture fields | Insert catalog text and picture fields | 🔬 | 🔬 | ⬜ | 🔬 | pw-vdqk |
+| MM-BARCODE | Barcodes and postal codes from data | Barcodes and postal codes from data fields | 🔬 | 🔬 | ⬜ | 🔬 | pw-yaq9 |
+| MM-EVENTS | Hooks before and after Create and per row | Hooks before and after Create and for each row | 🔬 | 🔬 | ⬜ | 🔬 | pw-suwb |
+| CAT-AREA | Repeating area on a page | Repeating area on a page (what Publisher calls a catalog merge area) | 🔬 | 🔬 | ⬜ | 🔬 | pw-730p |
+| CAT-FIELD | Insert Field and Picture Field in a Repeating area | Insert text and picture fields in a Repeating area | 🔬 | 🔬 | ⬜ | 🔬 | pw-vdqk |
 | CAT-REPEAT | Repeat counts across and down | Repeat counts across and down | 🔬 | 🔬 | ⬜ | 🔬 | pw-it03 |
-| CAT-MEMBERS | Add and remove objects from the merge area | Add and remove objects from the merge area | 🔬 | 🔬 | ⬜ | 🔬 | pw-tqo5 |
-| CAT-PAGES | Catalog starter page layouts | Catalog starter page layouts | 🔬 | 🔬 | ⬜ | 🔬 | pw-zw18 |
-| MM-REMEMBER-MATCH | Remember field matching for a data source set | Remember field matching for a data source set | 🔬 | 🔬 | ⬜ | 🔬 | pw-y1kj |
+| CAT-MEMBERS | Add and remove objects from the Repeating area | Add and remove objects from the Repeating area | 🔬 | 🔬 | ⬜ | 🔬 | pw-tqo5 |
+| CAT-PAGES | Repeating area starter page layouts | Starter page layouts for Repeating areas | 🔬 | 🔬 | ⬜ | 🔬 | pw-zw18 |
+| MM-REMEMBER-MATCH | Remember field matching for a Data Source | Remember field matching for a Data Source | 🔬 | 🔬 | ⬜ | 🔬 | pw-y1kj |
 | MM-FIND-DUPES | Find duplicate recipients and choose which to include | Find duplicate recipients and choose which to include | 🔬 | 🔬 | ⬜ | 🔬 | pw-8lio |
 | MM-FIND-RECIPIENT | Find a recipient by field | Find a recipient by field | 🔬 | 🔬 | ⬜ | 🔬 | pw-5bvk |
 | MM-CUSTOMIZE-COLUMNS | Add, delete, rename, move recipient columns | Add, delete, rename, move recipient columns | 🔬 | 🔬 | ⬜ | 🔬 | pw-3pn0 |
-| MM-ADD-TO-LIST | Add another source to the recipient list with field matching | Add another source to the recipient list with field matching | 🔬 | 🔬 | ⬜ | 🔬 | pw-p4zr |
+| MM-ADD-TO-LIST | Add another source to the Data Source with field matching | Add another source to the Data Source with field matching | 🔬 | 🔬 | ⬜ | 🔬 | pw-p4zr |
 | MM-REFRESH | Refresh recipient data | Refresh recipient data | 🔬 | 🔬 | ⬜ | 🔬 | pw-se1v |
 | MM-RECONNECT | Reconnect lost data sources or work without connection | Reconnect lost data sources or work without connection | 🔬 | 🔬 | ⬜ | 🔬 | pw-cxo7 |
 | MM-DATA-CONNECT | Data connection wizard | Data connection wizard: ODBC, data feed, server, password | 🔬 | 🔬 | ⬜ | 🔬 | pw-pele |
 | MM-TEXT-SEPARATOR | Choose separator for text file sources | Choose separator for text file sources | 🔬 | 🔬 | ⬜ | 🔬 | pw-o4xl |
 | MM-SELECT-TABLE | Choose table or cube | Choose table or cube; multiple related tables | 🔬 | 🔬 | ⬜ | 🔬 | pw-r9l8 |
-| MM-EMAIL-PREVIEW | Preview merged e-mails | Preview merged e-mails; subject personalisation | 🔬 | 🔬 | ⬜ | 🔬 | pw-9ukt |
-| MM-EMAIL-STATUS | Sent and not sent view of merged e-mail | Sent and not sent view of merged e-mail | 🔬 | 🔬 | ⬜ | 🔬 | pw-pt6v |
+| MM-EMAIL-PREVIEW | Preview emailed copies (not planned) | Not planned: KernPage does not send email; subject personalisation | 🔬 | 🔬 | ⬜ | 🔬 | pw-9ukt |
+| MM-EMAIL-STATUS | Sent and not sent view (not planned) | Not planned: KernPage does not send email | 🔬 | 🔬 | ⬜ | 🔬 | pw-pt6v |
 | MM-PRINT-LIST | Print recipient list | Print recipient list: choose up to 15 columns, notes column, orientation, fit to width | 🔬 | 🔬 | ⬜ | 🔬 | pw-g6a7 |
-| MM-DONE-PANE | Result pane after merge to new publication | Result pane after merge to new publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-lvfk |
+| MM-DONE-PANE | Result pane after Create | Result pane after Create to a new publication | 🔬 | 🔬 | ⬜ | 🔬 | pw-lvfk |
 | MM-ADDRESS-FORMAT | Address block format, country rules, greeting for invalid names | Address block format, country rules, greeting for invalid names | 🔬 | 🔬 | ⬜ | 🔬 | pw-rzdw |
 | MM-FIELD-DB | Insert address or database fields from a field picker | Insert address or database fields from a field picker | 🔬 | 🔬 | ⬜ | 🔬 | pw-x80l |
-| CAT-MULTI-AREA | Choose one merge area when several exist | Choose one merge area when several exist; others become static | 🔬 | 🔬 | ⬜ | 🔬 | pw-r6h0 |
+| CAT-MULTI-AREA | Choose one Repeating area when several exist | Choose one Repeating area when several exist; others become static | 🔬 | 🔬 | ⬜ | 🔬 | pw-r6h0 |
 
 ## Web and forms
 
@@ -602,7 +623,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | LNK-URL | Web address link | Web address link | 🔬 | 🔬 | ⬜ | 🔬 | pw-s0b2 |
 | LNK-EMAIL | Email link with subject | Email link with subject | 🔬 | 🔬 | ⬜ | 🔬 | pw-fq37 |
 | LNK-PAGE | Link to a page, first, last, next, previous | Link to a page, first, last, next, previous | 🔬 | 🔬 | ⬜ | 🔬 | pw-vgq1 |
-| LNK-PERSONALIZED | Personalised URL using merge data | Personalised URL using merge data | 🔬 | 🔬 | ⬜ | 🔬 | pw-9e9d |
+| LNK-PERSONALIZED | Personalised URL using Data tab fields | Personalised URL using data fields | 🔬 | 🔬 | ⬜ | 🔬 | pw-9e9d |
 | LNK-EDIT-REMOVE | Edit, move, remove hyperlink | Edit, move, remove hyperlink | 🔬 | 🔬 | ⬜ | 🔬 | pw-od06 |
 | LNK-COLORS | Hyperlink and followed-hyperlink colours | Hyperlink and followed-hyperlink colours | 🔬 | 🔬 | ⬜ | 🔬 | pw-6kl7 |
 | LNK-FILE | Link to a file | Link to a file | 🔬 | 🔬 | ⬜ | 🔬 | pw-eskf |
@@ -663,10 +684,10 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | TXT-AUTOCORRECT-MATH | Math AutoCorrect | Math AutoCorrect | — | — | ⬜ | ⬜ | pw-bmg2 |
 | TXT-FIND-ARABIC | Find options | Find options: match diacritics, alef hamza, kashida, width | — | — | ⬜ | ⬜ | pw-pimy |
 | TXT-FIND-RESEARCH | Research lookup from the Find pane | Research lookup from the Find pane | — | — | ⬜ | ⬜ | pw-vrrh |
-| APP-DESIGN-CHECKER | Design Checker pane | Design Checker pane: problems list, fix, ignore, options, page range, master pages | — | — | ⬜ | ⬜ | pw-g2wv |
-| APP-DC-SORT | Sort and filter Design Checker results | Sort and filter Design Checker results; remove fixed items | — | — | ⬜ | ⬜ | pw-j4ju |
-| APP-DC-EMAIL | Design Checker for e-mail | Design Checker for e-mail: choose image quality | — | — | ⬜ | ⬜ | pw-ti4j |
-| MM-DESIGN-CHECK | Run Design Checker from the merge pane | Run Design Checker from the merge pane | — | — | ⬜ | ⬜ | pw-3i3l |
+| APP-DESIGN-CHECKER | Check Publication pane | Check Publication pane (Publisher's Design Checker): problems list, fix, ignore, options, page range, master pages | — | — | ⬜ | ⬜ | pw-g2wv |
+| APP-DC-SORT | Sort and filter Check Publication results | Sort and filter Check Publication results; remove fixed items | — | — | ⬜ | ⬜ | pw-j4ju |
+| APP-DC-EMAIL | Check Publication for e-mail | Check Publication for e-mail (Publisher's Design Checker): choose image quality | — | — | ⬜ | ⬜ | pw-ti4j |
+| MM-DESIGN-CHECK | Run Check Publication from the Data tab | Run Check Publication from the Data tab | — | — | ⬜ | ⬜ | pw-3i3l |
 | REV-THESAURUS | Thesaurus | Look up synonyms for the selected word (Shift+F7); offline word list. | — | — | ⬜ | ⬜ | pw-m3yg |
 | REV-RESEARCH | Research pane and Smart Lookup | Look up a word in reference sources (open replacement: dictionary and Wikipedia lookup the user starts). | — | — | ⬜ | ⬜ | pw-rd63 |
 | REV-TRANSLATE | Translate selection or publication | Translate text; offline models by default. | — | — | ⬜ | ⬜ | pw-ujh5 |
@@ -718,10 +739,10 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | RIB-PAGEDE-PAGES | Ribbon: Page Design tab, Pages group | The Pages group of the Page Design ribbon tab: same controls, order, sizes, KeyTips and shortcuts as Publisher 2021; every control works. *Note: Group is shown today; controls that need a feature below are greyed out until that feature is built.* | — | — | 🟡 | ⬜ | pw-i3be |
 | RIB-PAGEDE-SCHEMES | Ribbon: Page Design tab, Palettes group | The Palettes group of the Page Design ribbon tab: same controls, order, sizes, KeyTips and shortcuts as Publisher 2021; every control works. *Note: Group is shown today; controls that need a feature below are greyed out until that feature is built.* | — | — | 🟡 | ⬜ | pw-cl6f |
 | RIB-PAGEDE-PAGEBACK | Ribbon: Page Design tab, Page Background group | The Page Background group of the Page Design ribbon tab: same controls, order, sizes, KeyTips and shortcuts as Publisher 2021; every control works. *Note: Group is shown today; controls that need a feature below are greyed out until that feature is built.* | — | — | 🟡 | ⬜ | pw-uhlp |
-| RIB-MAILIN-START | Ribbon: Mailings tab, Start group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-kkje |
-| RIB-MAILIN-WRITEINS | Ribbon: Mailings tab, Write & Insert Fields group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-1gyq |
-| RIB-MAILIN-PREVIEWR | Ribbon: Mailings tab, Preview Results group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-g1y7 |
-| RIB-MAILIN-FINISH | Ribbon: Mailings tab, Finish group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-vr0l |
+| RIB-MAILIN-START | Ribbon: Publisher's Mailings tab (removed), Start group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-kkje |
+| RIB-MAILIN-WRITEINS | Ribbon: Publisher's Mailings tab (removed), Write & Insert Fields group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-1gyq |
+| RIB-MAILIN-PREVIEWR | Ribbon: Publisher's Mailings tab (removed), Preview Results group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-g1y7 |
+| RIB-MAILIN-FINISH | Ribbon: Publisher's Mailings tab (removed), Finish group | Removed 2026-11-24: replaced later by our own Data tab (pw-3iuc); not copied from Publisher. | — | — | ➖ | ➖ | pw-vr0l |
 | RIB-DATA-LIST | Ribbon: Data tab, List group (our own design) | Mock-up of our own Data tab: Data Source (drop-down) and Edit List, all greyed. Not a Publisher layout. | — | — | 🟡 | ⬜ | pw-3iuc.1 |
 | RIB-DATA-FIELDS | Ribbon: Data tab, Fields group (our own design) | Mock-up: Insert Field (drop-down), Picture Field, Numbering, all greyed. | — | — | 🟡 | ⬜ | pw-3iuc.1 |
 | RIB-DATA-LAYOUT | Ribbon: Data tab, Layout group (our own design) | Mock-up: Make Copies, Repeating Area, Per Sheet (drop-down), all greyed. | — | — | 🟡 | ⬜ | pw-3iuc.1 |
@@ -766,7 +787,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | BS-HOME | File screen: Home page | Templates and recent publications. | — | — | 🟡 | 🟡 | pw-bsz7 |
 | BS-NEW | File screen: New page | Office/Built-In template tabs, search, blank publication. | — | — | 🟡 | 🟡 | pw-8e9e |
 | BS-OPEN | File screen: Open page | Places list (Recent, This PC, Browse) and recent files. | — | — | 🟡 | 🟡 | pw-fm7m |
-| BS-INFO | File screen: Info page | Business information, embedded fonts, publication properties, compress pictures. | — | — | 🟡 | 🟡 | pw-nwzf |
+| BS-INFO | File screen: Info page | Contact Details, embedded fonts, publication properties, compress pictures. | — | — | 🟡 | 🟡 | pw-nwzf |
 | BS-SAVEAS | File screen: Save As page | Places list and file type choice. | — | — | 🟡 | 🟡 | pw-o5yf |
 | BS-PRINT | File screen: Print page | Printer, copies, range, duplex, settings and preview. *Note: Printer, Printer Properties, copies, pages, collation and the preview work; duplex, paper size and colour mode are shown greyed.* | — | — | 🟡 | 🟡 | pw-tkvm |
 | BS-SHARE | File screen: Share page | Email, cloud and share options (open replacements, ROADMAP Phase 2). | — | — | ⬜ | ⬜ | pw-gto1 |
@@ -791,7 +812,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | CTX-TABLE | Right-click menu: table | Context menu for a table: same items, order, separators and enabled rules as Publisher 2021. *Note: Item list not yet recorded from Publisher; research first.* | — | — | ⬜ | 🔬 | pw-k7s5 |
 | CTX-PAGE | Right-click menu: page in the Pages pane | Context menu for a page in the Pages pane: same items, order, separators and enabled rules as Publisher 2021. | — | — | 🟡 | 🟡 | pw-nkoh |
 | CTX-MASTER | Right-click menu: master page | Context menu for a master page: same items, order, separators and enabled rules as Publisher 2021. *Note: Item list not yet recorded from Publisher; research first.* | — | — | ⬜ | 🔬 | pw-375d |
-| CTX-MERGE | Right-click menu: mail merge field or recipient | Context menu for a mail merge field or recipient: same items, order, separators and enabled rules as Publisher 2021. *Note: Item list not yet recorded from Publisher; research first.* | — | — | ⬜ | 🔬 | pw-er5a |
+| CTX-MERGE | Right-click menu: data field or row | Context menu for a data field or row: same items, order, separators and enabled rules as Publisher 2021. *Note: Item list not yet recorded from Publisher; research first.* | — | — | ⬜ | 🔬 | pw-er5a |
 | CTX-RULER | Right-click menu: ruler | Context menu for a ruler: same items, order, separators and enabled rules as Publisher 2021. *Note: Item list not yet recorded from Publisher; research first.* | — | — | ⬜ | 🔬 | pw-ivau |
 | CTX-GUIDE | Right-click menu: guide | Context menu for a guide: same items, order, separators and enabled rules as Publisher 2021. *Note: Item list not yet recorded from Publisher; research first.* | — | — | ⬜ | 🔬 | pw-39ms |
 | CTX-LINE | Right-click menu: line and connector | Context menu for a line and connector: same items, order, separators and enabled rules as Publisher 2021. *Note: Item list not yet recorded from Publisher; research first.* | — | — | ⬜ | 🔬 | pw-dxbk |
@@ -854,7 +875,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | APP-FONT-SUBST-EAST | Auto-substitute fonts for missing East Asian characters | Auto-substitute fonts for missing East Asian characters | — | — | ⬜ | ⬜ | pw-lh07 |
 | APP-YEN | Display backslash as Yen sign | Display backslash as Yen sign | — | — | ⬜ | ⬜ | pw-gixr |
 | APP-STARTUP-TYPES | Show publication types when starting | Show publication types when starting | — | — | ⬜ | ⬜ | pw-mgqa |
-| APP-FIELD-UNDERLINE | Underline merge and business fields | Underline merge and business fields | — | — | ⬜ | ⬜ | pw-hm3k |
+| APP-FIELD-UNDERLINE | Underline data fields and contact-detail fields | Underline data fields and contact-detail fields | — | — | ⬜ | ⬜ | pw-hm3k |
 
 ## Macros, add-ins and automation
 
@@ -872,7 +893,7 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 
 ## Connected features
 
-Online features in Publisher 2021. Each gets an open replacement that needs no Microsoft account and sends nothing unless the user asks. Other `[ONLINE]` rows live in their own area (for example mail merge address validation).
+Online features in Publisher 2021. Each gets an open replacement that needs no Microsoft account and sends nothing unless the user asks. Other `[ONLINE]` rows live in their own area (for example address validation in data-driven publishing).
 
 | ID | Feature | Publisher behaviour | Read | Save | UI | Status | Bead |
 |---|---|---|---|---|---|---|---|
@@ -906,7 +927,7 @@ Differentiators from the competitor research and the ROADMAP Phase 3 ideas. Pari
 | BEY-PREPRESS | Print-shop output: PDF/X-1a and X-4, CMYK and spot colours, bleed, crop marks, font embedding, preflight report | Print-ready PDF for commercial printers. | — | — | — | ⬜ | pw-rw5f |
 | BEY-TAGGED-PDF | Accessible tagged PDF (PDF/UA), reading order, alt text and accessibility checker | Accessibility for schools, councils and non-profits. | — | — | — | ⬜ | pw-bxre |
 | BEY-PRIVACY | Local and private by design: no telemetry, offline spelling and translation, AI-free by default | Everything works offline without an account. | — | — | — | ⬜ | pw-vluz |
-| BEY-DATA-MERGE | Merge from CSV and Excel with labels, envelopes, name tags and repeatable data-driven layouts | Directories, menus and calendars from data. | — | — | — | ⬜ | pw-5bpf |
+| BEY-DATA-MERGE | Data Source from CSV and Excel with labels, envelopes, name tags and repeatable data-driven layouts | Directories, menus and calendars from data. | — | — | — | ⬜ | pw-5bpf |
 | BEY-TEMPLATES-LIB | Open template library through the Launcher (flyers, newsletters, bulletins, calendars, labels) | Freely licensed, signed packages; users keep and share their own packs. | — | — | — | ⬜ | pw-ynxi |
 | BEY-MODERN-UX | Modern essentials: autosave and crash recovery, unlimited undo with history list, dark mode, high-DPI, touch, keyboard-only use | On top of the Publisher-familiar interface. | — | — | — | ⬜ | pw-dkzf |
 | BEY-OPEN-FORMAT | Open formats and an exit path: published .pub spec, open native format, export to PDF, SVG, images, later IDML and ODF | Trust through being able to leave. | — | — | — | ⬜ | pw-urgv |
@@ -942,7 +963,7 @@ Things we know we do not yet know about Publisher 2021. Each is a research task.
 | ID | Feature | Publisher behaviour | Read | Save | UI | Status | Bead |
 |---|---|---|---|---|---|---|---|
 | GAP-RIBBON-LABELS | Undecoded ribbon labels and drop-down contents | Some ribbon labels and the contents of galleries and drop-downs (Shapes, Table, Page Elements, Styles, Margins) were not expanded in the UI inventory. | 🔬 | 🔬 | — | 🔬 | pw-d8za |
-| GAP-CTX-MENUS | Unrecorded right-click menus (picture, table, page, master, mail merge, ruler, guide) | These menus are built in code and were not captured; record them with UI automation or screenshots. | 🔬 | 🔬 | — | 🔬 | pw-ditl |
+| GAP-CTX-MENUS | Unrecorded right-click menus (picture, table, page, master, data field, ruler, guide) | These menus are built in code and were not captured; record them with UI automation or screenshots. | 🔬 | 🔬 | — | 🔬 | pw-ditl |
 | GAP-SHORTCUTS | About 25 unmapped keyboard shortcuts | Accelerator command ids with no known meaning (Ctrl+M, Ctrl+Shift+W/Y/O/L/U/K/N/D/E/H/I/X/B, Ctrl+Q, Ctrl+T, Ctrl+F5, Ctrl+F10, Ctrl+Shift+J, Ctrl+F7 and others); find each by testing in Publisher 2021. | 🔬 | 🔬 | — | 🔬 | pw-3cje |
 | GAP-MSODRAW-ENUMS | Drawing enumerations still to confirm | MSO drawing enum values (shape types, fill, line and effect kinds) must be confirmed against real files before use. | 🔬 | 🔬 | — | 🔬 | pw-tuo5 |
 | GAP-COLLAPSED-RIBBON | Collapsed ribbon layouts at narrow widths | Layouts at narrow window widths were not examined. | 🔬 | 🔬 | — | 🔬 | pw-z185 |

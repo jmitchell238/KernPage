@@ -142,7 +142,7 @@ pub fn verify_previous(index: &[u8], sig_text: &str, keys: &[PublicKey]) -> Resu
 fn default_item() -> Value {
     json!({
         "id": APP_ID, "kind": "app", "name": "KernPage",
-        "tagline": "Page layout and publishing. Opens and saves Publisher (.pub) files.",
+        "tagline": "Desktop publishing for bulletins, newsletters and flyers. Opens Publisher (.pub) files too.",
         "website": "https://github.com/jmitchell238/kernpage",
         "repo": "https://github.com/jmitchell238/kernpage",
         "releases_url": "https://github.com/jmitchell238/kernpage/releases",

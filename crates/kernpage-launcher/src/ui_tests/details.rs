@@ -35,7 +35,7 @@ fn details_sections_with_an_update() {
     let (_f, mut ui) = checked(notes_feed(), Setup::new().installed(OLD));
     details(&mut ui);
     assert!(ui.has("Version 0.1.2 \u{2192} 0.2.0 \u{00B7} Dec 1, 2026"));
-    assert!(ui.has("Page layout and publishing. Opens and saves Publisher (.pub) files."));
+    assert!(ui.has("Desktop publishing for bulletins, newsletters and flyers. Opens Publisher (.pub) files too."));
     // The update list's feature list replaces the built-in one.
     assert!(ui.has("Spell check") && ui.has("Templates"));
     // Info boxes.

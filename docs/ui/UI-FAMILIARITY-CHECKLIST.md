@@ -10,7 +10,7 @@ name or logos. All visuals are our own or from an open-licensed icon set.
 ## 1. Main window layout
 - [ ] Title bar: `<document name> - KernPage`
 - [ ] Quick-access buttons at top-left: Save, Undo (with history dropdown), Redo
-- [ ] Tab strip: **File** (accent-colored, opens a full-window "backstage"), Home, Insert,
+- [ ] Tab strip: **File** (accent-colored, opens a full-window File screen), Home, Insert,
       Page Design, Review, View
 - [ ] Ribbon under tabs: commands in labeled groups; a small launcher arrow at a group's
       bottom-right opens the full dialog for that group (Font, Paragraph, Page Setup…)
@@ -25,7 +25,7 @@ name or logos. All visuals are our own or from an open-licensed icon set.
       view toggles (single page / two-page spread), zoom percentage, zoom slider with −/+,
       fit-page button
 
-## 2. File (backstage) view
+## 2. File screen
 Left column: Save, Save As, Open, Close, Info, Recent, **New**, Print, Save & Send, Help,
 Options, Exit.
 
@@ -44,7 +44,7 @@ Options, Exit.
 ## 3. Home tab
 | Group | Commands |
 |---|---|
-| Clipboard | Paste (with options), Cut, Copy, Format Painter |
+| Clipboard | Paste (with options), Cut, Copy, Copy Formatting |
 | Font | font name, size, grow/shrink font, clear formatting; Bold, Italic, Underline, subscript, superscript, change case, character spacing, font color |
 | Paragraph | bullets, numbering, decrease/increase indent, columns, show ¶ marks; align left/center/right/justify, line spacing, paragraph shading |
 | Styles | Styles gallery |
@@ -55,11 +55,11 @@ Options, Exit.
 ## 4. Insert tab
 | Group | Commands |
 |---|---|
-| Pages | Page (insert blank/duplicate), Catalog Pages |
+| Pages | Page (insert blank/duplicate) |
 | Tables | Table |
 | Illustrations | Picture, Clip Art, Shapes, Picture Placeholder |
-| Building Blocks | Page Parts, Calendars, Borders & Accents, Advertisements |
-| Text | Draw Text Box, Business Information, WordArt, Insert File, Symbol, Date & Time, Object |
+| Content Blocks | Page Elements, Calendars, Borders & Accents, Advertisements |
+| Text | Draw Text Box, Contact Details, Styled Text, Insert File, Symbol, Date & Time, Object |
 | Links | Hyperlink, Bookmark |
 | Header & Footer | Header, Footer, Page Number |
 
@@ -75,7 +75,7 @@ Options, Exit.
 
 ## 6. Data tab (our own design, mock-up only; bead pw-3iuc.1)
 
-This tab is our own layout, not Publisher's Mailings tab. Every control is greyed and inert for now.
+This tab is our own layout, not a copy of any Publisher tab. Every control is greyed and inert for now.
 
 | Group | Commands |
 |---|---|
@@ -96,7 +96,7 @@ This tab is our own layout, not Publisher's Mailings tab. Every control is greye
 |---|---|
 | Views | Normal, Master Page |
 | Layout | Single Page, Two-Page Spread |
-| Show | Boundaries, Guides, Fields, Rulers, Page Navigation, Scratch Area, Graphics Manager, Baselines (checkboxes) |
+| Show | Boundaries, Guides, Fields, Rulers, Page Navigation, Scratch Area, Picture Manager, Baselines (checkboxes) |
 | Zoom | 100%, Whole Page, zoom box, Page Width, Selected Objects |
 | Window | Arrange All, Cascade, Switch Windows |
 
@@ -104,4 +104,4 @@ This tab is our own layout, not Publisher's Mailings tab. Every control is greye
 Must: window layout (§1), New screen with blank sizes + our own templates, Home tab,
 Insert → Page/Picture/Shapes/Draw Text Box/Table/Page Number, Page Design → Margins/
 Orientation/Size/Guides/Master Pages, View → zoom + show toggles, open `.pub`, print, export PDF.
-Later: Review, Building Blocks, WordArt, Clip Art, Business Information.
+Later: Review, Content Blocks, Text Effects, Clip Art, Contact Details.

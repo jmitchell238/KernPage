@@ -14,7 +14,7 @@ pub struct AppInfo {
 
 pub const KERNPAGE: AppInfo = AppInfo {
     name: "KernPage",
-    tagline: "Page layout and publishing. Opens and saves Publisher (.pub) files.",
+    tagline: "Desktop publishing for bulletins, newsletters and flyers. Opens Publisher (.pub) files too.",
     features: &[
         Feature {
             title: "Opens Publisher files",
@@ -38,7 +38,7 @@ pub const KERNPAGE: AppInfo = AppInfo {
         },
         Feature {
             title: "Open source, works offline",
-            text: "Licensed MIT or Apache-2.0. Not affiliated with Microsoft. Still in development: no master pages, spell check, mail merge or templates yet.",
+            text: "Licensed MIT or Apache-2.0. Not affiliated with Microsoft. Still in development: no master page editing, spell check or data-driven publishing yet.",
         },
     ],
 };
