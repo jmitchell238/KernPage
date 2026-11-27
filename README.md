@@ -8,6 +8,7 @@
 <p align="center"><strong>Free, open-source desktop publishing for Windows: bulletins, newsletters, flyers, programs and posters.</strong></p>
 
 <p align="center">
+  <a href="https://github.com/jmitchell238/KernPage/releases/latest"><img alt="Latest version" src="https://img.shields.io/github/v/release/jmitchell238/KernPage?label=version&color=0F766E"></a>
   <img alt="Licence: GPL-3.0" src="https://img.shields.io/badge/licence-GPL--3.0-blue">
   <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows-0F766E">
   <img alt="Written in Rust" src="https://img.shields.io/badge/written%20in-Rust-orange">
