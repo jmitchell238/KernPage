@@ -486,6 +486,8 @@ pub struct App {
     pub print: crate::output::PrintState,
     /// Selected tab on the File view's New and Open pages.
     pub bs_tab: usize,
+    /// Selected tab (Recent / Pinned) on the File screen's Home page.
+    pub home_tab: usize,
     pub page: usize,
     pub zoom: f64,
     pub zoom_mode: ZoomMode,
@@ -603,6 +605,7 @@ impl App {
             print_sheet: 0,
             print: crate::output::PrintState::default(),
             bs_tab: 0,
+            home_tab: 0,
             page: 0,
             zoom: 1.0,
             zoom_mode: ZoomMode::WholePage,
@@ -2993,7 +2996,8 @@ It is not a PNG or JPEG picture it can read."));
                     }
                     self.search_box(ui, search_rect);
                 });
-                // Tab strip.
+                // Tab strip. The File screen replaces the tab row and the ribbon until it is left.
+                if !self.backstage {
                 ui.horizontal(|ui| {
                     ui.add_space(0.0);
                     ui.set_height(TAB_H);
@@ -3184,6 +3188,7 @@ It is not a PNG or JPEG picture it can read."));
                         }
                     });
                 });
+                }
                 if has_doc && !self.backstage && !self.ribbon_collapsed {
                     crate::theme::drew!("ribbon:card");
                     // The ribbon floats as a rounded panel on the tinted window. The panel is

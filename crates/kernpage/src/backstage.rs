@@ -1,5 +1,5 @@
-//! The File screen in the Publisher 2021 layout: a green command rail on the left
-//! and one page per command (Home, New, Open, Info, Save As, Print, Share, Export, ...).
+//! The File screen: a teal command rail on the left and one page per command (Home, New, Open,
+//! Info, Save As, Print, Share, Export, ...). While it is open the tab row and ribbon are hidden.
 
 use crate::app::{App, Pending, Section};
 use crate::icons::{self, Icon};
@@ -11,15 +11,77 @@ use eframe::egui::{
 use kernpage_core::template;
 use std::path::{Path, PathBuf};
 
-/// The command rail: neutral, on the window background.
+/// The command rail: KernPage teal with white text, the same in light and dark themes (the
+/// dark theme only deepens it a little).
 fn rail_fill() -> Color32 {
-    crate::theme::window_bg()
+    if crate::theme::is_dark() {
+        Color32::from_rgb(0x0F, 0x4E, 0x54)
+    } else {
+        Color32::from_rgb(0x12, 0x63, 0x6B)
+    }
+}
+/// The selected rail item's darker teal.
+fn rail_selected() -> Color32 {
+    if crate::theme::is_dark() {
+        Color32::from_rgb(0x0A, 0x3A, 0x3F)
+    } else {
+        Color32::from_rgb(0x0D, 0x4D, 0x54)
+    }
 }
 fn rail_text() -> Color32 {
-    crate::theme::text()
+    Color32::WHITE
 }
+/// White at reduced opacity: disabled rail items.
 fn rail_dim() -> Color32 {
-    crate::theme::line()
+    Color32::WHITE.gamma_multiply(0.45)
+}
+/// A thin light tint on the rail: dividers.
+fn rail_line() -> Color32 {
+    crate::theme::mix(rail_fill(), Color32::WHITE, 0.28)
+}
+fn rail_hover() -> Color32 {
+    crate::theme::mix(rail_fill(), Color32::WHITE, 0.10)
+}
+
+/// Rail width in logical px.
+const RAIL_W: f32 = 190.0;
+/// Rail row height.
+const RAIL_ROW: f32 = 36.0;
+const RAIL_SEP: f32 = 14.0;
+
+/// A rectangle on the device-pixel grid.
+fn snap(ui: &Ui, r: Rect) -> Rect {
+    crate::widgets::snap_rect(ui.ctx().pixels_per_point(), r)
+}
+
+/// A one-device-pixel horizontal line at `y`, centred on a pixel row so it is crisp.
+fn hline(ui: &Ui, x0: f32, x1: f32, y: f32, col: Color32) {
+    let ppp = ui.ctx().pixels_per_point();
+    let y = ((y * ppp).floor() + 0.5) / ppp;
+    let x = |v: f32| (v * ppp).round() / ppp;
+    ui.painter().line_segment([Pos2::new(x(x0), y), Pos2::new(x(x1), y)], Stroke::new(1.0 / ppp, col));
+}
+
+/// A one-device-pixel border on the inside edge of `r`.
+fn outline(ui: &Ui, r: Rect, col: Color32) {
+    let ppp = ui.ctx().pixels_per_point();
+    ui.painter().rect_stroke(snap(ui, r), 0.0, Stroke::new(1.0 / ppp, col), StrokeKind::Inside);
+}
+
+/// `text` shortened with an ellipsis until it fits `max_w`.
+fn elide(ui: &Ui, text: &str, font: &FontId, max_w: f32) -> String {
+    let fits = |s: &str| ui.painter().layout_no_wrap(s.to_owned(), font.clone(), Color32::WHITE).size().x <= max_w;
+    if fits(text) {
+        return text.to_owned();
+    }
+    let mut chars: Vec<char> = text.chars().collect();
+    while chars.pop().is_some() {
+        let s = format!("{}\u{2026}", chars.iter().collect::<String>());
+        if fits(&s) {
+            return s;
+        }
+    }
+    "\u{2026}".to_owned()
 }
 
 /// Selected row/tab fill on the Export, Open and Save As pages.
@@ -117,6 +179,52 @@ pub fn page_title(ui: &mut Ui, text: &str) {
     ui.add_space(8.0);
 }
 
+/// The page heading of Home, New and Open ("New", "Open").
+pub fn heading(ui: &mut Ui, text: &str) {
+    ui.label(RichText::new(text).size(22.0).color(crate::theme::text()));
+}
+
+/// A section heading on Home, New and Open ("Church", "Recent Publications").
+pub fn subheading(ui: &mut Ui, text: &str) {
+    ui.label(RichText::new(text).size(16.0).color(crate::theme::group_label()));
+    ui.add_space(6.0);
+}
+
+/// Paper is white whatever the theme, like the page on the canvas.
+const PAPER: Color32 = Color32::WHITE;
+/// The grey text lines drawn on a page picture.
+const PAPER_LINE: Color32 = Color32::from_rgb(0xC9, 0xCE, 0xD3);
+
+/// The picture for More page sizes: three white sheets of different sizes, fanned out.
+fn sheets_art(ui: &Ui, page: Rect) {
+    for (x, y, w, h) in [(2.0, 20.0, 62.0, 48.0), (22.0, 32.0, 46.0, 60.0), (44.0, 56.0, 36.0, 46.0)] {
+        let r = snap(ui, Rect::from_min_size(page.min + Vec2::new(x, y), Vec2::new(w, h)));
+        ui.painter().rect_filled(r, 0.0, PAPER);
+        outline(ui, r, crate::theme::frame());
+    }
+}
+
+/// A plain page outline: the stand-in for a first-page picture that is loading or unreadable.
+fn outline_page_glyph(ui: &Ui, area: Rect) {
+    let page = snap(ui, area);
+    let p = ui.painter();
+    p.rect_filled(page, 0.0, PAPER);
+    p.rect_filled(
+        Rect::from_min_size(page.min + Vec2::new(4.0, 5.0), Vec2::new(page.width() - 12.0, 3.0)),
+        0.0,
+        crate::theme::accent(),
+    );
+    for k in 0..3 {
+        let w = if k == 2 { page.width() * 0.4 } else { page.width() - 8.0 };
+        p.rect_filled(
+            Rect::from_min_size(page.min + Vec2::new(4.0, 12.0 + k as f32 * 5.0), Vec2::new(w, 2.0)),
+            0.0,
+            PAPER_LINE,
+        );
+    }
+    outline(ui, area, crate::theme::frame());
+}
+
 /// A green section heading ("Printer", "Settings", ...).
 pub fn section_title(ui: &mut Ui, text: &str) {
     ui.label(RichText::new(text).size(20.0).color(crate::theme::accent_text()));
@@ -129,7 +237,7 @@ pub fn flat_button(ui: &mut Ui, text: &str, enabled: bool) -> egui::Response {
         enabled,
         egui::Button::new(RichText::new(text).color(if enabled { crate::theme::text() } else { crate::theme::disabled() }))
             .fill(crate::theme::card())
-            .stroke(Stroke::new(1.0, crate::theme::frame()))
+            .stroke(Stroke::new(1.0 / ui.ctx().pixels_per_point(), crate::theme::frame()))
             .corner_radius(0.0),
     );
     #[cfg(test)]
@@ -140,7 +248,15 @@ pub fn flat_button(ui: &mut Ui, text: &str, enabled: bool) -> egui::Response {
 /// Draws a tile's page area (the preview), given the page rectangle.
 type TileArt<'a> = &'a mut dyn FnMut(&Ui, Rect);
 
-/// A page-sized tile: a bordered box with a page outline above a caption.
+/// Width of a start item (page picture and caption).
+const TILE_W: f32 = 124.0;
+/// The tallest page picture; portrait pages are 84 wide, landscape 108.
+const TILE_PAGE_H: f32 = 108.0;
+const TILE_PAD: f32 = 8.0;
+const TILE_LABEL_H: f32 = 22.0;
+
+/// A start item: a page picture with one thin crisp border and its caption centred below.
+/// A light tint shows behind the whole item while it is hovered.
 fn tile(
     ui: &mut Ui,
     label: &str,
@@ -148,57 +264,40 @@ fn tile(
     landscape: bool,
     art: Option<TileArt>,
 ) -> bool {
-    let size = Vec2::new(150.0, 176.0);
+    let size = Vec2::new(TILE_W, TILE_PAD + TILE_PAGE_H + 6.0 + TILE_LABEL_H + TILE_PAD);
     let sense = if enabled { Sense::click() } else { Sense::hover() };
     let (rect, resp) = ui.allocate_exact_size(size, sense);
     #[cfg(test)]
     seen(format!("tile:{label}"), rect, enabled, false);
-    let p = ui.painter();
-    let frame = Rect::from_min_size(rect.min, Vec2::new(150.0, 150.0));
-    // A rounded card holding both the page drawing and its caption.
-    p.rect_filled(rect, 12.0, crate::theme::tile());
-    p.rect_stroke(rect, 12.0, Stroke::new(1.0, crate::theme::tile_line()), StrokeKind::Inside);
     if resp.hovered() && enabled {
-        p.rect_stroke(rect, 12.0, Stroke::new(2.0, crate::theme::accent()), StrokeKind::Inside);
+        ui.painter().rect_filled(snap(ui, rect), 0.0, crate::theme::accent_tint_hover());
     }
-    let ink = if enabled { crate::theme::group_label() } else { crate::theme::frame() };
-    let (w, h) = if landscape { (116.0, 90.0) } else { (92.0, 116.0) };
-    let ppp = ui.ctx().pixels_per_point();
-    let page = crate::widgets::snap_rect(ppp, Rect::from_center_size(frame.center(), Vec2::new(w, h)));
+    let (w, h) = if landscape { (108.0, 84.0) } else { (84.0, TILE_PAGE_H) };
+    // Pictures sit on a common baseline, centred across the item.
+    let bottom = rect.min.y + TILE_PAD + TILE_PAGE_H;
+    let page = snap(
+        ui,
+        Rect::from_min_size(Pos2::new(rect.center().x - w / 2.0, bottom - h), Vec2::new(w, h)),
+    );
     #[cfg(test)]
     seen(format!("page:{label}"), page, enabled, false);
-    let px = 1.0 / ppp;
-    // The page is a polygon with its top-right corner cut diagonally; every point sits on a
-    // device-pixel centre so the 1 px outline is crisp. Nothing is drawn outside it.
-    let (l, t, r, bt) = (
-        page.min.x + px / 2.0,
-        page.min.y + px / 2.0,
-        page.max.x - px / 2.0,
-        page.max.y - px / 2.0,
-    );
-    let fold = (20.0 * ppp).round() / ppp;
-    let (tl, bl, br) = (Pos2::new(l, t), Pos2::new(l, bt), Pos2::new(r, bt));
-    let (a, b, c) = (Pos2::new(r - fold, t), Pos2::new(r, t + fold), Pos2::new(r - fold, t + fold));
-    let tr = Pos2::new(r, t);
-    p.add(egui::Shape::convex_polygon(vec![tl, a, b, br, bl], crate::theme::card(), Stroke::NONE));
+    // Page pictures are paper: white in both themes (a disabled item is only a faint outline).
+    ui.painter().rect_filled(page, 0.0, if enabled { PAPER } else { Color32::TRANSPARENT });
+    let has_art = art.is_some();
     if let Some(art) = art {
         art(ui, page);
-        // The preview is a plain rectangle: hide what it drew in the cut-off corner.
-        p.add(egui::Shape::convex_polygon(
-            vec![a, tr + Vec2::new(px, -px), b],
-            crate::theme::tile(),
-            Stroke::NONE,
-        ));
     }
-    let s = Stroke::new(px, ink);
-    for (p1, p2) in [(tl, a), (a, b), (a, c), (c, b), (b, br), (br, bl), (bl, tl)] {
-        p.line_segment([p1, p2], s);
+    // A greyed item with its own picture (More page sizes) draws its own sheets and borders.
+    if enabled || !has_art {
+        outline(ui, page, if enabled { crate::theme::frame() } else { crate::theme::line() });
     }
-    p.text(
-        Pos2::new(rect.center().x, rect.max.y - 8.0),
-        Align2::CENTER_BOTTOM,
-        label,
-        FontId::proportional(13.5),
+    let font = FontId::proportional(13.0);
+    let text = elide(ui, label, &font, TILE_W - 8.0);
+    ui.painter().text(
+        Pos2::new(rect.center().x, bottom + 6.0 + TILE_LABEL_H / 2.0),
+        Align2::CENTER_CENTER,
+        text,
+        font,
         if enabled { crate::theme::text() } else { crate::theme::disabled() },
     );
     if enabled {
@@ -229,26 +328,28 @@ fn blank_tiles(
 ) -> Option<Tile> {
     let mut chosen = None;
     ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing = Vec2::new(16.0, 10.0);
+        ui.spacing_mut().item_spacing = Vec2::new(6.0, 10.0);
         if tile(ui, "Blank 8.5 x 11\"", true, false, None) {
             chosen = Some(Tile::Blank { landscape: false });
         }
         if tile(ui, "Blank 11 x 8.5\"", true, true, None) {
             chosen = Some(Tile::Blank { landscape: true });
         }
-        tile(ui, "More Blank Page Sizes", false, false, None);
         if let Some((thumbs, fonts)) = bulletin {
             if tile(ui, "Church Bulletin", true, false, Some(&mut bulletin_preview(thumbs, fonts))) {
                 chosen = Some(Tile::Bulletin);
             }
         }
+        // Not a page itself: the way to other sizes comes after the pages.
+        tile(ui, "More page sizes", false, false, Some(&mut sheets_art));
     });
     chosen
 }
 
-/// A row of tab labels with an underline under the selected one; returns the new selection.
+/// A row of tab labels with a 2 px underline under the selected one; returns the new selection.
 fn tab_row(ui: &mut Ui, labels: &[(&str, bool)], selected: usize) -> usize {
     let mut sel = selected;
+    let ppp = ui.ctx().pixels_per_point();
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 22.0;
         for (i, (label, enabled)) in labels.iter().enumerate() {
@@ -260,10 +361,15 @@ fn tab_row(ui: &mut Ui, labels: &[(&str, bool)], selected: usize) -> usize {
             #[cfg(test)]
             seen(format!("tabrow:{label}"), resp.rect, *enabled, i == selected);
             if i == selected {
-                let y = resp.rect.bottom() + 3.0;
-                ui.painter().line_segment(
-                    [Pos2::new(resp.rect.left(), y), Pos2::new(resp.rect.right(), y)],
-                    Stroke::new(2.0, crate::theme::accent()),
+                let y = ((resp.rect.bottom() + 4.0) * ppp).round() / ppp;
+                let x = |v: f32| (v * ppp).round() / ppp;
+                ui.painter().rect_filled(
+                    Rect::from_min_max(
+                        Pos2::new(x(resp.rect.left()), y),
+                        Pos2::new(x(resp.rect.right()), y + 2.0 / ppp),
+                    ),
+                    0.0,
+                    crate::theme::accent(),
                 );
             }
             if *enabled && resp.clicked() {
@@ -274,17 +380,50 @@ fn tab_row(ui: &mut Ui, labels: &[(&str, bool)], selected: usize) -> usize {
     sel
 }
 
-/// One command on the rail. `icon`: `None` no icon, `Some(None)` the house, `Some(Some(i))` an icon.
+/// What a rail row draws before its label. The library icons turn into solid blobs in one
+/// colour when the detail is the same colour as the shape, so a few are drawn by hand.
+#[derive(Clone, Copy)]
+enum RailIcon {
+    Home,
+    Lib(Icon),
+    Info,
+    Question,
+    Save,
+}
+
+fn paint_rail_icon(p: &egui::Painter, r: Rect, icon: RailIcon, col: Color32) {
+    let s = Stroke::new(1.4, col);
+    match icon {
+        RailIcon::Home => paint_home(p, r, col),
+        RailIcon::Lib(i) => icons::paint(p, r, i, col),
+        RailIcon::Info | RailIcon::Question => {
+            p.circle_stroke(r.center(), r.width() / 2.0 - 0.7, s);
+            let t = if matches!(icon, RailIcon::Info) { "i" } else { "?" };
+            p.text(r.center() + Vec2::new(0.0, 0.5), Align2::CENTER_CENTER, t, FontId::proportional(11.5), col);
+        }
+        RailIcon::Save => {
+            let b = r.shrink(1.5);
+            p.rect_stroke(b, 1.5, s, StrokeKind::Inside);
+            let top = Rect::from_min_max(b.min + Vec2::new(4.0, 0.0), Pos2::new(b.max.x - 4.0, b.min.y + 4.5));
+            p.rect_stroke(top, 0.0, s, StrokeKind::Inside);
+            let bot = Rect::from_min_max(Pos2::new(b.min.x + 3.5, b.max.y - 6.5), Pos2::new(b.max.x - 3.5, b.max.y));
+            p.rect_stroke(bot, 0.0, s, StrokeKind::Inside);
+        }
+    }
+}
+
+/// One command on the rail (`icon`: `None` for no icon).
+/// The selected item is a darker teal with a 3 px white marker on its left edge.
 fn rail_item(
     ui: &mut Ui,
     label: &str,
-    icon: Option<Option<Icon>>,
+    icon: Option<RailIcon>,
     enabled: bool,
     tip: &str,
     active: bool,
 ) -> bool {
     let sense = if enabled { Sense::click() } else { Sense::hover() };
-    let (rect, resp) = ui.allocate_exact_size(Vec2::new(ui.available_width(), 34.0), sense);
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(ui.available_width(), RAIL_ROW), sense);
     #[cfg(test)]
     crate::widgets::probe::record(crate::widgets::probe::Seen {
         label: format!("nav:{label}"),
@@ -293,29 +432,22 @@ fn rail_item(
         enabled,
         selected: active,
     });
+    let ppp = ui.ctx().pixels_per_point();
+    let r = snap(ui, rect);
     let p = ui.painter();
-    let pill = rect.shrink2(Vec2::new(8.0, 2.0));
     if active {
-        p.rect_filled(pill, 6.0, crate::theme::accent_tint());
+        p.rect_filled(r, 0.0, rail_selected());
+        p.rect_filled(Rect::from_min_size(r.min, Vec2::new(3.0 / ppp, r.height())), 0.0, Color32::WHITE);
     } else if resp.hovered() && enabled {
-        p.rect_filled(pill, 6.0, crate::theme::hover_bg());
+        p.rect_filled(r, 0.0, rail_hover());
     }
-    let col = if !enabled {
-        rail_dim()
-    } else if active {
-        crate::theme::accent_text()
-    } else {
-        crate::theme::text()
-    };
+    let col = if enabled { rail_text() } else { rail_dim() };
     if let Some(icon) = icon {
-        let r = Rect::from_center_size(Pos2::new(rect.min.x + 28.0, rect.center().y), Vec2::splat(17.0));
-        match icon {
-            Some(i) => icons::paint(p, r, i, col),
-            None => paint_home(p, r, col),
-        }
+        let ir = Rect::from_center_size(Pos2::new(rect.min.x + 26.0, rect.center().y), Vec2::splat(17.0));
+        paint_rail_icon(p, ir, icon, col);
     }
     p.text(
-        Pos2::new(rect.min.x + 43.0, rect.center().y),
+        Pos2::new(rect.min.x + 48.0, rect.center().y),
         Align2::LEFT_CENTER,
         label,
         FontId::proportional(14.0),
@@ -329,12 +461,8 @@ fn rail_item(
 
 fn separator(ui: &mut Ui) {
     let w = ui.available_width();
-    let (rect, _) = ui.allocate_exact_size(Vec2::new(w, 14.0), Sense::hover());
-    let y = rect.center().y;
-    ui.painter().line_segment(
-        [Pos2::new(rect.min.x + 25.0, y), Pos2::new(rect.max.x - 25.0, y)],
-        Stroke::new(1.0, rail_dim()),
-    );
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(w, RAIL_SEP), Sense::hover());
+    hline(ui, rect.min.x + 16.0, rect.max.x - 16.0, rect.center().y, rail_line());
 }
 
 impl App {
@@ -345,13 +473,13 @@ impl App {
         let cur = self.section;
         let mut action = None;
         egui::Panel::left("backstage_column")
-            .exact_size(175.0)
+            .exact_size(RAIL_W)
             .frame(egui::Frame::new().fill(rail_fill()))
             .show(ui, |ui| {
                 ui.spacing_mut().item_spacing = Vec2::ZERO;
                 let width = ui.available_width();
                 let bottom = ui.max_rect().bottom();
-                ui.add_space(14.0);
+                ui.add_space(10.0);
                 let sense = if has_doc { Sense::click() } else { Sense::hover() };
                 let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 40.0), sense);
                 #[cfg(test)]
@@ -359,18 +487,24 @@ impl App {
                 let col = if has_doc { rail_text() } else { rail_dim() };
                 paint_back(
                     ui.painter(),
-                    Rect::from_center_size(Pos2::new(rect.min.x + 28.0, rect.center().y), Vec2::splat(26.0)),
+                    Rect::from_center_size(Pos2::new(rect.min.x + 26.0, rect.center().y), Vec2::splat(26.0)),
                     col,
                 );
                 if has_doc && resp.on_hover_text("Back to Publication").clicked() {
                     action = Some(Entry::Back);
                 }
                 ui.add_space(8.0);
+                // The wordmark in white (the dark-background variant) on the teal.
+                ui.horizontal(|ui| {
+                    ui.add_space(18.0);
+                    crate::logo::show_as(ui, crate::logo::Mark::Wordmark, crate::theme::Accent::Teal, true, 28.0);
+                });
+                ui.add_space(16.0);
                 let need = "Open or create a publication first";
                 let top = [
-                    (Entry::Home, "Home", Some(None), true, ""),
-                    (Entry::New, "New", Some(Some(Icon::Page)), true, ""),
-                    (Entry::Open, "Open", Some(Some(Icon::Folder)), true, ""),
+                    (Entry::Home, "Home", Some(RailIcon::Home), true, ""),
+                    (Entry::New, "New", Some(RailIcon::Lib(Icon::New)), true, ""),
+                    (Entry::Open, "Open", Some(RailIcon::Lib(Icon::Folder)), true, ""),
                 ];
                 for (e, label, icon, enabled, tip) in top {
                     if rail_item(ui, label, icon, enabled, tip, e.section() == Some(cur)) {
@@ -378,28 +512,28 @@ impl App {
                     }
                 }
                 separator(ui);
-                for (e, label, enabled, tip) in [
-                    (Entry::Info, "Info", has_doc, need),
-                    (Entry::Save, "Save", can_save, save_tip),
-                    (Entry::SaveAs, "Save As", has_doc, need),
-                    (Entry::Print, "Print", has_doc, need),
-                    (Entry::Share, "Share", true, ""),
-                    (Entry::Export, "Export", has_doc, need),
-                    (Entry::Close, "Close", has_doc, need),
+                for (e, label, icon, enabled, tip) in [
+                    (Entry::Info, "Info", RailIcon::Info, has_doc, need),
+                    (Entry::Save, "Save", RailIcon::Save, can_save, save_tip),
+                    (Entry::SaveAs, "Save As", RailIcon::Lib(Icon::Pages), has_doc, need),
+                    (Entry::Print, "Print", RailIcon::Lib(Icon::Print), has_doc, need),
+                    (Entry::Share, "Share", RailIcon::Lib(Icon::Send), true, ""),
+                    (Entry::Export, "Export", RailIcon::Lib(Icon::Arrow), has_doc, need),
+                    (Entry::Close, "Close", RailIcon::Lib(Icon::Close), has_doc, need),
                 ] {
-                    if rail_item(ui, label, None, enabled, tip, e.section() == Some(cur)) {
+                    if rail_item(ui, label, Some(icon), enabled, tip, e.section() == Some(cur)) {
                         action = Some(e);
                     }
                 }
                 let used = ui.cursor().min.y;
-                ui.add_space((bottom - used - 3.0 * 34.0 - 28.0).max(8.0));
+                ui.add_space((bottom - used - 3.0 * RAIL_ROW - RAIL_SEP - 8.0).max(8.0));
                 separator(ui);
-                for (e, label) in [
-                    (Entry::About, "About KernPage"),
-                    (Entry::Feedback, "Feedback"),
-                    (Entry::Options, "Options"),
+                for (e, label, icon) in [
+                    (Entry::About, "About KernPage", RailIcon::Question),
+                    (Entry::Feedback, "Feedback", RailIcon::Lib(Icon::Mail)),
+                    (Entry::Options, "Options", RailIcon::Lib(Icon::Gear)),
                 ] {
-                    if rail_item(ui, label, None, true, "", e.section() == Some(cur)) {
+                    if rail_item(ui, label, Some(icon), true, "", e.section() == Some(cur)) {
                         action = Some(e);
                     }
                 }
@@ -620,38 +754,47 @@ impl App {
     }
 
     fn home_page(&mut self, ui: &mut Ui) {
-        crate::logo::show(ui, crate::logo::Mark::Wordmark, 40.0);
-        ui.add_space(10.0);
         let mut picked = None;
+        let mut opened = None;
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-            // Start screen: recent publications first, as cards.
-            section_title(ui, "Open");
-            tab_row(ui, &[("Recent", true), ("Pinned", false)], 0);
+            heading(ui, "New");
             ui.add_space(8.0);
-            if let Some(p) = self.recent_cards(ui, 8) {
-                self.request(Pending::OpenPath(p));
-            }
-            ui.add_space(6.0);
-            if green_link(ui, "More publications") {
-                self.section = Section::Open;
-            }
-            ui.add_space(18.0);
-            section_title(ui, "New");
-            picked = blank_tiles(ui, Some((&mut self.start_thumbs, &self.fonts)));
-            ui.add_space(6.0);
-            if green_link(ui, "More templates") {
-                self.section = Section::New;
+            // Only blank page sizes here; templates are behind More templates.
+            picked = blank_tiles(ui, None);
+            ui.add_space(2.0);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                if link_as(ui, "More templates", "More templates \u{2192}") {
+                    self.section = Section::New;
+                    // Straight to the templates that exist today (the Built-in tab).
+                    self.bs_tab = 1;
+                }
+            });
+            ui.add_space(14.0);
+            self.home_tab = tab_row(ui, &[("Recent", true), ("Pinned", true)], self.home_tab.min(1));
+            ui.add_space(8.0);
+            if self.home_tab == 0 {
+                opened = self.recent_list(ui, 8);
+                ui.add_space(8.0);
+                if green_link(ui, "More publications") {
+                    self.section = Section::Open;
+                }
+            } else {
+                ui.label(RichText::new("Pin a publication to keep it here.").color(crate::theme::disabled()));
             }
         });
+        if let Some(p) = opened {
+            self.request(Pending::OpenPath(p));
+        }
         if let Some(t) = picked {
             self.start_tile(t);
         }
     }
 
-    /// The recent publications as a wrapping row of cards (Modern Home). Returns a clicked path.
-    /// Each card shows a miniature of the file's first page. Files are parsed on a background
-    /// thread (see `thumbs`); while one loads, or if it cannot be read, the card shows a page glyph.
-    fn recent_cards(&mut self, ui: &mut Ui, limit: usize) -> Option<PathBuf> {
+    /// The recent publications as a full-width list: a small picture of the first page, the
+    /// name with its folder under it, and when it was opened. Returns a clicked path.
+    /// Files are parsed on a background thread (see `thumbs`); while one loads, or if it cannot
+    /// be read, the row shows a plain page outline.
+    fn recent_list(&mut self, ui: &mut Ui, limit: usize) -> Option<PathBuf> {
         let items: Vec<PathBuf> = self.recent.items().to_vec();
         if items.is_empty() {
             ui.label(
@@ -660,121 +803,99 @@ impl App {
             );
             return None;
         }
+        const ROW_H: f32 = 52.0;
+        const TEXT_X: f32 = 56.0;
+        const DATE_W: f32 = 150.0;
+        let w = ui.available_width();
+        let (head, _) = ui.allocate_exact_size(Vec2::new(w, 26.0), Sense::hover());
+        let p = ui.painter();
+        p.text(
+            Pos2::new(head.min.x + TEXT_X, head.center().y),
+            Align2::LEFT_CENTER,
+            "Name",
+            FontId::proportional(12.0),
+            crate::theme::group_label(),
+        );
+        p.text(
+            Pos2::new(head.max.x - 12.0, head.center().y),
+            Align2::RIGHT_CENTER,
+            "Opened",
+            FontId::proportional(12.0),
+            crate::theme::group_label(),
+        );
+        hline(ui, head.min.x, head.max.x, head.max.y - 1.0, crate::theme::card_line());
         let mut hit = None;
-        ui.horizontal_wrapped(|ui| {
-            ui.spacing_mut().item_spacing = Vec2::new(14.0, 14.0);
-            for path in items.iter().take(limit) {
-                let (rect, resp) = ui.allocate_exact_size(Vec2::new(150.0, 168.0), Sense::click());
-                let name = path.file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned());
-                #[cfg(test)]
-                seen(format!("recent:{name}"), rect, true, false);
-                let p = ui.painter();
-                p.rect_filled(rect, 12.0, crate::theme::tile());
-                let edge = if resp.hovered() {
-                    Stroke::new(2.0, crate::theme::accent())
-                } else {
-                    Stroke::new(1.0, crate::theme::tile_line())
-                };
-                p.rect_stroke(rect, 12.0, edge, StrokeKind::Inside);
-                // The first page when it is ready; otherwise (loading, missing, unreadable) the glyph.
-                let area = Rect::from_center_size(
-                    Pos2::new(rect.center().x, rect.min.y + 60.0),
-                    Vec2::new(120.0, 104.0),
-                );
-                let drew = self.start_thumbs.paint_file(ui, area, path, &self.fonts);
-                #[cfg(test)]
-                seen(format!("{}:{name}", if drew { "preview" } else { "glyph" }), area, true, false);
-                let p = ui.painter();
-                if !drew {
-                    let page = Rect::from_center_size(
-                        Pos2::new(rect.center().x, rect.min.y + 60.0),
-                        Vec2::new(66.0, 84.0),
-                    );
-                    p.rect_filled(page, 3.0, crate::theme::card());
-                    p.rect_stroke(page, 3.0, Stroke::new(1.0, crate::theme::line()), StrokeKind::Inside);
-                    for k in 0..5 {
-                        let y = page.min.y + 26.0 + k as f32 * 9.0;
-                        let w = if k == 4 { 28.0 } else { 46.0 };
-                        p.rect_filled(
-                            Rect::from_min_size(Pos2::new(page.min.x + 10.0, y), Vec2::new(w, 3.0)),
-                            1.5,
-                            crate::theme::line(),
-                        );
-                    }
-                    p.rect_filled(
-                        Rect::from_min_size(page.min + Vec2::new(10.0, 10.0), Vec2::new(46.0, 8.0)),
-                        2.0,
-                        crate::theme::accent(),
-                    );
-                }
-                let short = if name.chars().count() > 20 {
-                    format!("{}…", name.chars().take(19).collect::<String>())
-                } else {
-                    name.clone()
-                };
-                p.text(
-                    Pos2::new(rect.min.x + 12.0, rect.max.y - 38.0),
-                    Align2::LEFT_TOP,
-                    short,
-                    FontId::proportional(13.5),
-                    crate::theme::text(),
-                );
-                if let Some(date) = opened_text(&self.recent, path) {
-                    p.text(
-                        Pos2::new(rect.min.x + 12.0, rect.max.y - 20.0),
-                        Align2::LEFT_TOP,
-                        date,
-                        FontId::proportional(11.5),
-                        crate::theme::group_label(),
-                    );
-                }
-                let resp = resp.on_hover_text(path.display().to_string());
-                if resp.clicked() {
-                    hit = Some(path.clone());
-                }
-            }
-        });
-        hit
-    }
-
-    /// The recent publications as rows (name and folder, date modified). Returns a clicked path.
-    fn recent_list(&self, ui: &mut Ui, limit: usize) -> Option<PathBuf> {
-        let items = self.recent.items();
-        if items.is_empty() {
-            ui.label(
-                RichText::new("No recent publications yet. Publications you open or save appear here.")
-                    .color(crate::theme::disabled()),
-            );
-            return None;
-        }
-        let mut hit = None;
-        ui.horizontal(|ui| {
-            ui.add_space(10.0);
-            ui.label(RichText::new("Name").size(12.0).color(crate::theme::disabled()));
-        });
         for path in items.iter().take(limit) {
-            let w = ui.available_width().min(900.0);
-            let (rect, resp) = ui.allocate_exact_size(Vec2::new(w, 46.0), Sense::click());
-            let p = ui.painter();
-            if resp.hovered() {
-                p.rect_filled(rect, 0.0, crate::theme::hover_bg());
-            }
+            let (rect, resp) = ui.allocate_exact_size(Vec2::new(w, ROW_H), Sense::click());
             let name = path.file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned());
             #[cfg(test)]
             seen(format!("recent:{name}"), rect, true, false);
-            p.text(rect.min + Vec2::new(10.0, 8.0), Align2::LEFT_TOP, name, FontId::proportional(14.0), crate::theme::text());
+            if resp.hovered() {
+                ui.painter().rect_filled(snap(ui, rect), 0.0, crate::theme::accent_tint_hover());
+            }
+            // The first page when it is ready; otherwise (loading, missing, unreadable) an outline.
+            let area = Rect::from_min_size(rect.min + Vec2::new(14.0, (ROW_H - 34.0) / 2.0), Vec2::new(26.0, 34.0));
+            let drew = self.start_thumbs.paint_file(ui, area, path, &self.fonts);
+            #[cfg(test)]
+            seen(format!("{}:{name}", if drew { "preview" } else { "glyph" }), area, true, false);
+            if !drew {
+                outline_page_glyph(ui, area);
+            }
+            let max_w = (w - TEXT_X - DATE_W - 12.0).max(40.0);
+            let name_font = FontId::proportional(14.0);
+            let crumb_font = FontId::proportional(12.0);
             let crumb = path.parent().map(recent::breadcrumb).unwrap_or_default();
-            p.text(rect.min + Vec2::new(10.0, 27.0), Align2::LEFT_TOP, crumb, FontId::proportional(11.5), crate::theme::group_label());
+            let (shown, shown_crumb) = (elide(ui, &name, &name_font, max_w), elide(ui, &crumb, &crumb_font, max_w));
+            #[cfg(test)]
+            {
+                let at = |x: f32, y: f32, w: f32, h: f32| Rect::from_min_size(Pos2::new(x, y), Vec2::new(w, h));
+                let text_w = |t: &str, f: &FontId| ui.painter().layout_no_wrap(t.to_owned(), f.clone(), Color32::WHITE).size().x;
+                let tip = |label: String, tip: String, r: Rect| {
+                    crate::widgets::probe::record(crate::widgets::probe::Seen { label, tip, rect: r, enabled: true, selected: false });
+                };
+                tip(
+                    format!("rname:{name}"),
+                    shown.clone(),
+                    at(rect.min.x + TEXT_X, rect.min.y + 10.0, text_w(&shown, &name_font), 17.0),
+                );
+                tip(
+                    format!("rfolder:{name}"),
+                    shown_crumb.clone(),
+                    at(rect.min.x + TEXT_X, rect.min.y + 30.0, text_w(&shown_crumb, &crumb_font), 14.0),
+                );
+                if let Some(d) = opened_text(&self.recent, path) {
+                    let f = FontId::proportional(12.5);
+                    let wd = text_w(&d, &f);
+                    tip(format!("ropened:{name}"), d, at(rect.max.x - 12.0 - wd, rect.center().y - 8.0, wd, 16.0));
+                }
+            }
+            let p = ui.painter();
+            p.text(
+                Pos2::new(rect.min.x + TEXT_X, rect.min.y + 10.0),
+                Align2::LEFT_TOP,
+                shown,
+                name_font,
+                crate::theme::text(),
+            );
+            p.text(
+                Pos2::new(rect.min.x + TEXT_X, rect.min.y + 30.0),
+                Align2::LEFT_TOP,
+                shown_crumb,
+                crumb_font,
+                crate::theme::group_label(),
+            );
             if let Some(date) = opened_text(&self.recent, path) {
-                p.text(
-                    Pos2::new(rect.max.x - 14.0, rect.center().y),
+                let date = elide(ui, &date, &FontId::proportional(12.5), DATE_W - 12.0);
+                ui.painter().text(
+                    Pos2::new(rect.max.x - 12.0, rect.center().y),
                     Align2::RIGHT_CENTER,
                     date,
                     FontId::proportional(12.5),
                     crate::theme::group_label(),
                 );
             }
-            p.line_segment([rect.left_bottom(), rect.right_bottom()], Stroke::new(1.0, crate::theme::line()));
+            hline(ui, rect.min.x, rect.max.x, rect.max.y - 1.0, crate::theme::line());
+            let resp = resp.on_hover_text(path.display().to_string());
             if resp.clicked() {
                 hit = Some(path.clone());
             }
@@ -783,7 +904,8 @@ impl App {
     }
 
     fn new_page(&mut self, ui: &mut Ui) {
-        page_title(ui, "New");
+        heading(ui, "New");
+        ui.add_space(8.0);
         let mut chosen = None;
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
             chosen = blank_tiles(ui, None);
@@ -816,9 +938,9 @@ impl App {
                     .color(crate::theme::text()),
                 );
             } else {
-                section_title(ui, "Church");
+                subheading(ui, "Church");
                 ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing = Vec2::new(16.0, 10.0);
+                    ui.spacing_mut().item_spacing = Vec2::new(6.0, 10.0);
                     if tile(
                         ui,
                         "Church Bulletin",
@@ -832,7 +954,7 @@ impl App {
                     tile(ui, "Prayer List", false, false, None);
                 });
                 ui.add_space(10.0);
-                section_title(ui, "More Templates");
+                subheading(ui, "More Templates");
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing = Vec2::new(10.0, 6.0);
                     for name in [
@@ -851,7 +973,7 @@ impl App {
         }
     }
 
-    /// A places column (selected place plus Browse) used by Open and Save As.
+    /// A places column (selected place plus Browse) used by Open and Save As: icon and label rows.
     fn places(ui: &mut Ui, labels: &[&str]) -> bool {
         let mut browse = false;
         ui.allocate_ui(Vec2::new(230.0, 400.0), |ui| {
@@ -861,10 +983,31 @@ impl App {
                     let (rect, _) = ui.allocate_exact_size(Vec2::new(220.0, 38.0), Sense::hover());
                     #[cfg(test)]
                     seen(format!("place:{label}"), rect, true, i == 0);
+                    let ppp = ui.ctx().pixels_per_point();
+                    let r = snap(ui, rect);
+                    let col = if i == 0 { crate::theme::accent_text() } else { crate::theme::text() };
                     if i == 0 {
-                        ui.painter().rect_filled(rect, 0.0, selected_row());
+                        ui.painter().rect_filled(r, 0.0, selected_row());
+                        ui.painter().rect_filled(
+                            Rect::from_min_size(r.min, Vec2::new(3.0 / ppp, r.height())),
+                            0.0,
+                            crate::theme::accent_text(),
+                        );
                     }
-                    ui.painter().text(rect.min + Vec2::new(14.0, 19.0), Align2::LEFT_CENTER, *label, FontId::proportional(14.5), crate::theme::text());
+                    let icon = if *label == "Recent" { Icon::Clock } else { Icon::Folder };
+                    icons::paint(
+                        ui.painter(),
+                        Rect::from_center_size(Pos2::new(rect.min.x + 24.0, rect.center().y), Vec2::splat(17.0)),
+                        icon,
+                        col,
+                    );
+                    ui.painter().text(
+                        Pos2::new(rect.min.x + 46.0, rect.center().y),
+                        Align2::LEFT_CENTER,
+                        *label,
+                        FontId::proportional(14.5),
+                        crate::theme::text(),
+                    );
                 }
                 ui.add_space(8.0);
                 if flat_button(ui, "Browse", true).clicked() {
@@ -876,17 +1019,20 @@ impl App {
     }
 
     fn open_page(&mut self, ui: &mut Ui) {
-        page_title(ui, "Open");
+        heading(ui, "Open");
+        ui.add_space(8.0);
         let mut browse = false;
         let mut hit = None;
         ui.horizontal_top(|ui| {
             browse = Self::places(ui, &["Recent", "This PC"]);
             ui.add_space(16.0);
             ui.vertical(|ui| {
-                section_title(ui, "Recent Publications");
+                subheading(ui, "Recent Publications");
                 tab_row(ui, &[("Publications", true), ("Folders", false)], 0);
                 ui.add_space(8.0);
-                hit = self.recent_list(ui, 20);
+                egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                    hit = self.recent_list(ui, 20);
+                });
             });
         });
         if browse {
@@ -1029,9 +1175,37 @@ impl App {
 /// date. In demo mode the made-up date is shown.
 fn opened_text(list: &recent::Recent, path: &Path) -> Option<String> {
     if crate::demo::is_on() {
-        return crate::demo::date_of(path).map(str::to_owned);
+        return crate::demo::date_of(path).map(demo_date);
     }
-    list.opened_at(path).map(recent::opened_label_now)
+    list.opened_at(path).map(|at| column_label(&recent::opened_label_now(at)))
+}
+
+/// The Opened column already has the heading "Opened": "Opened today 10:24" -> "Today 10:24".
+pub(crate) fn column_label(label: &str) -> String {
+    let rest = label.strip_prefix("Opened ").unwrap_or(label);
+    let mut c = rest.chars();
+    c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
+}
+
+/// Demo dates are stored as "2026-11-24"; show them the way real dates look ("24 Nov 2026").
+fn demo_date(iso: &str) -> String {
+    const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let p: Vec<&str> = iso.split('-').collect();
+    match (p.first(), p.get(1).and_then(|m| m.parse::<usize>().ok()), p.get(2).and_then(|d| d.parse::<u32>().ok())) {
+        (Some(y), Some(m @ 1..=12), Some(d)) => format!("{d} {} {y}", MONTHS[m - 1]),
+        _ => iso.to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod column_label_tests {
+    #[test]
+    fn the_opened_column_drops_the_repeated_word() {
+        assert_eq!(super::column_label("Opened today 10:24"), "Today 10:24");
+        assert_eq!(super::column_label("Opened yesterday"), "Yesterday");
+        assert_eq!(super::column_label("Opened 23 Nov 2026"), "23 Nov 2026");
+        assert_eq!(super::demo_date("2026-11-09"), "9 Nov 2026");
+    }
 }
 
 fn trim(v: f64) -> String {
@@ -1155,9 +1329,16 @@ fn feedback_page(ui: &mut Ui) {
 }
 
 pub(crate) fn green_link(ui: &mut Ui, text: &str) -> bool {
-    let resp = ui.add(egui::Label::new(RichText::new(text).color(crate::theme::accent_text()).underline()).sense(Sense::click()));
+    link_as(ui, text, text)
+}
+
+/// An accent link that shows `shown` and is recorded (in tests) as `link:{key}`.
+fn link_as(ui: &mut Ui, key: &str, shown: &str) -> bool {
+    let resp = ui.add(egui::Label::new(RichText::new(shown).color(crate::theme::accent_text()).underline()).sense(Sense::click()));
     #[cfg(test)]
-    seen(format!("link:{text}"), resp.rect, true, false);
+    seen(format!("link:{key}"), resp.rect, true, false);
+    #[cfg(not(test))]
+    let _ = key;
     resp.on_hover_cursor(egui::CursorIcon::PointingHand).clicked()
 }
 

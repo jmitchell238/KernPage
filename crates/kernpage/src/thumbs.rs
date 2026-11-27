@@ -105,12 +105,15 @@ impl StartThumbs {
         }
         let Some((_, Thumb::Ready(doc))) = self.map.get(path) else { return false };
         let Some(r) = fit(area, doc) else { return false };
+        let ppp = ui.ctx().pixels_per_point();
+        let r = crate::widgets::snap_rect(ppp, r);
         crate::nav::paint_thumb(ui, r, doc, 0, fonts, &mut self.pics);
+        // One crisp device pixel, on the page's own edge.
         ui.painter().rect_stroke(
             r,
             0.0,
-            eframe::egui::Stroke::new(1.0, crate::theme::line()),
-            eframe::egui::StrokeKind::Outside,
+            eframe::egui::Stroke::new(1.0 / ppp, crate::theme::frame()),
+            eframe::egui::StrokeKind::Inside,
         );
         true
     }

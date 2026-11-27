@@ -273,26 +273,45 @@ fn escape_without_a_publication_stays_in_the_file_view() {
 }
 
 #[test]
-fn the_file_tab_opens_and_closes_the_file_view() {
+fn the_file_tab_opens_the_file_view_and_the_back_arrow_closes_it() {
     let mut ui = new_doc();
     ui.click_tab("File");
     assert!(ui.app().backstage);
-    ui.click_tab("File");
-    assert!(!ui.app().backstage, "a second click on File goes back");
+    assert!(!ui.has_ribbon("tab:File"), "the tab row is hidden while the File screen is open");
+    nav(&mut ui, "Back");
+    assert!(!ui.app().backstage, "the back arrow goes back");
+    assert!(ui.has_ribbon("tab:File"), "the tab row is restored");
     // Without a publication the File view cannot be left.
     let mut ui = TestUi::start();
-    ui.click_tab("File");
     assert!(ui.app().backstage);
     assert!(in_section(&mut ui, Section::Home));
 }
 
 #[test]
-fn clicking_another_ribbon_tab_leaves_the_file_view() {
-    let mut ui = new_doc();
-    ui.click_tab("File");
-    ui.click_tab("Insert");
-    assert!(!ui.app().backstage);
-    assert!(ui.ribbon("tab:Insert").selected);
+fn the_tab_row_and_ribbon_are_hidden_in_the_file_view_and_restored_by_back_and_by_escape() {
+    for by_escape in [false, true] {
+        let mut ui = new_doc();
+        for t in ["File", "Home", "Insert"] {
+            assert!(ui.has_ribbon(&format!("tab:{t}")), "{t} tab before");
+        }
+        assert!(ui.has_ribbon("Cut"));
+        ui.click_tab("File");
+        for t in ["File", "Home", "Insert"] {
+            assert!(!ui.has_ribbon(&format!("tab:{t}")), "{t} tab hidden in the File screen");
+        }
+        assert!(!ui.has_ribbon("Cut"), "no ribbon either");
+        assert!(ui.has_ribbon("nav:Back"), "the back arrow is there");
+        if by_escape {
+            ui.key(NONE, Key::Escape);
+        } else {
+            nav(&mut ui, "Back");
+        }
+        assert!(!ui.app().backstage);
+        for t in ["File", "Home", "Insert"] {
+            assert!(ui.has_ribbon(&format!("tab:{t}")), "{t} tab restored");
+        }
+        assert!(ui.has_ribbon("Cut"), "the ribbon is restored");
+    }
 }
 
 #[test]
@@ -301,7 +320,7 @@ fn the_ribbon_and_the_canvas_are_not_drawn_in_the_file_view() {
     assert!(ui.has_ribbon("Cut"));
     ui.click_tab("File");
     assert!(!ui.has_ribbon("Cut"), "no Home ribbon behind the File view");
-    assert!(!ui.ribbon("tab:Home").selected, "no ribbon tab is selected");
+    assert!(!ui.has_ribbon("tab:Home"), "no ribbon tab is drawn");
 }
 
 #[test]
@@ -443,17 +462,17 @@ fn the_close_entry_asks_first_when_there_are_unsaved_changes() {
 fn the_home_page_shows_the_new_tiles_and_the_open_list() {
     let ui = TestUi::start();
     assert!(!has_label(&ui, "Welcome"), "no greeting under the logo");
-    assert!(has_label(&ui, "New") && has_label(&ui, "Open"), "section headings");
+    assert!(has_label(&ui, "New"), "the page heading");
     for (tile, on) in [
         ("Blank 8.5 x 11\"", true),
         ("Blank 11 x 8.5\"", true),
-        ("More Blank Page Sizes", false),
-        ("Church Bulletin", true),
+        ("More page sizes", false),
     ] {
         assert_eq!(ui.ribbon(&format!("tile:{tile}")).enabled, on, "{tile}");
     }
+    assert!(!ui.has_ribbon("tile:Church Bulletin"), "templates are behind More templates");
     assert!(ui.ribbon("tabrow:Recent").selected && ui.ribbon("tabrow:Recent").enabled);
-    assert!(!ui.ribbon("tabrow:Pinned").enabled, "Pinned is not available");
+    assert!(ui.ribbon("tabrow:Pinned").enabled, "the Pinned tab is there");
     assert!(ui.ribbon("link:More templates").enabled);
     assert!(ui.ribbon("link:More publications").enabled);
     assert!(
@@ -487,6 +506,9 @@ fn the_blank_landscape_tile_starts_a_new_landscape_publication() {
 #[test]
 fn the_church_bulletin_tile_starts_the_bulletin_template() {
     let mut ui = TestUi::start();
+    assert!(!ui.has_ribbon("tile:Church Bulletin"), "Home's New row has page sizes only, no templates");
+    ui.click_ribbon("link:More templates");
+    ui.settle();
     ui.click_ribbon("tile:Church Bulletin");
     let want = template::church_bulletin();
     assert!(!ui.app().backstage);
@@ -499,7 +521,7 @@ fn the_church_bulletin_tile_starts_the_bulletin_template() {
 #[test]
 fn more_blank_page_sizes_is_greyed_and_inert() {
     let mut ui = TestUi::start();
-    ui.click_ribbon("tile:More Blank Page Sizes");
+    ui.click_ribbon("tile:More page sizes");
     assert!(ui.app().editor.is_none() && ui.app().backstage);
     assert!(in_section(&mut ui, Section::Home));
     assert!(ui.app().error.is_none() && ui.app().prompt.is_none());
@@ -536,17 +558,24 @@ fn more_templates_opens_the_new_page_and_more_publications_the_open_page() {
     let mut ui = TestUi::start();
     ui.click_ribbon("link:More templates");
     assert!(in_section(&mut ui, Section::New));
+    assert!(ui.ribbon("tabrow:Built-in").selected, "More templates opens the templates that exist (Built-in)");
     nav(&mut ui, "Home");
     ui.click_ribbon("link:More publications");
     assert!(in_section(&mut ui, Section::Open));
 }
 
 #[test]
-fn the_pinned_tab_is_greyed_and_inert() {
+fn the_pinned_tab_shows_its_empty_state() {
     let mut ui = TestUi::start();
+    recent_files(&mut ui, 2);
+    assert!(has_seen(&ui, "recent:a1.pub"));
     ui.click_ribbon("tabrow:Pinned");
-    assert!(ui.ribbon("tabrow:Recent").selected, "still on Recent");
-    assert!(!ui.ribbon("tabrow:Pinned").selected);
+    assert!(ui.ribbon("tabrow:Pinned").selected && !ui.ribbon("tabrow:Recent").selected);
+    assert!(has_label(&ui, "Pin a publication to keep it here."));
+    assert!(!has_seen(&ui, "recent:a1.pub"), "the recent rows are not listed under Pinned");
+    ui.click_ribbon("tabrow:Recent");
+    assert!(has_seen(&ui, "recent:a1.pub"));
+    assert!(!has_label(&ui, "Pin a publication to keep it here."));
 }
 
 #[test]
@@ -566,13 +595,42 @@ fn the_home_page_lists_the_eight_newest_recent_publications_and_a_click_opens_on
 }
 
 #[test]
-fn modern_home_shows_recent_cards_above_the_new_cards() {
+fn home_shows_the_new_items_above_a_full_width_recent_list() {
     let mut ui = TestUi::start();
     recent_files(&mut ui, 2);
     let recent = ui.ribbon("recent:a1.pub").rect;
     let tile = ui.ribbon("tile:Blank 8.5 x 11\"").rect;
-    assert!(recent.max.y <= tile.min.y, "Recent comes first, New below it");
-    assert!(recent.width() > 100.0 && recent.height() > 100.0, "a card, not a row");
+    assert!(tile.max.y <= recent.min.y, "New comes first, the Recent list below it");
+    assert!(recent.width() > 3.0 * tile.width() && recent.height() < 80.0, "a row, not a card");
+    let link = ui.ribbon("link:More templates").rect;
+    assert!(tile.max.y - 40.0 < link.min.y && link.max.y <= recent.min.y, "the link sits under the row");
+    assert!(link.right() > tile.right() + 200.0, "and is right-aligned");
+}
+
+#[test]
+fn recent_rows_show_name_folder_and_opened_text_newest_first() {
+    let mut ui = TestUi::start();
+    let files = recent_files(&mut ui, 3); // a2 newest
+    let times = [5_000_000u64, 4_000_000, 3_000_000]; // a2, a1, a0
+    for (f, t) in files.iter().zip([3_000_000u64, 4_000_000, 5_000_000]) {
+        ui.app().recent.add_at(f, t);
+    }
+    ui.settle();
+    assert_eq!(recent_rows(&ui), ["a2.pub", "a1.pub", "a0.pub"]);
+    let rows: Vec<_> = ["a2.pub", "a1.pub", "a0.pub"].iter().map(|n| ui.ribbon(&format!("recent:{n}")).rect).collect();
+    assert!(rows[0].max.y <= rows[1].min.y + 0.01 && rows[1].max.y <= rows[2].min.y + 0.01, "in order, not overlapping");
+    for (n, (f, t)) in ["a2.pub", "a1.pub", "a0.pub"].iter().zip(files.iter().rev().zip(times)) {
+        let row = ui.ribbon(&format!("recent:{n}")).rect;
+        let folder = ui.ribbon(&format!("rfolder:{n}"));
+        assert_eq!(folder.tip, crate::recent::breadcrumb(f.parent().unwrap()), "{n}: folder under the name");
+        let name = ui.ribbon(&format!("rname:{n}"));
+        assert_eq!(name.tip, *n);
+        assert!(folder.rect.min.y > name.rect.min.y, "{n}: the folder is under the name");
+        let opened = ui.ribbon(&format!("ropened:{n}"));
+        assert_eq!(opened.tip, crate::backstage::column_label(&crate::recent::opened_label_now(t)), "{n}: Opened text (without the repeated word)");
+        assert!(opened.rect.min.x > name.rect.max.x && opened.rect.max.x <= row.max.x, "{n}: Opened is its own column on the right");
+        let _ = f;
+    }
 }
 
 #[test]
@@ -608,7 +666,7 @@ fn the_new_page_shows_blank_tiles_and_the_office_tab_is_offline() {
     for (tile, on) in [
         ("Blank 8.5 x 11\"", true),
         ("Blank 11 x 8.5\"", true),
-        ("More Blank Page Sizes", false),
+        ("More page sizes", false),
     ] {
         assert_eq!(ui.ribbon(&format!("tile:{tile}")).enabled, on, "{tile}");
     }
@@ -1192,6 +1250,9 @@ fn a_recent_card_for_a_missing_file_keeps_the_glyph() {
 #[test]
 fn the_church_bulletin_tile_draws_a_preview() {
     let mut ui = TestUi::start();
+    ui.click_ribbon("link:More templates");
+    ui.settle();
+    ui.app().start_thumbs.wait_idle();
     ui.settle();
     assert!(has_seen(&ui, "preview:Church Bulletin"));
 }
@@ -1273,25 +1334,52 @@ fn a_newly_saved_kern_file_appears_as_a_recent_card_with_its_first_page() {
 }
 
 #[test]
-fn the_new_cards_page_is_a_cut_corner_polygon_with_a_one_pixel_pixel_snapped_outline() {
-    // Every page picture is drawn by `tile`; the church bulletin one has a preview on top.
+fn the_start_items_have_pixel_snapped_page_pictures_inside_their_items() {
+    // Every page picture on Home's New row is drawn by `tile` (page sizes only; templates are on New).
     for ppp in [1.0f32, 1.25, 1.5] {
         let mut ui = TestUi::start();
         ui.h.set_pixels_per_point(ppp);
         ui.settle();
         let all = ui.ribbon_buttons();
         let mut n = 0;
-        for name in ["Blank 8.5 x 11\"", "Blank 11 x 8.5\"", "More Blank Page Sizes", "Church Bulletin"] {
+        for name in ["Blank 8.5 x 11\"", "Blank 11 x 8.5\"", "More page sizes"] {
             let tile = all.iter().find(|b| b.label == format!("tile:{name}")).expect("tile").rect;
             let page = all.iter().find(|b| b.label == format!("page:{name}")).expect("page").rect;
-            assert!(tile.contains_rect(page), "{name}: the page stays inside its card");
+            assert!(tile.contains_rect(page), "{name}: the page stays inside its item");
+            assert!(page.min.x - tile.min.x >= 7.0, "{name}: room at the side");
             for v in [page.min.x, page.min.y, page.max.x, page.max.y] {
                 assert!((v * ppp - (v * ppp).round()).abs() < 1e-3, "{name}@{ppp}: page edge {v} off the device pixels");
             }
             n += 1;
         }
-        assert_eq!(n, 4);
+        assert_eq!(n, 3);
     }
+}
+
+#[test]
+fn the_rail_items_still_navigate() {
+    let mut ui = TestUi::start();
+    for (entry, section) in [
+        ("New", Section::New),
+        ("Open", Section::Open),
+        ("Options", Section::Options),
+        ("Home", Section::Home),
+    ] {
+        nav(&mut ui, entry);
+        assert!(in_section(&mut ui, section), "{entry}");
+        assert!(ui.ribbon(&format!("nav:{entry}")).selected, "{entry} is drawn selected");
+    }
+}
+
+#[test]
+fn the_open_page_lists_recent_rows_like_home() {
+    let mut ui = TestUi::start();
+    recent_files(&mut ui, 3);
+    nav(&mut ui, "Open");
+    assert_eq!(recent_rows(&ui), ["a2.pub", "a1.pub", "a0.pub"]);
+    assert!(has_seen(&ui, "place:Recent"));
+    let row = ui.ribbon("recent:a2.pub").rect;
+    assert!(row.height() < 80.0 && row.width() > 300.0);
 }
 
 #[test]

@@ -85,12 +85,16 @@ pub mod probe {
 
 /// Draw `mark` `height` points tall (its width follows), in the current accent and theme mode.
 pub fn show(ui: &mut Ui, mark: Mark, height: f32) -> egui::Response {
+    show_as(ui, mark, current_accent(), theme::is_dark(), height)
+}
+
+/// Like [`show`], in a fixed accent and variant (the dark variant is white on a dark fill).
+pub fn show_as(ui: &mut Ui, mark: Mark, accent: Accent, dark: bool, height: f32) -> egui::Response {
     let size = Vec2::new(height * aspect(mark), height);
     let (rect, resp) = ui.allocate_exact_size(size, egui::Sense::hover());
     if !ui.is_rect_visible(rect) {
         return resp;
     }
-    let (accent, dark) = (current_accent(), theme::is_dark());
     #[cfg(test)]
     probe::note(mark, accent, dark);
     let ppp = ui.ctx().pixels_per_point();

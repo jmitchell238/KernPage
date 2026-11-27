@@ -1,4 +1,5 @@
-//! The KernPage logo in the app: the wordmark on the File > Home page and the K in the About box,
+//! The KernPage logo in the app: the white wordmark on the File screen's rail, the wordmark on the
+//! About page and the K in the About box,
 //! in the current accent colour and the light or dark variant of the current theme.
 
 use super::support::*;
@@ -22,13 +23,16 @@ fn has_colour(img: &eframe::egui::ColorImage, c: Color32) -> bool {
 fn the_home_page_shows_the_wordmark_in_the_default_teal_light() {
     let mut ui = TestUi::start();
     assert!(ui.app().backstage && ui.app().section == Section::Home, "starts on Home");
-    assert_eq!(logo::probe::last(Mark::Wordmark), Some((Accent::Teal, false)));
+    // The File screen's teal rail carries the white (dark-background) wordmark, whatever the theme.
+    assert_eq!(logo::probe::last(Mark::Wordmark), Some((Accent::Teal, true)));
     assert!(ui.app().error.is_none());
 }
 
 #[test]
 fn the_wordmark_follows_the_accent_and_dark_mode() {
     let mut ui = TestUi::start();
+    // The About page draws the wordmark in the current accent and theme.
+    ui.app().section = Section::About;
     for accent in Accent::ALL {
         for (mode, dark) in [(ThemeMode::Light, false), (ThemeMode::Dark, true)] {
             set(&mut ui, Appearance { mode, accent, ..Appearance::default() });
