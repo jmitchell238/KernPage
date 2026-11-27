@@ -109,9 +109,9 @@ jobs:
           ./packaging/windows/check-installer.ps1
 
       - name: Upgrade test - the launcher desktop shortcut survives a quiet Setup.exe upgrade
-        if: env.GITHUB_ACTIONS == 'true'
         shell: pwsh
         run: |
+          if ($env:GITHUB_ACTIONS -ne 'true') { throw 'This step installs KernPage; it only runs on a CI runner.' }
           $old = "target-win\installer\KernPage-0.0.1-Setup.exe"
           $new = "target-win\installer\KernPage-$env:VERSION-Setup.exe"
           $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'KernPage Launcher.lnk'
