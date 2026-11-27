@@ -163,17 +163,36 @@ fn tile(
     }
     let ink = if enabled { crate::theme::group_label() } else { crate::theme::frame() };
     let (w, h) = if landscape { (116.0, 90.0) } else { (92.0, 116.0) };
-    let page = Rect::from_center_size(frame.center(), Vec2::new(w, h));
-    p.rect_filled(page, 2.0, crate::theme::card());
-    let fold = 20.0;
-    let s = Stroke::new(1.0, ink);
-    let (tl, tr, br, bl) = (page.left_top(), page.right_top(), page.right_bottom(), page.left_bottom());
-    let (a, b, c) = (tr - Vec2::new(fold, 0.0), tr + Vec2::new(0.0, fold), tr + Vec2::new(-fold, fold));
-    for (p1, p2) in [(tl, a), (a, b), (a, c), (c, b), (b, br), (br, bl), (bl, tl)] {
-        p.line_segment([p1, p2], s);
-    }
+    let ppp = ui.ctx().pixels_per_point();
+    let page = crate::widgets::snap_rect(ppp, Rect::from_center_size(frame.center(), Vec2::new(w, h)));
+    #[cfg(test)]
+    seen(format!("page:{label}"), page, enabled, false);
+    let px = 1.0 / ppp;
+    // The page is a polygon with its top-right corner cut diagonally; every point sits on a
+    // device-pixel centre so the 1 px outline is crisp. Nothing is drawn outside it.
+    let (l, t, r, bt) = (
+        page.min.x + px / 2.0,
+        page.min.y + px / 2.0,
+        page.max.x - px / 2.0,
+        page.max.y - px / 2.0,
+    );
+    let fold = (20.0 * ppp).round() / ppp;
+    let (tl, bl, br) = (Pos2::new(l, t), Pos2::new(l, bt), Pos2::new(r, bt));
+    let (a, b, c) = (Pos2::new(r - fold, t), Pos2::new(r, t + fold), Pos2::new(r - fold, t + fold));
+    let tr = Pos2::new(r, t);
+    p.add(egui::Shape::convex_polygon(vec![tl, a, b, br, bl], crate::theme::card(), Stroke::NONE));
     if let Some(art) = art {
         art(ui, page);
+        // The preview is a plain rectangle: hide what it drew in the cut-off corner.
+        p.add(egui::Shape::convex_polygon(
+            vec![a, tr + Vec2::new(px, -px), b],
+            crate::theme::tile(),
+            Stroke::NONE,
+        ));
+    }
+    let s = Stroke::new(px, ink);
+    for (p1, p2) in [(tl, a), (a, b), (a, c), (c, b), (b, br), (br, bl), (bl, tl)] {
+        p.line_segment([p1, p2], s);
     }
     p.text(
         Pos2::new(rect.center().x, rect.max.y - 8.0),
@@ -700,7 +719,7 @@ impl App {
                     FontId::proportional(13.5),
                     crate::theme::text(),
                 );
-                if let Some(date) = modified_text(path) {
+                if let Some(date) = opened_text(&self.recent, path) {
                     p.text(
                         Pos2::new(rect.min.x + 12.0, rect.max.y - 20.0),
                         Align2::LEFT_TOP,
@@ -746,7 +765,7 @@ impl App {
             p.text(rect.min + Vec2::new(10.0, 8.0), Align2::LEFT_TOP, name, FontId::proportional(14.0), crate::theme::text());
             let crumb = path.parent().map(recent::breadcrumb).unwrap_or_default();
             p.text(rect.min + Vec2::new(10.0, 27.0), Align2::LEFT_TOP, crumb, FontId::proportional(11.5), crate::theme::group_label());
-            if let Some(date) = modified_text(path) {
+            if let Some(date) = opened_text(&self.recent, path) {
                 p.text(
                     Pos2::new(rect.max.x - 14.0, rect.center().y),
                     Align2::RIGHT_CENTER,
@@ -1005,12 +1024,14 @@ impl App {
     }
 }
 
-/// The modified date of a recent file as text (the made-up date in demo mode).
-fn modified_text(path: &Path) -> Option<String> {
+/// The label under a Recent card: when KernPage last opened or saved the file ("Opened today
+/// 10:24"). Entries without a stored time show nothing, so a date is always the opened/saved
+/// date. In demo mode the made-up date is shown.
+fn opened_text(list: &recent::Recent, path: &Path) -> Option<String> {
     if crate::demo::is_on() {
         return crate::demo::date_of(path).map(str::to_owned);
     }
-    std::fs::metadata(path).and_then(|m| m.modified()).ok().map(recent::date_text)
+    list.opened_at(path).map(recent::opened_label_now)
 }
 
 fn trim(v: f64) -> String {

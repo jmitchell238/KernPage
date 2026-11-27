@@ -3002,19 +3002,32 @@ It is not a PNG or JPEG picture it can read."));
                             ui.allocate_exact_size(egui::vec2(48.0, TAB_H), egui::Sense::click());
                         crate::theme::drew!("file:tab");
                         // A normal tab-styled entry: a soft pill while hovered or open.
-                        let pill = rect.shrink2(egui::vec2(2.0, 3.0));
+                        let pill = crate::widgets::snap_rect(
+                            ui.ctx().pixels_per_point(),
+                            rect.shrink2(egui::vec2(2.0, 3.0)),
+                        );
                         if self.backstage {
                             ui.painter().rect_filled(pill, 6.0, crate::theme::accent_tint());
                         } else if resp.hovered() {
                             ui.painter().rect_filled(pill, 6.0, crate::theme::hover_bg());
                         }
-                        ui.painter().text(
-                            rect.center(),
-                            egui::Align2::CENTER_CENTER,
+                        let _ink = crate::widgets::centered_label(
+                            ui,
+                            pill,
                             "File",
                             egui::FontId::proportional(13.3),
                             if self.backstage { crate::theme::accent_text() } else { crate::theme::text() },
                         );
+                        #[cfg(test)]
+                        for (l, r) in [("tabpill:File", pill), ("tabink:File", _ink)] {
+                            crate::widgets::probe::record(crate::widgets::probe::Seen {
+                                label: l.to_owned(),
+                                tip: String::new(),
+                                rect: r,
+                                enabled: true,
+                                selected: false,
+                            });
+                        }
                         #[cfg(test)]
                         crate::widgets::probe::record(crate::widgets::probe::Seen {
                             label: "tab:File".to_owned(),
@@ -3097,19 +3110,15 @@ It is not a PNG or JPEG picture it can read."));
                         if selected {
                             crate::theme::drew!("tab:pill");
                         }
+                        let pill = crate::widgets::snap_rect(
+                            ui.ctx().pixels_per_point(),
+                            rect.shrink2(egui::vec2(3.0, 3.0)),
+                        );
                         if selected {
                             // A rounded pill in the accent tint.
-                            ui.painter().rect_filled(
-                                rect.shrink2(egui::vec2(3.0, 3.0)),
-                                7.0,
-                                crate::theme::accent_tint(),
-                            );
+                            ui.painter().rect_filled(pill, 7.0, crate::theme::accent_tint());
                         } else if resp.hovered() && has_doc {
-                            ui.painter().rect_filled(
-                                rect.shrink2(egui::vec2(3.0, 3.0)),
-                                7.0,
-                                crate::theme::hover_bg(),
-                            );
+                            ui.painter().rect_filled(pill, 7.0, crate::theme::hover_bg());
                         }
                         let col = if t.is_contextual() || selected {
                             crate::theme::accent_text()
@@ -3119,13 +3128,17 @@ It is not a PNG or JPEG picture it can read."));
                             crate::theme::disabled()
                         };
                         let font = egui::FontId::proportional(13.3);
-                        ui.painter().text(
-                            rect.center(),
-                            egui::Align2::CENTER_CENTER,
-                            t.name(),
-                            font,
-                            col,
-                        );
+                        let _ink = crate::widgets::centered_label(ui, pill, t.name(), font, col);
+                        #[cfg(test)]
+                        for (l, r) in [("tabpill", pill), ("tabink", _ink)] {
+                            crate::widgets::probe::record(crate::widgets::probe::Seen {
+                                label: format!("{l}:{}", t.name()),
+                                tip: String::new(),
+                                rect: r,
+                                enabled: true,
+                                selected,
+                            });
+                        }
                         #[cfg(test)]
                         crate::widgets::probe::record(crate::widgets::probe::Seen {
                             label: format!("tab:{}", t.name()),
@@ -3172,21 +3185,17 @@ It is not a PNG or JPEG picture it can read."));
                     });
                 });
                 if has_doc && !self.backstage && !self.ribbon_collapsed {
-                    let card = egui::Frame::new()
-                        .fill(crate::theme::card())
-                        .stroke(egui::Stroke::new(1.0, crate::theme::line()))
-                        .inner_margin(egui::Margin { left: 6, right: 6, top: 4, bottom: 4 });
                     crate::theme::drew!("ribbon:card");
-                    // The ribbon floats as a rounded card on the tinted window.
-                    card
-                        .corner_radius(8.0)
+                    // The ribbon floats as a rounded panel on the tinted window. The panel is
+                    // painted by hand, on whole device pixels, so its edge and the cards inside
+                    // it are crisp; its inner margin is the same GROUP_GAP as between the cards.
+                    let ppp = ui.ctx().pixels_per_point();
+                    let bg = ui.painter().add(egui::Shape::Noop);
+                    crate::widgets::begin_cards();
+                    let margin = ((crate::widgets::gap_px(ppp) + 1.0) / ppp).ceil() as i8;
+                    let resp = egui::Frame::new()
+                        .inner_margin(egui::Margin::same(margin))
                         .outer_margin(egui::Margin { left: 6, right: 6, top: 2, bottom: 6 })
-                        .shadow(egui::Shadow {
-                            offset: [0, 1],
-                            blur: 6,
-                            spread: 0,
-                            color: crate::theme::shadow(),
-                        })
                         .show(ui, |ui| {
                             // The panel can be wider than the window (a long tab row), so
                             // measure against the window.
@@ -3201,6 +3210,51 @@ It is not a PNG or JPEG picture it can read."));
                                 )
                                 .show(ui, |ui| self.ribbon(ui, avail));
                         });
+                    // The response includes the outer margin (6 / 2 / 6 / 6 px). The panel hugs the
+                    // cards: from a card's outline to the panel's border line there are exactly
+                    // as many white pixels as between two cards, on the left, top and bottom.
+                    let full = resp.response.rect;
+                    let mut panel = crate::widgets::snap_rect(
+                        ppp,
+                        egui::Rect::from_min_max(
+                            full.min + egui::vec2(6.0, 2.0),
+                            full.max - egui::vec2(6.0, 6.0),
+                        ),
+                    );
+                    if let Some(c) = crate::widgets::cards_bounds() {
+                        let m = (crate::widgets::gap_px(ppp) + 1.0) / ppp;
+                        panel.min = c.min - egui::vec2(m, m);
+                        panel.max.y = c.max.y + m;
+                    }
+                    #[cfg(test)]
+                    crate::widgets::probe::record(crate::widgets::probe::Seen {
+                        label: "grouppanel".to_owned(),
+                        tip: String::new(),
+                        rect: panel,
+                        enabled: true,
+                        selected: false,
+                    });
+                    let radius = crate::widgets::PANEL_RADIUS;
+                    let shadow = egui::Shadow {
+                        offset: [0, 1],
+                        blur: 6,
+                        spread: 0,
+                        color: crate::theme::shadow(),
+                    };
+                    ui.painter().set(
+                        bg,
+                        egui::Shape::Vec(vec![
+                            shadow.as_shape(panel, radius).into(),
+                            egui::epaint::RectShape::new(
+                                panel,
+                                radius,
+                                crate::theme::card(),
+                                egui::Stroke::new(1.0 / ppp, crate::theme::line()),
+                                egui::StrokeKind::Inside,
+                            )
+                            .into(),
+                        ]),
+                    );
                 }
             });
     }

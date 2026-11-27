@@ -74,7 +74,7 @@ const INSERT_GREYED: [&str; 18] = [
 fn the_insert_tab_has_working_and_greyed_controls_as_planned() {
     let mut ui = ui_with_shapes();
     // Segoe UI 9pt labels are wider: the Insert tab needs a wider window to show every group in full.
-    ui.h.set_size(eframe::egui::Vec2::new(1400.0, 800.0));
+    ui.h.set_size(eframe::egui::Vec2::new(1600.0, 800.0));
     ui.settle();
     ui.click_tab("Insert");
     for n in ["Page", "Table", "Pictures", "Shapes", "Draw Text Box"] {
@@ -732,14 +732,14 @@ fn narrowing_the_window_shrinks_groups_and_widening_it_restores_them() {
         "wide: the Font group is shown in full"
     );
     let wide_cut = ui.ribbon("Cut").rect;
-    resize(&mut ui, 600.0);
+    resize(&mut ui, 700.0);
     // The narrowest layout turns whole groups into single drop-down buttons named after the group.
     for g in ["Font", "Paragraph", "Arrange"] {
         let b = ui.ribbon(g);
         assert!(b.enabled && b.tip == g, "{g} is collapsed into one button");
     }
     assert!(!ui.has_ribbon("Bold (Ctrl+B)"), "the Font controls are inside the pop-up now");
-    assert_eq!(fit_problems(&ui, 600.0), Vec::<String>::new());
+    assert_eq!(fit_problems(&ui, 700.0), Vec::<String>::new());
     resize(&mut ui, 1600.0);
     assert!(ui.has_ribbon("Bold (Ctrl+B)"), "wide again: the Font group is back in full");
     assert_eq!(ui.ribbon("Cut").rect, wide_cut, "and everything is where it was");
@@ -749,7 +749,7 @@ fn narrowing_the_window_shrinks_groups_and_widening_it_restores_them() {
 fn a_collapsed_group_opens_a_pop_up_with_its_controls_and_closes_on_an_outside_click() {
     let mut ui = ui_with_shapes();
     ui.click_at(ui.center_of(B));
-    resize(&mut ui, 600.0);
+    resize(&mut ui, 700.0);
     ui.click_ribbon("Arrange");
     assert!(
         ui.has_ribbon("Send Backward") && ui.has_ribbon("Align") && ui.has_ribbon("Rotate"),
@@ -804,6 +804,293 @@ fn no_group_title_is_wider_than_its_group_on_any_tab_at_any_width() {
                 );
             }
             assert!(titles > 0, "{tab} at {w}: group titles are drawn");
+        }
+    }
+}
+
+// ---- Ribbon look: no overlapping labels, one "on" style ------------------------------------------------------------
+
+/// Every labelled control of the tab body: the ribbon buttons (seam) plus check boxes and combo
+/// boxes (AccessKit), as `(name, rect)`.
+fn labelled_controls(ui: &TestUi) -> Vec<(String, eframe::egui::Rect)> {
+    let mut v: Vec<(String, eframe::egui::Rect)> = ui
+        .ribbon_body()
+        .into_iter()
+        .map(|b| (b.label, b.rect))
+        .collect();
+    for role in [Role::CheckBox, Role::ComboBox] {
+        for n in ui.h.query_all_by_role(role) {
+            let a = n.accesskit_node();
+            let Some(r) = a.raw_bounds() else { continue };
+            let rect = eframe::egui::Rect::from_min_max(
+                eframe::egui::pos2(r.x0 as f32, r.y0 as f32),
+                eframe::egui::pos2(r.x1 as f32, r.y1 as f32),
+            );
+            if rect.min.y > 52.0 && rect.min.y < 150.0 {
+                v.push((a.label().unwrap_or_else(|| format!("{role:?}")), rect));
+            }
+        }
+    }
+    v
+}
+
+#[test]
+fn no_two_ribbon_controls_overlap_on_any_tab() {
+    for w in [1400.0, 1000.0] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_size(Vec2::new(w, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let all = labelled_controls(&ui);
+            assert!(!all.is_empty(), "{tab} at {w}: controls are drawn");
+            for (i, (na, a)) in all.iter().enumerate() {
+                for (nb, b) in &all[i + 1..] {
+                    let rows = a.min.y < b.max.y - 2.0 && b.min.y < a.max.y - 2.0;
+                    let across = a.min.x < b.max.x - 0.5 && b.min.x < a.max.x - 0.5;
+                    assert!(!(rows && across), "{tab} at {w}: {na:?} {a:?} overlaps {nb:?} {b:?}");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_show_group_columns_keep_a_gap_between_their_labels() {
+    let mut ui = ui_with_shapes();
+    ui.h.set_size(Vec2::new(1400.0, 800.0));
+    ui.settle();
+    ui.wait_for_fonts();
+    ui.click_tab("View");
+    let all = labelled_controls(&ui);
+    let rect = |n: &str| all.iter().find(|(l, _)| l == n).unwrap_or_else(|| panic!("no {n:?}")).1;
+    for (left, right) in [("Boundaries", "Rulers"), ("Guides", "Rulers"), ("Page Navigation", "Picture Manager"), ("Scratch Area", "Picture Manager")] {
+        let gap = rect(right).min.x - rect(left).max.x;
+        assert!(gap >= 6.0, "{left:?} and {right:?} are only {gap} px apart");
+    }
+}
+
+#[test]
+fn every_toggle_button_on_every_tab_uses_the_same_on_style_inside_its_card() {
+    use crate::widgets::{on_style, TOGGLE_RADIUS};
+    let mut ui = ui_with_shapes();
+    ui.h.set_size(Vec2::new(1400.0, 800.0));
+    ui.settle();
+    let mut seen_on = Vec::new();
+    for tab in FIXED_TABS {
+        ui.click_tab(tab);
+        ui.settle();
+        let all = ui.ribbon_buttons();
+        for b in ui.ribbon_body().into_iter().filter(|b| b.selected) {
+            let tile = all
+                .iter()
+                .filter(|t| t.label.starts_with("grouptile:") && t.rect.contains_rect(b.rect))
+                .min_by(|x, y| x.rect.area().total_cmp(&y.rect.area()))
+                .unwrap_or_else(|| panic!("{tab}: {:?} is outside every group card", b.label));
+            // Kept inside the card's padding: never touching its edge.
+            assert!(tile.rect.contains_rect(b.rect.shrink(3.0)), "{tab}: {:?} {:?} touches its card {:?}", b.label, b.rect, tile.rect);
+            seen_on.push(b.label);
+        }
+    }
+    for n in ["Normal", "Single Page", "Whole Page"] {
+        assert!(seen_on.iter().any(|l| l == n), "{n} is an ON toggle on the View tab: {seen_on:?}");
+    }
+    // The one on-style: accent tint with an accent border; hovering deepens it.
+    let (fill, line) = on_style(false);
+    let (hover_fill, hover_line) = on_style(true);
+    assert_eq!(fill, crate::theme::accent_tint());
+    assert_eq!(line, crate::theme::accent());
+    assert_eq!(hover_line, line);
+    assert_ne!(hover_fill, fill, "hover on an ON button stays visible");
+    assert_ne!(fill, crate::theme::tile(), "the on fill is not the card's grey");
+    assert_eq!(TOGGLE_RADIUS, 3.0);
+}
+
+// ---- Ribbon cards: padding, launcher, crisp edges -----------------------------------------------------------------
+
+fn tiles(ui: &TestUi) -> Vec<(String, eframe::egui::Rect)> {
+    ui.ribbon_buttons()
+        .into_iter()
+        .filter_map(|b| b.label.strip_prefix("grouptile:").map(|n| (n.to_owned(), b.rect)))
+        .collect()
+}
+
+fn card_of(tiles: &[(String, eframe::egui::Rect)], r: eframe::egui::Rect) -> Option<eframe::egui::Rect> {
+    tiles.iter().filter(|(_, t)| t.contains(r.center())).map(|(_, t)| *t).min_by(|a, b| a.area().total_cmp(&b.area()))
+}
+
+#[test]
+fn every_control_keeps_the_card_padding_on_both_sides_at_any_scaling() {
+    for ppp in [1.0, 1.25, 1.5] {
+        for w in [1500.0, 1000.0] {
+            let mut ui = ui_with_shapes();
+            ui.h.set_pixels_per_point(ppp);
+            ui.h.set_size(Vec2::new(w, 800.0));
+            ui.settle();
+            ui.wait_for_fonts();
+            for tab in FIXED_TABS {
+                ui.click_tab(tab);
+                ui.settle();
+                let t = tiles(&ui);
+                for (name, r) in labelled_controls(&ui) {
+                    let Some(card) = card_of(&t, r) else { continue };
+                    assert!(r.min.x - card.min.x >= 7.0 - 1e-3, "{tab} {w}@{ppp}: {name:?} starts {} px inside its card", r.min.x - card.min.x);
+                    assert!(card.max.x - r.max.x >= 7.0 - 1e-3, "{tab} {w}@{ppp}: {name:?} ends {} px inside its card", card.max.x - r.max.x);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_dialog_launcher_is_inset_like_the_title_and_centred_on_its_line() {
+    for ppp in [1.0, 1.25] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        let mut found = 0;
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let all = ui.ribbon_buttons();
+            let t = tiles(&ui);
+            for l in all.iter().filter(|b| b.label.starts_with("launcher:")) {
+                let name = &l.label["launcher:".len()..];
+                let card = t.iter().find(|(n, _)| n == name).unwrap().1;
+                let title = all.iter().find(|b| b.label == format!("grouptitle:{name}")).unwrap().rect;
+                let right = card.max.x - l.rect.max.x;
+                let left = title.min.x - card.min.x;
+                assert!((right - left).abs() <= 1.0, "{name}@{ppp}: launcher {right} px from the right edge, title {left} px from the left");
+                assert!(left >= 7.0, "{name}: title inset {left}");
+                assert!((l.rect.center().y - title.center().y).abs() <= 0.5, "{name}: launcher not centred on the title line");
+                assert!(l.rect.min.y - card.min.y >= 6.0, "{name}: launcher crowds the top edge");
+                found += 1;
+            }
+        }
+        assert!(found >= 3, "Clipboard, Font and Paragraph have launchers");
+    }
+}
+
+#[test]
+fn group_cards_sit_on_whole_pixels_with_an_even_gap() {
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let mut t = tiles(&ui);
+            t.sort_by(|a, b| a.1.min.x.total_cmp(&b.1.min.x));
+            for (n, r) in &t {
+                for v in [r.min.x, r.min.y, r.max.x, r.max.y] {
+                    let px = v * ppp;
+                    assert!((px - px.round()).abs() < 1e-3, "{tab}@{ppp}: card {n:?} edge {v} is not on a device pixel");
+                }
+            }
+            for p in t.windows(2) {
+                let gap = ((p[1].1.min.x - p[0].1.max.x) * ppp).round();
+                assert_eq!(gap, crate::widgets::gap_px(ppp), "{tab}@{ppp}: gap between {:?} and {:?}", p[0].0, p[1].0);
+            }
+        }
+    }
+}
+
+#[test]
+fn the_ribbon_panel_margin_equals_the_gap_between_cards_on_top_left_and_bottom() {
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let panel = ui.ribbon_buttons().into_iter().find(|b| b.label == "grouppanel").expect("panel").rect;
+            let t = tiles(&ui);
+            let first = t.iter().map(|(_, r)| r.min.x).fold(f32::MAX, f32::min);
+            let top = t.iter().map(|(_, r)| r.min.y).fold(f32::MAX, f32::min);
+            let bottom = t.iter().map(|(_, r)| r.max.y).fold(f32::MIN, f32::max);
+            // White device pixels between the outer edges of the two 1 px lines, as an eye counts them.
+            let want = crate::widgets::gap_px(ppp);
+            let px = |v: f32| (v * ppp).round() as i32;
+            for (what, got) in [
+                ("left", px(first) - px(panel.min.x) - 1),
+                ("top", px(top) - px(panel.min.y) - 1),
+                ("bottom", px(panel.max.y) - px(bottom) - 1),
+            ] {
+                assert_eq!(got, want as i32, "{tab}@{ppp}: {what} white pixels (panel {panel:?})");
+            }
+            for v in [panel.min.x, panel.min.y, panel.max.x, panel.max.y] {
+                assert!(((v * ppp) - (v * ppp).round()).abs() < 1e-3, "{tab}@{ppp}: panel edge {v} off the pixel grid");
+            }
+        }
+    }
+}
+
+#[test]
+fn every_card_has_one_outline_exactly_one_device_pixel_wide_on_the_pixel_grid() {
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let all = ui.ribbon_buttons();
+            for (name, r) in tiles(&ui) {
+                let strokes: Vec<_> = all.iter().filter(|b| b.label == format!("groupstroke:{name}")).collect();
+                assert_eq!(strokes.len(), 1, "{tab}@{ppp}: card {name:?} has one outline");
+                let w: f32 = strokes[0].tip.parse().unwrap();
+                assert!((w * ppp - 1.0).abs() < 1e-4, "{tab}@{ppp}: outline of {name:?} is {w} pt, not one device pixel");
+                // Drawn inside the rect: the stroke centre is edge + half a pixel, a pixel centre.
+                for v in [r.min.x, r.min.y, r.max.x, r.max.y] {
+                    assert!((v * ppp - (v * ppp).round()).abs() < 1e-3, "{tab}@{ppp}: {name:?} edge {v} off the grid");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn tab_labels_are_optically_centred_in_their_pills_at_any_scaling() {
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        // Half a device pixel on each of the two gaps.
+        let tol = 1.0 / ppp + 1e-3;
+        for hover_file in [false, true] {
+            if hover_file {
+                let at = ui.ribbon("tab:File").rect.center();
+                ui.mouse_to(at);
+                ui.settle();
+            }
+            let all = ui.ribbon_buttons();
+            let mut n = 0;
+            for p in all.iter().filter(|b| b.label.starts_with("tabpill:")) {
+                let name = &p.label["tabpill:".len()..];
+                let i = all.iter().find(|b| b.label == format!("tabink:{name}")).expect("ink").rect;
+                let r = p.rect;
+                let (top, bottom) = (i.min.y - r.min.y, r.max.y - i.max.y);
+                let (left, right) = (i.min.x - r.min.x, r.max.x - i.max.x);
+                assert!((top - bottom).abs() <= tol, "{name}@{ppp}: cap band top gap {top} vs bottom gap {bottom}");
+                assert!((left - right).abs() <= tol, "{name}@{ppp}: left gap {left} vs right gap {right}");
+                for v in [r.min.x, r.min.y, r.max.x, r.max.y] {
+                    assert!((v * ppp - (v * ppp).round()).abs() < 1e-3, "{name}@{ppp}: pill edge off the pixel grid");
+                }
+                n += 1;
+            }
+            assert!(n >= 8, "File plus the tabs were measured: {n}");
         }
     }
 }
