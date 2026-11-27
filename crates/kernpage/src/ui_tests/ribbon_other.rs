@@ -1058,3 +1058,39 @@ fn every_card_has_one_outline_exactly_one_device_pixel_wide_on_the_pixel_grid() 
         }
     }
 }
+
+#[test]
+fn tab_labels_are_optically_centred_in_their_pills_at_any_scaling() {
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        // Half a device pixel on each of the two gaps.
+        let tol = 1.0 / ppp + 1e-3;
+        for hover_file in [false, true] {
+            if hover_file {
+                let at = ui.ribbon("tab:File").rect.center();
+                ui.mouse_to(at);
+                ui.settle();
+            }
+            let all = ui.ribbon_buttons();
+            let mut n = 0;
+            for p in all.iter().filter(|b| b.label.starts_with("tabpill:")) {
+                let name = &p.label["tabpill:".len()..];
+                let i = all.iter().find(|b| b.label == format!("tabink:{name}")).expect("ink").rect;
+                let r = p.rect;
+                let (top, bottom) = (i.min.y - r.min.y, r.max.y - i.max.y);
+                let (left, right) = (i.min.x - r.min.x, r.max.x - i.max.x);
+                assert!((top - bottom).abs() <= tol, "{name}@{ppp}: cap band top gap {top} vs bottom gap {bottom}");
+                assert!((left - right).abs() <= tol, "{name}@{ppp}: left gap {left} vs right gap {right}");
+                for v in [r.min.x, r.min.y, r.max.x, r.max.y] {
+                    assert!((v * ppp - (v * ppp).round()).abs() < 1e-3, "{name}@{ppp}: pill edge off the pixel grid");
+                }
+                n += 1;
+            }
+            assert!(n >= 8, "File plus the tabs were measured: {n}");
+        }
+    }
+}

@@ -3002,19 +3002,32 @@ It is not a PNG or JPEG picture it can read."));
                             ui.allocate_exact_size(egui::vec2(48.0, TAB_H), egui::Sense::click());
                         crate::theme::drew!("file:tab");
                         // A normal tab-styled entry: a soft pill while hovered or open.
-                        let pill = rect.shrink2(egui::vec2(2.0, 3.0));
+                        let pill = crate::widgets::snap_rect(
+                            ui.ctx().pixels_per_point(),
+                            rect.shrink2(egui::vec2(2.0, 3.0)),
+                        );
                         if self.backstage {
                             ui.painter().rect_filled(pill, 6.0, crate::theme::accent_tint());
                         } else if resp.hovered() {
                             ui.painter().rect_filled(pill, 6.0, crate::theme::hover_bg());
                         }
-                        ui.painter().text(
-                            rect.center(),
-                            egui::Align2::CENTER_CENTER,
+                        let _ink = crate::widgets::centered_label(
+                            ui,
+                            pill,
                             "File",
                             egui::FontId::proportional(13.3),
                             if self.backstage { crate::theme::accent_text() } else { crate::theme::text() },
                         );
+                        #[cfg(test)]
+                        for (l, r) in [("tabpill:File", pill), ("tabink:File", _ink)] {
+                            crate::widgets::probe::record(crate::widgets::probe::Seen {
+                                label: l.to_owned(),
+                                tip: String::new(),
+                                rect: r,
+                                enabled: true,
+                                selected: false,
+                            });
+                        }
                         #[cfg(test)]
                         crate::widgets::probe::record(crate::widgets::probe::Seen {
                             label: "tab:File".to_owned(),
@@ -3097,19 +3110,15 @@ It is not a PNG or JPEG picture it can read."));
                         if selected {
                             crate::theme::drew!("tab:pill");
                         }
+                        let pill = crate::widgets::snap_rect(
+                            ui.ctx().pixels_per_point(),
+                            rect.shrink2(egui::vec2(3.0, 3.0)),
+                        );
                         if selected {
                             // A rounded pill in the accent tint.
-                            ui.painter().rect_filled(
-                                rect.shrink2(egui::vec2(3.0, 3.0)),
-                                7.0,
-                                crate::theme::accent_tint(),
-                            );
+                            ui.painter().rect_filled(pill, 7.0, crate::theme::accent_tint());
                         } else if resp.hovered() && has_doc {
-                            ui.painter().rect_filled(
-                                rect.shrink2(egui::vec2(3.0, 3.0)),
-                                7.0,
-                                crate::theme::hover_bg(),
-                            );
+                            ui.painter().rect_filled(pill, 7.0, crate::theme::hover_bg());
                         }
                         let col = if t.is_contextual() || selected {
                             crate::theme::accent_text()
@@ -3119,13 +3128,17 @@ It is not a PNG or JPEG picture it can read."));
                             crate::theme::disabled()
                         };
                         let font = egui::FontId::proportional(13.3);
-                        ui.painter().text(
-                            rect.center(),
-                            egui::Align2::CENTER_CENTER,
-                            t.name(),
-                            font,
-                            col,
-                        );
+                        let _ink = crate::widgets::centered_label(ui, pill, t.name(), font, col);
+                        #[cfg(test)]
+                        for (l, r) in [("tabpill", pill), ("tabink", _ink)] {
+                            crate::widgets::probe::record(crate::widgets::probe::Seen {
+                                label: format!("{l}:{}", t.name()),
+                                tip: String::new(),
+                                rect: r,
+                                enabled: true,
+                                selected,
+                            });
+                        }
                         #[cfg(test)]
                         crate::widgets::probe::record(crate::widgets::probe::Seen {
                             label: format!("tab:{}", t.name()),

@@ -369,6 +369,44 @@ pub fn on_style(hovered: bool) -> (Color32, Color32) {
     (fill, crate::theme::accent())
 }
 
+/// Ink rectangle of a laid-out galley, relative to its top-left corner: the union of the
+/// glyph bitmaps (not the line box, which has leading above and below).
+fn ink_rect(g: &egui::Galley) -> Option<Rect> {
+    let mut out: Option<Rect> = None;
+    for pr in &g.rows {
+        for gl in &pr.row.glyphs {
+            if gl.uv_rect.is_nothing() {
+                continue;
+            }
+            let min = pr.pos + gl.pos.to_vec2() + gl.uv_rect.offset;
+            let r = Rect::from_min_size(min, gl.uv_rect.size);
+            out = Some(out.map_or(r, |o| o.union(r)));
+        }
+    }
+    out
+}
+
+/// Draw `text` optically centred in `pill`: the ink width between the pill's left and right
+/// edges equally, and the capital-letter band (top of an "H" to the baseline) between its top and
+/// bottom equally, with the origin on a whole device pixel. Returns the on-screen ink rectangle
+/// of the text with the cap band as its vertical extent.
+pub fn centered_label(ui: &Ui, pill: Rect, text: &str, font: FontId, col: Color32) -> Rect {
+    let ppp = ui.ctx().pixels_per_point();
+    let g = ui.painter().layout_no_wrap(text.to_owned(), font.clone(), col);
+    let cap = ink_rect(&ui.painter().layout_no_wrap("H".to_owned(), font, col));
+    let ink = ink_rect(&g).unwrap_or_else(|| Rect::from_min_size(Pos2::ZERO, g.size()));
+    let cap = cap.unwrap_or(ink);
+    let x = pill.center().x - ink.center().x;
+    let y = pill.center().y - cap.center().y;
+    let s = |v: f32| (v * ppp).round() / ppp;
+    let at = Pos2::new(s(x), s(y));
+    ui.painter().galley(at, g, col);
+    Rect::from_min_max(
+        Pos2::new(at.x + ink.min.x, at.y + cap.min.y),
+        Pos2::new(at.x + ink.max.x, at.y + cap.max.y),
+    )
+}
+
 /// The icon a collapsed group shows on its drop-down button.
 fn group_icon(title: &str) -> Icon {
     match title {
