@@ -1,7 +1,9 @@
 # KernPage brand kit
 
 The KernPage logo is a **K** whose stem is a rolled spine (a light strip beside a darker or white body) and whose two arms
-are pages with lines of text; the wordmark spells "Kernpage" with a page-shaped **p** that has a folded corner.
+are pages with lines of text; the wordmark spells "KernPage" with a capital **P** built like the K (a light strip beside a dark stem and bowl),
+whose top-right corner is a folded page corner. Every place the logo and icon are used is listed in
+[docs/BRAND-USAGE.md](../docs/BRAND-USAGE.md).
 The approved artwork lives in `packaging/windows/icon/` (the teal app icon, which is also what the Windows `.ico` is made from).
 This folder holds everything derived from it: transparent marks, every accent colour and recolourable masters.
 Do not redraw the shapes; change colours only.
@@ -41,8 +43,8 @@ because that shift gives a yellowish ink with too little contrast on white.
 | dark | icon tile | `#046064` | `#0352B8` | `#451FAF` | `#303A44` | `#B35A00` |
 | light | the stem's light strip | `#7FC9C4` | `#B8CFE3` | `#CFCBE3` | `#A3ABB1` | `#FFC285` |
 | ink | wordmark letters and K body on light backgrounds | `#0B5A73` | `#0E39C3` | `#6D2ABA` | `#3A4150` | `#A34700` |
-| accent | the p's fold, on light backgrounds | `#1696A0` | `#2372E6` | `#744DCF` | `#53606F` | `#FF8200` |
-| accent on dark | the p's fold, on dark backgrounds | `#36C4CF` | `#77A2E1` | `#A893D8` | `#7B8896` | `#FF9F3D` |
+| accent | the P's fold, on light backgrounds | `#1696A0` | `#2372E6` | `#744DCF` | `#53606F` | `#FF8200` |
+| accent on dark | the P's fold, on dark backgrounds | `#36C4CF` | `#77A2E1` | `#A893D8` | `#7B8896` | `#FF9F3D` |
 | line | text lines on the K's arms, light backgrounds | `#6FB6C6` | `#A9B9DF` | `#CBBDDE` | `#999EA8` | `#F0C08E` |
 | line on dark | text lines, dark backgrounds | `#8FB9C6` | `#C5CCE3` | `#DDD5E6` | `#ACAFB5` | `#E8C9A8` |
 | paper | white of the arms / letters on dark | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` |

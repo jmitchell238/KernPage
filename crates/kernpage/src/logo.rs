@@ -9,7 +9,7 @@ use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, TextureHandle, Texture
 pub enum Mark {
     /// The K alone.
     K,
-    /// The full "Kernpage" wordmark.
+    /// The full "KernPage" wordmark.
     Wordmark,
 }
 
@@ -55,7 +55,7 @@ fn current_accent() -> Accent {
 fn aspect(mark: Mark) -> f32 {
     match mark {
         Mark::K => 780.0 / 914.0,
-        Mark::Wordmark => 1083.886 / 274.0,
+        Mark::Wordmark => 1249.19 / 329.5,
     }
 }
 

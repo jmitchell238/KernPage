@@ -620,7 +620,7 @@ impl App {
     }
 
     fn home_page(&mut self, ui: &mut Ui) {
-        crate::logo::show(ui, crate::logo::Mark::Wordmark, 34.0);
+        crate::logo::show(ui, crate::logo::Mark::Wordmark, 40.0);
         ui.add_space(10.0);
         let mut picked = None;
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
@@ -1094,7 +1094,7 @@ fn about_page(ui: &mut Ui) {
     };
     page_title(ui, "About KernPage");
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-        crate::logo::show(ui, crate::logo::Mark::Wordmark, 34.0);
+        crate::logo::show(ui, crate::logo::Mark::Wordmark, 40.0);
         ui.add_space(6.0);
         ui.label(RichText::new(format!("KernPage {}", crate::app_version())).size(18.0).color(crate::theme::text()));
         ui.add_space(4.0);
