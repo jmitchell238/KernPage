@@ -216,6 +216,19 @@ fn recent_list_renders_rows_and_not_found() {
 }
 
 #[test]
+fn a_recent_row_shows_only_the_opened_label() {
+    let env = TestEnv::new();
+    let a = env.pub_file("alpha.pub");
+    std::fs::create_dir_all(env.recent.parent().unwrap()).unwrap();
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+    std::fs::write(env.recent.with_file_name("recent-times.txt"), format!("{now}\t{}\n", a.to_string_lossy())).unwrap();
+    let ui = TestUi::with(Setup::new().env(&env).recent(&[a]));
+    let date = &ui.rows()[0].2;
+    assert!(date.starts_with("Opened today "), "{date}");
+    assert!(!date.contains("Modified"), "{date}");
+}
+
+#[test]
 fn recent_empty_state_greys_clear_list() {
     let ui = TestUi::start();
     assert!(ui.rows().is_empty());

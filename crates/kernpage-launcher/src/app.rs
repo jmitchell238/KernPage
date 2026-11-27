@@ -968,8 +968,6 @@ impl App {
             } else {
                 resp.on_hover_text(row.path.to_string_lossy()).on_hover_cursor(CursorIcon::PointingHand)
             };
-            #[cfg(test)]
-            crate::testhooks::seen(|f| f.rows.push((row.name.clone(), row.folder.clone(), row.modified.clone().unwrap_or_else(|| "NOT FOUND".to_owned()), rect)));
             let fill = if resp.hovered() && !missing { p.card_hover } else { p.card };
             let stroke = if resp.has_focus() { Stroke::new(2.0, p.accent) } else { Stroke::new(1.0, p.border) };
             ui.painter().rect_filled(rect, 8.0, fill);
@@ -978,9 +976,13 @@ impl App {
             let painter = ui.painter();
             let right = rect.right() - 56.0;
             let (date_text, date_color) = match &row.modified {
-                Some(d) => (format!("Modified {d}"), p.muted),
+                // Already a full label ("Opened today 10:24"), or empty when no time is stored.
+                Some(d) => (d.clone(), p.muted),
                 None => ("NOT FOUND".to_owned(), Color32::from_rgb(0xC2, 0x4B, 0x45)),
             };
+            // Tests see the date text exactly as it is drawn.
+            #[cfg(test)]
+            crate::testhooks::seen(|f| f.rows.push((row.name.clone(), row.folder.clone(), date_text.clone(), rect)));
             let date = painter.layout_no_wrap(date_text, FontId::monospace(12.0), date_color);
             // Long names and folders are cut with "..." instead of running under the date.
             let name_w = (rect.width() - 16.0 - 56.0 - date.size().x - 16.0).max(60.0);
