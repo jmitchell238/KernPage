@@ -807,3 +807,103 @@ fn no_group_title_is_wider_than_its_group_on_any_tab_at_any_width() {
         }
     }
 }
+
+// ---- Ribbon look: no overlapping labels, one "on" style ------------------------------------------------------------
+
+/// Every labelled control of the tab body: the ribbon buttons (seam) plus check boxes and combo
+/// boxes (AccessKit), as `(name, rect)`.
+fn labelled_controls(ui: &TestUi) -> Vec<(String, eframe::egui::Rect)> {
+    let mut v: Vec<(String, eframe::egui::Rect)> = ui
+        .ribbon_body()
+        .into_iter()
+        .map(|b| (b.label, b.rect))
+        .collect();
+    for role in [Role::CheckBox, Role::ComboBox] {
+        for n in ui.h.query_all_by_role(role) {
+            let a = n.accesskit_node();
+            let Some(r) = a.raw_bounds() else { continue };
+            let rect = eframe::egui::Rect::from_min_max(
+                eframe::egui::pos2(r.x0 as f32, r.y0 as f32),
+                eframe::egui::pos2(r.x1 as f32, r.y1 as f32),
+            );
+            if rect.min.y > 52.0 && rect.min.y < 150.0 {
+                v.push((a.label().unwrap_or_else(|| format!("{role:?}")), rect));
+            }
+        }
+    }
+    v
+}
+
+#[test]
+fn no_two_ribbon_controls_overlap_on_any_tab() {
+    for w in [1400.0, 1000.0] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_size(Vec2::new(w, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let all = labelled_controls(&ui);
+            assert!(!all.is_empty(), "{tab} at {w}: controls are drawn");
+            for (i, (na, a)) in all.iter().enumerate() {
+                for (nb, b) in &all[i + 1..] {
+                    let rows = a.min.y < b.max.y - 2.0 && b.min.y < a.max.y - 2.0;
+                    let across = a.min.x < b.max.x - 0.5 && b.min.x < a.max.x - 0.5;
+                    assert!(!(rows && across), "{tab} at {w}: {na:?} {a:?} overlaps {nb:?} {b:?}");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_show_group_columns_keep_a_gap_between_their_labels() {
+    let mut ui = ui_with_shapes();
+    ui.h.set_size(Vec2::new(1400.0, 800.0));
+    ui.settle();
+    ui.wait_for_fonts();
+    ui.click_tab("View");
+    let all = labelled_controls(&ui);
+    let rect = |n: &str| all.iter().find(|(l, _)| l == n).unwrap_or_else(|| panic!("no {n:?}")).1;
+    for (left, right) in [("Boundaries", "Rulers"), ("Guides", "Rulers"), ("Page Navigation", "Picture Manager"), ("Scratch Area", "Picture Manager")] {
+        let gap = rect(right).min.x - rect(left).max.x;
+        assert!(gap >= 6.0, "{left:?} and {right:?} are only {gap} px apart");
+    }
+}
+
+#[test]
+fn every_toggle_button_on_every_tab_uses_the_same_on_style_inside_its_card() {
+    use crate::widgets::{on_style, TOGGLE_RADIUS};
+    let mut ui = ui_with_shapes();
+    ui.h.set_size(Vec2::new(1400.0, 800.0));
+    ui.settle();
+    let mut seen_on = Vec::new();
+    for tab in FIXED_TABS {
+        ui.click_tab(tab);
+        ui.settle();
+        let all = ui.ribbon_buttons();
+        for b in ui.ribbon_body().into_iter().filter(|b| b.selected) {
+            let tile = all
+                .iter()
+                .filter(|t| t.label.starts_with("grouptile:") && t.rect.contains_rect(b.rect))
+                .min_by(|x, y| x.rect.area().total_cmp(&y.rect.area()))
+                .unwrap_or_else(|| panic!("{tab}: {:?} is outside every group card", b.label));
+            // Kept inside the card's padding: never touching its edge.
+            assert!(tile.rect.contains_rect(b.rect.shrink(3.0)), "{tab}: {:?} {:?} touches its card {:?}", b.label, b.rect, tile.rect);
+            seen_on.push(b.label);
+        }
+    }
+    for n in ["Normal", "Single Page", "Whole Page"] {
+        assert!(seen_on.iter().any(|l| l == n), "{n} is an ON toggle on the View tab: {seen_on:?}");
+    }
+    // The one on-style: accent tint with an accent border; hovering deepens it.
+    let (fill, line) = on_style(false);
+    let (hover_fill, hover_line) = on_style(true);
+    assert_eq!(fill, crate::theme::accent_tint());
+    assert_eq!(line, crate::theme::accent());
+    assert_eq!(hover_line, line);
+    assert_ne!(hover_fill, fill, "hover on an ON button stays visible");
+    assert_ne!(fill, crate::theme::tile(), "the on fill is not the card's grey");
+    assert_eq!(TOGGLE_RADIUS, 3.0);
+}

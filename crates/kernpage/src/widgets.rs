@@ -180,7 +180,7 @@ impl<'a> Btn<'a> {
         let text_w = widths.iter().cloned().fold(0.0, f32::max);
         let arrow = if self.dropdown { 10.0 } else { 0.0 };
         let size = match self.size {
-            Size::Large => Vec2::new((text_w + arrow + 6.0).max(44.0), 64.0),
+            Size::Large => Vec2::new((text_w + arrow + 6.0).max(44.0), 70.0),
             Size::Small => {
                 let w = if lines.is_empty() {
                     24.0 + arrow
@@ -210,22 +210,24 @@ impl<'a> Btn<'a> {
                 let col = self.fg.map(|c| if self.selected && self.enabled { sel_col } else { c }).unwrap_or(sel_col);
                 icons::paint(p, Rect::from_center_size(snap(rect.center()), Vec2::splat(15.0)), self.icon, col);
             } else if self.selected || hovered {
-                let bg = if self.fg.is_some() {
-                    Color32::from_white_alpha(if self.selected { 70 } else { 40 })
-                } else if self.selected && !hovered {
-                    crate::theme::selected_bg()
-                } else if self.selected {
-                    crate::theme::hover_pressed()
+                if self.selected && self.fg.is_none() {
+                    let (fill, line) = on_style(hovered);
+                    p.rect_filled(rect, TOGGLE_RADIUS, fill);
+                    p.rect_stroke(rect, TOGGLE_RADIUS, Stroke::new(1.0, line), StrokeKind::Inside);
                 } else {
-                    crate::theme::hover_bg()
-                };
-                p.rect_filled(rect, 3.0, bg);
-                p.rect_stroke(
-                    rect,
-                    3.0,
-                    Stroke::new(1.0, crate::theme::button_outline()),
-                    StrokeKind::Inside,
-                );
+                    let bg = if self.fg.is_some() {
+                        Color32::from_white_alpha(if self.selected { 70 } else { 40 })
+                    } else {
+                        crate::theme::hover_bg()
+                    };
+                    p.rect_filled(rect, TOGGLE_RADIUS, bg);
+                    p.rect_stroke(
+                        rect,
+                        TOGGLE_RADIUS,
+                        Stroke::new(1.0, crate::theme::button_outline()),
+                        StrokeKind::Inside,
+                    );
+                }
             }
             if crate::search::flash::matches(self.label, tip, ui.input(|i| i.time)) {
                 p.rect_stroke(rect, 4.0, Stroke::new(2.0, crate::theme::accent()), StrokeKind::Inside);
@@ -352,6 +354,19 @@ impl<'a> Btn<'a> {
             resp
         }
     }
+}
+
+/// Corner radius of a ribbon button's hover and "on" highlight.
+pub const TOGGLE_RADIUS: f32 = 3.0;
+
+/// The one "on" look of every ribbon toggle button (View > Normal, Single Page, Whole Page ...):
+/// a light tint of the accent colour with a thin accent border, drawn over the button's own
+/// rectangle (the same one the hover highlight uses, so it stays inside the group card's
+/// padding). Returns `(fill, border)`; hovering an ON button deepens the tint.
+pub fn on_style(hovered: bool) -> (Color32, Color32) {
+    let tint = crate::theme::accent_tint();
+    let fill = if hovered { crate::theme::mix(tint, crate::theme::accent(), 0.18) } else { tint };
+    (fill, crate::theme::accent())
 }
 
 /// The icon a collapsed group shows on its drop-down button.
@@ -545,8 +560,26 @@ pub fn col2<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> R {
     col_padded(ui, COL2_TOP, Some(COL2_GAP), add)
 }
 
+/// Extra space between two neighbouring stacks, so the widest label of one never touches the
+/// check box or icon of the next.
+pub const COL_GAP: f32 = 8.0;
+
 fn col_padded<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let end_id = ui.id().with("col_end_x");
+    let r = col_inner(ui, top_pad, gap, add, end_id);
+    let end = ui.min_rect().max.x;
+    ui.data_mut(|d| d.insert_temp(end_id, end));
+    r
+}
+
+fn col_inner<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&mut Ui) -> R, end_id: egui::Id) -> R {
     let wrap = ui.layout().main_wrap();
+    // Directly right of the previous stack (not the first one of the group): leave a gap.
+    let prev_end: Option<f32> = ui.data(|d| d.get_temp(end_id));
+    let adjacent = prev_end.is_some_and(|x| (ui.cursor().min.x - (x + ui.spacing().item_spacing.x)).abs() < 0.5);
+    if adjacent && !wrap {
+        ui.add_space(COL_GAP);
+    }
     let body = move |ui: &mut Ui| {
         if !wrap {
             ui.add_space(top_pad);
