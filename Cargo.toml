@@ -4,6 +4,6 @@ members = ["crates/metafile", "crates/pub-format", "crates/pub-write", "crates/p
 
 [workspace.package]
 edition = "2021"
-version = "0.2.0"
+version = "0.2.1"
 license = "GPL-3.0-only"
 repository = "https://github.com/jmitchell238/kernpage"
