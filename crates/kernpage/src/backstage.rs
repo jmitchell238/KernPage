@@ -195,6 +195,15 @@ const PAPER: Color32 = Color32::WHITE;
 /// The grey text lines drawn on a page picture.
 const PAPER_LINE: Color32 = Color32::from_rgb(0xC9, 0xCE, 0xD3);
 
+/// The picture for More page sizes: three white sheets of different sizes, fanned out.
+fn sheets_art(ui: &Ui, page: Rect) {
+    for (x, y, w, h) in [(2.0, 20.0, 62.0, 48.0), (22.0, 32.0, 46.0, 60.0), (44.0, 56.0, 36.0, 46.0)] {
+        let r = snap(ui, Rect::from_min_size(page.min + Vec2::new(x, y), Vec2::new(w, h)));
+        ui.painter().rect_filled(r, 0.0, PAPER);
+        outline(ui, r, crate::theme::frame());
+    }
+}
+
 /// A plain page outline: the stand-in for a first-page picture that is loading or unreadable.
 fn outline_page_glyph(ui: &Ui, area: Rect) {
     let page = snap(ui, area);
@@ -274,10 +283,14 @@ fn tile(
     seen(format!("page:{label}"), page, enabled, false);
     // Page pictures are paper: white in both themes (a disabled item is only a faint outline).
     ui.painter().rect_filled(page, 0.0, if enabled { PAPER } else { Color32::TRANSPARENT });
+    let has_art = art.is_some();
     if let Some(art) = art {
         art(ui, page);
     }
-    outline(ui, page, if enabled { crate::theme::frame() } else { crate::theme::line() });
+    // A greyed item with its own picture (More page sizes) draws its own sheets and borders.
+    if enabled || !has_art {
+        outline(ui, page, if enabled { crate::theme::frame() } else { crate::theme::line() });
+    }
     let font = FontId::proportional(13.0);
     let text = elide(ui, label, &font, TILE_W - 8.0);
     ui.painter().text(
@@ -322,12 +335,13 @@ fn blank_tiles(
         if tile(ui, "Blank 11 x 8.5\"", true, true, None) {
             chosen = Some(Tile::Blank { landscape: true });
         }
-        tile(ui, "More page sizes", false, false, None);
         if let Some((thumbs, fonts)) = bulletin {
             if tile(ui, "Church Bulletin", true, false, Some(&mut bulletin_preview(thumbs, fonts))) {
                 chosen = Some(Tile::Bulletin);
             }
         }
+        // Not a page itself: the way to other sizes comes after the pages.
+        tile(ui, "More page sizes", false, false, Some(&mut sheets_art));
     });
     chosen
 }
@@ -745,11 +759,14 @@ impl App {
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
             heading(ui, "New");
             ui.add_space(8.0);
-            picked = blank_tiles(ui, Some((&mut self.start_thumbs, &self.fonts)));
+            // Only blank page sizes here; templates are behind More templates.
+            picked = blank_tiles(ui, None);
             ui.add_space(2.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                 if link_as(ui, "More templates", "More templates \u{2192}") {
                     self.section = Section::New;
+                    // Straight to the templates that exist today (the Built-in tab).
+                    self.bs_tab = 1;
                 }
             });
             ui.add_space(14.0);

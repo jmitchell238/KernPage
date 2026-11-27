@@ -467,10 +467,10 @@ fn the_home_page_shows_the_new_tiles_and_the_open_list() {
         ("Blank 8.5 x 11\"", true),
         ("Blank 11 x 8.5\"", true),
         ("More page sizes", false),
-        ("Church Bulletin", true),
     ] {
         assert_eq!(ui.ribbon(&format!("tile:{tile}")).enabled, on, "{tile}");
     }
+    assert!(!ui.has_ribbon("tile:Church Bulletin"), "templates are behind More templates");
     assert!(ui.ribbon("tabrow:Recent").selected && ui.ribbon("tabrow:Recent").enabled);
     assert!(ui.ribbon("tabrow:Pinned").enabled, "the Pinned tab is there");
     assert!(ui.ribbon("link:More templates").enabled);
@@ -506,6 +506,9 @@ fn the_blank_landscape_tile_starts_a_new_landscape_publication() {
 #[test]
 fn the_church_bulletin_tile_starts_the_bulletin_template() {
     let mut ui = TestUi::start();
+    assert!(!ui.has_ribbon("tile:Church Bulletin"), "Home's New row has page sizes only, no templates");
+    ui.click_ribbon("link:More templates");
+    ui.settle();
     ui.click_ribbon("tile:Church Bulletin");
     let want = template::church_bulletin();
     assert!(!ui.app().backstage);
@@ -555,6 +558,7 @@ fn more_templates_opens_the_new_page_and_more_publications_the_open_page() {
     let mut ui = TestUi::start();
     ui.click_ribbon("link:More templates");
     assert!(in_section(&mut ui, Section::New));
+    assert!(ui.ribbon("tabrow:Built-in").selected, "More templates opens the templates that exist (Built-in)");
     nav(&mut ui, "Home");
     ui.click_ribbon("link:More publications");
     assert!(in_section(&mut ui, Section::Open));
@@ -1246,6 +1250,9 @@ fn a_recent_card_for_a_missing_file_keeps_the_glyph() {
 #[test]
 fn the_church_bulletin_tile_draws_a_preview() {
     let mut ui = TestUi::start();
+    ui.click_ribbon("link:More templates");
+    ui.settle();
+    ui.app().start_thumbs.wait_idle();
     ui.settle();
     assert!(has_seen(&ui, "preview:Church Bulletin"));
 }
@@ -1328,14 +1335,14 @@ fn a_newly_saved_kern_file_appears_as_a_recent_card_with_its_first_page() {
 
 #[test]
 fn the_start_items_have_pixel_snapped_page_pictures_inside_their_items() {
-    // Every page picture is drawn by `tile`; the church bulletin one has a preview on top.
+    // Every page picture on Home's New row is drawn by `tile` (page sizes only; templates are on New).
     for ppp in [1.0f32, 1.25, 1.5] {
         let mut ui = TestUi::start();
         ui.h.set_pixels_per_point(ppp);
         ui.settle();
         let all = ui.ribbon_buttons();
         let mut n = 0;
-        for name in ["Blank 8.5 x 11\"", "Blank 11 x 8.5\"", "More page sizes", "Church Bulletin"] {
+        for name in ["Blank 8.5 x 11\"", "Blank 11 x 8.5\"", "More page sizes"] {
             let tile = all.iter().find(|b| b.label == format!("tile:{name}")).expect("tile").rect;
             let page = all.iter().find(|b| b.label == format!("page:{name}")).expect("page").rect;
             assert!(tile.contains_rect(page), "{name}: the page stays inside its item");
@@ -1345,7 +1352,7 @@ fn the_start_items_have_pixel_snapped_page_pictures_inside_their_items() {
             }
             n += 1;
         }
-        assert_eq!(n, 4);
+        assert_eq!(n, 3);
     }
 }
 
