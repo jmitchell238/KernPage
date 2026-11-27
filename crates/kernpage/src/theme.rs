@@ -346,6 +346,11 @@ pub fn tile_line() -> Color32 {
     mix(card(), text(), if is_dark() { 0.14 } else { 0.09 })
 }
 
+/// The 1 px outline of a ribbon group card: a calm grey clearly stronger than `tile_line`.
+pub fn card_line() -> Color32 {
+    mix(card(), text(), if is_dark() { 0.24 } else { 0.18 })
+}
+
 pub fn is_dark() -> bool {
     pal().dark
 }

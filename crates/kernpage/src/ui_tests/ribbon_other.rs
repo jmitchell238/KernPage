@@ -1000,3 +1000,56 @@ fn group_cards_sit_on_whole_pixels_with_an_even_gap() {
         }
     }
 }
+
+#[test]
+fn the_ribbon_panel_margin_equals_the_gap_between_cards_on_top_left_and_bottom() {
+    use crate::widgets::GROUP_GAP;
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        ui.wait_for_fonts();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let panel = ui.ribbon_buttons().into_iter().find(|b| b.label == "grouppanel").expect("panel").rect;
+            let t = tiles(&ui);
+            let first = t.iter().map(|(_, r)| r.min.x).fold(f32::MAX, f32::min);
+            let top = t.iter().map(|(_, r)| r.min.y).fold(f32::MAX, f32::min);
+            let bottom = t.iter().map(|(_, r)| r.max.y).fold(f32::MIN, f32::max);
+            let tol = 1.0 / ppp + 1e-3;
+            for (what, got) in [("left", first - panel.min.x), ("top", top - panel.min.y), ("bottom", panel.max.y - bottom)] {
+                assert!((got - GROUP_GAP).abs() <= tol, "{tab}@{ppp}: {what} margin {got} (panel {panel:?})");
+            }
+            for v in [panel.min.x, panel.min.y, panel.max.x, panel.max.y] {
+                assert!(((v * ppp) - (v * ppp).round()).abs() < 1e-3, "{tab}@{ppp}: panel edge {v} off the pixel grid");
+            }
+        }
+    }
+}
+
+#[test]
+fn every_card_has_one_outline_exactly_one_device_pixel_wide_on_the_pixel_grid() {
+    for ppp in [1.0f32, 1.25, 1.5] {
+        let mut ui = ui_with_shapes();
+        ui.h.set_pixels_per_point(ppp);
+        ui.h.set_size(Vec2::new(1500.0, 800.0));
+        ui.settle();
+        for tab in FIXED_TABS {
+            ui.click_tab(tab);
+            ui.settle();
+            let all = ui.ribbon_buttons();
+            for (name, r) in tiles(&ui) {
+                let strokes: Vec<_> = all.iter().filter(|b| b.label == format!("groupstroke:{name}")).collect();
+                assert_eq!(strokes.len(), 1, "{tab}@{ppp}: card {name:?} has one outline");
+                let w: f32 = strokes[0].tip.parse().unwrap();
+                assert!((w * ppp - 1.0).abs() < 1e-4, "{tab}@{ppp}: outline of {name:?} is {w} pt, not one device pixel");
+                // Drawn inside the rect: the stroke centre is edge + half a pixel, a pixel centre.
+                for v in [r.min.x, r.min.y, r.max.x, r.max.y] {
+                    assert!((v * ppp - (v * ppp).round()).abs() < 1e-3, "{tab}@{ppp}: {name:?} edge {v} off the grid");
+                }
+            }
+        }
+    }
+}

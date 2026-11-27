@@ -3172,21 +3172,15 @@ It is not a PNG or JPEG picture it can read."));
                     });
                 });
                 if has_doc && !self.backstage && !self.ribbon_collapsed {
-                    let card = egui::Frame::new()
-                        .fill(crate::theme::card())
-                        .stroke(egui::Stroke::new(1.0, crate::theme::line()))
-                        .inner_margin(egui::Margin { left: 6, right: 6, top: 4, bottom: 4 });
                     crate::theme::drew!("ribbon:card");
-                    // The ribbon floats as a rounded card on the tinted window.
-                    card
-                        .corner_radius(8.0)
+                    // The ribbon floats as a rounded panel on the tinted window. The panel is
+                    // painted by hand, on whole device pixels, so its edge and the cards inside
+                    // it are crisp; its inner margin is the same GROUP_GAP as between the cards.
+                    let ppp = ui.ctx().pixels_per_point();
+                    let bg = ui.painter().add(egui::Shape::Noop);
+                    let resp = egui::Frame::new()
+                        .inner_margin(egui::Margin::same(crate::widgets::PANEL_MARGIN))
                         .outer_margin(egui::Margin { left: 6, right: 6, top: 2, bottom: 6 })
-                        .shadow(egui::Shadow {
-                            offset: [0, 1],
-                            blur: 6,
-                            spread: 0,
-                            color: crate::theme::shadow(),
-                        })
                         .show(ui, |ui| {
                             // The panel can be wider than the window (a long tab row), so
                             // measure against the window.
@@ -3201,6 +3195,44 @@ It is not a PNG or JPEG picture it can read."));
                                 )
                                 .show(ui, |ui| self.ribbon(ui, avail));
                         });
+                    // The response includes the outer margin (6 / 2 / 6 / 6 px).
+                    let full = resp.response.rect;
+                    let panel = crate::widgets::snap_rect(
+                        ppp,
+                        egui::Rect::from_min_max(
+                            full.min + egui::vec2(6.0, 2.0),
+                            full.max - egui::vec2(6.0, 6.0),
+                        ),
+                    );
+                    #[cfg(test)]
+                    crate::widgets::probe::record(crate::widgets::probe::Seen {
+                        label: "grouppanel".to_owned(),
+                        tip: String::new(),
+                        rect: panel,
+                        enabled: true,
+                        selected: false,
+                    });
+                    let radius = crate::widgets::PANEL_RADIUS;
+                    let shadow = egui::Shadow {
+                        offset: [0, 1],
+                        blur: 6,
+                        spread: 0,
+                        color: crate::theme::shadow(),
+                    };
+                    ui.painter().set(
+                        bg,
+                        egui::Shape::Vec(vec![
+                            shadow.as_shape(panel, radius).into(),
+                            egui::epaint::RectShape::new(
+                                panel,
+                                radius,
+                                crate::theme::card(),
+                                egui::Stroke::new(1.0 / ppp, crate::theme::line()),
+                                egui::StrokeKind::Inside,
+                            )
+                            .into(),
+                        ]),
+                    );
                 }
             });
     }

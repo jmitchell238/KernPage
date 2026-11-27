@@ -521,9 +521,32 @@ pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)
             selected: false,
         });
     }
-    // A flat fill on whole device pixels, no outline: a 1 px outline next to a faint fill made
-    // two thin parallel edges across every gap between cards, which looked soft and busy.
-    ui.painter().set(tile, egui::epaint::RectShape::filled(rect, TILE_RADIUS, crate::theme::tile()));
+    // One crisp outline per card: the rect is on whole device pixels and the stroke is exactly
+    // one device pixel wide, drawn inside the rect, so its centre is a pixel centre and it never
+    // straddles two pixels. The fill is the panel's own colour (no second tone, so no second
+    // soft edge beside the line); the small radius keeps the 1 px curve from smearing.
+    let ppp = ui.ctx().pixels_per_point();
+    let stroke_w = 1.0 / ppp;
+    #[cfg(test)]
+    if ui.is_visible() {
+        probe::record(probe::Seen {
+            label: format!("groupstroke:{title}"),
+            tip: stroke_w.to_string(),
+            rect,
+            enabled: true,
+            selected: false,
+        });
+    }
+    ui.painter().set(
+        tile,
+        egui::epaint::RectShape::new(
+            rect,
+            TILE_RADIUS,
+            crate::theme::card(),
+            Stroke::new(stroke_w, crate::theme::card_line()),
+            StrokeKind::Inside,
+        ),
+    );
     fit::leave_group(title, ui.cursor().min.x - x0);
 }
 
@@ -605,7 +628,11 @@ fn col_inner<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&m
 /// Inner horizontal padding of a Modern group tile.
 const TILE_PAD: f32 = 8.0;
 /// Corner radius of a group card.
-const TILE_RADIUS: f32 = 5.0;
+const TILE_RADIUS: f32 = 4.0;
+/// Inner margin of the big ribbon panel: the same as the gap between cards.
+pub const PANEL_MARGIN: i8 = 6;
+/// Corner radius of the ribbon panel: the card radius plus the gap, so the corners are concentric.
+pub const PANEL_RADIUS: f32 = TILE_RADIUS + GROUP_GAP;
 /// Space between two neighbouring group cards.
 pub const GROUP_GAP: f32 = 6.0;
 
