@@ -213,9 +213,16 @@ jobs:
         run: |
           $version = $env:TAG.TrimStart('v')
           $installer = "build\target-win\installer"
+          # The release page starts with how to install; the launcher's "What's new" uses the notes alone.
+          $body = "$env:RUNNER_TEMP\release-body.md"
+          @(
+            "**To install:** download ``KernPage-$version-Setup.exe`` below and run it. You can ignore the other files.",
+            "Windows will warn about an unknown publisher the first time; that is expected. Step-by-step help with pictures: [INSTALL.md](https://github.com/$($env:REPO)/blob/main/INSTALL.md).",
+            ""
+          ) + (Get-Content "build\docs\release-notes\$version.md") | Set-Content $body -Encoding utf8
           # Draft first so the new index and its signature appear together, then publish.
           gh release create $env:TAG --repo $env:REPO --verify-tag --draft `
-            --title "KernPage $version" --notes-file "build\docs\release-notes\$version.md" `
+            --title "KernPage $version" --notes-file $body `
             "$installer\KernPage-$version-x64.msi" "$installer\KernPage-$version-Setup.exe" `
             signed\index.json signed\index.json.minisig
           if ($LASTEXITCODE -ne 0) { throw 'gh release create failed' }

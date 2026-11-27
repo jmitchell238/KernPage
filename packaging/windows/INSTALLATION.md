@@ -2,7 +2,7 @@
 
 ## For users
 
-Run `KernPage-<version>-Setup.exe` (shows the KernPage icon; installs just for you, no administrator prompt). It wraps the MSI below with a license page and one Settings > Apps entry. Or run `KernPage-<version>-x64.msi` directly. The installer shows a license page (MIT or Apache-2.0, your option), then installs. The finish page has a "Launch KernPage" checkbox, ticked by default; silent installs never launch the app.
+Run `KernPage-<version>-Setup.exe` (shows the KernPage icon; installs just for you, no administrator prompt). It wraps the MSI below with a license page and one Settings > Apps entry. Or run `KernPage-<version>-x64.msi` directly. The installer shows a license page (MIT or Apache-2.0, your option), then installs. The finish page has **Launch** and **Close** buttons; silent installs never launch the app. A picture-by-picture guide for users is in [INSTALL.md](../../INSTALL.md).
 
 - **Just for you (default):** no administrator rights needed. Files go to
   `%LOCALAPPDATA%\Programs\KernPage`.

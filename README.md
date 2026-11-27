@@ -75,16 +75,15 @@ date in it is made up.
 
 ## Download and install
 
-Get `KernPage-<version>-Setup.exe` from the
-[latest release](https://github.com/jmitchell238/kernpage/releases/latest) (there is no public
-release yet; that page is where it will appear). Run it: it installs just for you, needs no
-administrator rights, and puts KernPage and the KernPage Launcher in the Start menu. KernPage shows up under
-**Open with** for `.pub` files and never takes over double-click from another program.
+Download **`KernPage-<version>-Setup.exe`** from the
+[latest release](https://github.com/jmitchell238/kernpage/releases/latest) and run it. It installs just
+for you, needs no administrator rights, and puts KernPage and the KernPage Launcher in the Start menu.
+KernPage shows up under **Open with** for `.pub` files and never takes over double-click from another program.
+Windows will warn about an unknown publisher the first time, because KernPage isn't code-signed yet;
+that is expected.
 
-**Windows SmartScreen.** Releases are not code-signed yet, so Windows may show "Windows protected
-your PC" with an "unknown publisher" message. That is expected. Choose **More info**, then **Run
-anyway**. If you would rather check the download first, compare it with the SHA-256 listed in the
-release's signed update index.
+**Step-by-step help with pictures: [INSTALL.md](INSTALL.md)**: which file to download, the Windows
+warning, the installer screens, updating and uninstalling.
 
 **Updates.** The KernPage Launcher checks a signed update list and verifies every download
 (signature, SHA-256, exact size, HTTPS) before it installs anything. By default it only checks when you

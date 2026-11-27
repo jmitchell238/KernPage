@@ -104,7 +104,7 @@ pub fn launcher_trusted_keys(feed_rs: &str) -> Result<Vec<String>> {
 // ---- signing ------------------------------------------------------------------------------------
 
 fn sign_bytes(sk: &SecretKey, data: &[u8], what: &str) -> Result<String> {
-    minisign::sign(None, sk, std::io::Cursor::new(data), Some(&format!("kernpage studio update: {what}")), Some(what))
+    minisign::sign(None, sk, std::io::Cursor::new(data), Some(&format!("kernpage update: {what}")), Some(what))
         .map(|s| s.to_string())
         .map_err(|e| format!("signing {what} failed: {e}"))
 }
