@@ -13,11 +13,20 @@ licence text. Regenerate it with `cargo about generate about.hbs -o THIRD_PARTY_
 
 ## Fonts
 
-KernPage does not bundle fonts in the Windows programs. At start-up it loads Segoe UI (the interface),
+KernPage does not compile any font into the Windows programs. At start-up it loads Segoe UI (the interface),
 Consolas (monospace text), Segoe UI Symbol and Segoe UI Emoji (symbols) and Arial (page text fallback) from the
 Windows fonts folder on the user's computer, and draws document text with the TrueType fonts installed there.
 No Microsoft font files are shipped. The default fonts of `egui`/`eframe` (including Ubuntu-Light, under the
 Ubuntu Font Licence) are turned off and are not part of the programs.
+
+One font file is shipped as a separate file, not compiled into the programs: **Noto Sans Regular** (version 2.015,
+`assets/fonts/noto-sans/NotoSans-Regular.ttf`), Copyright 2022 The Noto Project Authors
+(https://github.com/notofonts/latin-greek-cyrillic), licensed under the SIL Open Font License, Version 1.1 (no
+Reserved Font Name). The installer puts it, unmodified, with its licence text (`OFL.txt`) in the `fonts` folder next
+to `kernpage.exe`. KernPage uses it for its own interface text only when Segoe UI is not installed (and as a last
+resort for characters the other interface fonts lack). Document text is never drawn with it. Source, checksums and
+the licence text are in `assets/fonts/noto-sans/`. `about.toml` and `deny.toml` cover Rust crates only, so this font is
+listed here and not there.
 
 Only a build for a computer that is not Windows (a development machine) embeds one small fallback font, so
 egui always has a font to draw with: Hack Regular (`crates/kernpage-core/assets/fonts/Hack-Regular.ttf`),
