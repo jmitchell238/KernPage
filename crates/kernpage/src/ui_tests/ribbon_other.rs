@@ -994,8 +994,8 @@ fn group_cards_sit_on_whole_pixels_with_an_even_gap() {
                 }
             }
             for p in t.windows(2) {
-                let gap = p[1].1.min.x - p[0].1.max.x;
-                assert!((gap - 6.0).abs() <= 1.0 / ppp + 1e-3, "{tab}@{ppp}: gap {gap} between {:?} and {:?}", p[0].0, p[1].0);
+                let gap = ((p[1].1.min.x - p[0].1.max.x) * ppp).round();
+                assert_eq!(gap, crate::widgets::gap_px(ppp), "{tab}@{ppp}: gap between {:?} and {:?}", p[0].0, p[1].0);
             }
         }
     }
@@ -1003,7 +1003,6 @@ fn group_cards_sit_on_whole_pixels_with_an_even_gap() {
 
 #[test]
 fn the_ribbon_panel_margin_equals_the_gap_between_cards_on_top_left_and_bottom() {
-    use crate::widgets::GROUP_GAP;
     for ppp in [1.0f32, 1.25, 1.5] {
         let mut ui = ui_with_shapes();
         ui.h.set_pixels_per_point(ppp);
@@ -1018,9 +1017,15 @@ fn the_ribbon_panel_margin_equals_the_gap_between_cards_on_top_left_and_bottom()
             let first = t.iter().map(|(_, r)| r.min.x).fold(f32::MAX, f32::min);
             let top = t.iter().map(|(_, r)| r.min.y).fold(f32::MAX, f32::min);
             let bottom = t.iter().map(|(_, r)| r.max.y).fold(f32::MIN, f32::max);
-            let tol = 1.0 / ppp + 1e-3;
-            for (what, got) in [("left", first - panel.min.x), ("top", top - panel.min.y), ("bottom", panel.max.y - bottom)] {
-                assert!((got - GROUP_GAP).abs() <= tol, "{tab}@{ppp}: {what} margin {got} (panel {panel:?})");
+            // White device pixels between the outer edges of the two 1 px lines, as an eye counts them.
+            let want = crate::widgets::gap_px(ppp);
+            let px = |v: f32| (v * ppp).round() as i32;
+            for (what, got) in [
+                ("left", px(first) - px(panel.min.x) - 1),
+                ("top", px(top) - px(panel.min.y) - 1),
+                ("bottom", px(panel.max.y) - px(bottom) - 1),
+            ] {
+                assert_eq!(got, want as i32, "{tab}@{ppp}: {what} white pixels (panel {panel:?})");
             }
             for v in [panel.min.x, panel.min.y, panel.max.x, panel.max.y] {
                 assert!(((v * ppp) - (v * ppp).round()).abs() < 1e-3, "{tab}@{ppp}: panel edge {v} off the pixel grid");

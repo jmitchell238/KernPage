@@ -439,6 +439,7 @@ fn two_line(title: &str) -> String {
 /// controls at full size.
 pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)) {
     let lvl = fit::enter_group(title);
+    let ppp = ui.ctx().pixels_per_point();
     let x0 = ui.cursor().min.x;
     // Each group is its own soft rounded tile, painted behind the controls.
     ui.add_space(TILE_PAD);
@@ -503,9 +504,10 @@ pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)
     // Leave exactly GROUP_GAP between this card and the next (see the spacing arithmetic:
     // the cursor advances by the item spacing after every allocation).
     let sp = ui.spacing().item_spacing.x;
-    ui.add_space((TILE_PAD + GROUP_GAP + 4.0 - 3.0 * sp).max(0.0));
+    // The gap is a whole number of device pixels, so the snapped neighbours are exactly that far apart.
+    ui.add_space((TILE_PAD + gap_px(ppp) / ppp + 4.0 - 3.0 * sp).max(0.0));
     let rect = snap_rect(
-        ui.ctx().pixels_per_point(),
+        ppp,
         Rect::from_min_max(
             Pos2::new(r.min.x - TILE_PAD, r.min.y),
             Pos2::new(r.max.x + TILE_PAD, r.max.y),
@@ -525,8 +527,13 @@ pub fn group(ui: &mut Ui, title: &str, launcher: bool, add: impl FnOnce(&mut Ui)
     // one device pixel wide, drawn inside the rect, so its centre is a pixel centre and it never
     // straddles two pixels. The fill is the panel's own colour (no second tone, so no second
     // soft edge beside the line); the small radius keeps the 1 px curve from smearing.
-    let ppp = ui.ctx().pixels_per_point();
     let stroke_w = 1.0 / ppp;
+    if ui.is_visible() {
+        CARDS.with(|c| {
+            let u = c.get().map_or(rect, |o: Rect| o.union(rect));
+            c.set(Some(u));
+        });
+    }
     #[cfg(test)]
     if ui.is_visible() {
         probe::record(probe::Seen {
@@ -629,8 +636,22 @@ fn col_inner<R>(ui: &mut Ui, top_pad: f32, gap: Option<f32>, add: impl FnOnce(&m
 const TILE_PAD: f32 = 8.0;
 /// Corner radius of a group card.
 const TILE_RADIUS: f32 = 4.0;
-/// Inner margin of the big ribbon panel: the same as the gap between cards.
-pub const PANEL_MARGIN: i8 = 6;
+/// Union of the cards drawn since [`begin_cards`] (snapped rects), for the panel behind them.
+thread_local! {
+    static CARDS: std::cell::Cell<Option<Rect>> = const { std::cell::Cell::new(None) };
+}
+pub fn begin_cards() {
+    CARDS.with(|c| c.set(None));
+}
+pub fn cards_bounds() -> Option<Rect> {
+    CARDS.with(|c| c.get())
+}
+/// The gap between cards, and the white space from a card to the panel's border line, in whole
+/// device pixels at `ppp`.
+pub fn gap_px(ppp: f32) -> f32 {
+    (GROUP_GAP * ppp).round()
+}
+
 /// Corner radius of the ribbon panel: the card radius plus the gap, so the corners are concentric.
 pub const PANEL_RADIUS: f32 = TILE_RADIUS + GROUP_GAP;
 /// Space between two neighbouring group cards.

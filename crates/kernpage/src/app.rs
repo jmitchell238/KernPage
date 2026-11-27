@@ -3178,8 +3178,10 @@ It is not a PNG or JPEG picture it can read."));
                     // it are crisp; its inner margin is the same GROUP_GAP as between the cards.
                     let ppp = ui.ctx().pixels_per_point();
                     let bg = ui.painter().add(egui::Shape::Noop);
+                    crate::widgets::begin_cards();
+                    let margin = ((crate::widgets::gap_px(ppp) + 1.0) / ppp).ceil() as i8;
                     let resp = egui::Frame::new()
-                        .inner_margin(egui::Margin::same(crate::widgets::PANEL_MARGIN))
+                        .inner_margin(egui::Margin::same(margin))
                         .outer_margin(egui::Margin { left: 6, right: 6, top: 2, bottom: 6 })
                         .show(ui, |ui| {
                             // The panel can be wider than the window (a long tab row), so
@@ -3195,15 +3197,22 @@ It is not a PNG or JPEG picture it can read."));
                                 )
                                 .show(ui, |ui| self.ribbon(ui, avail));
                         });
-                    // The response includes the outer margin (6 / 2 / 6 / 6 px).
+                    // The response includes the outer margin (6 / 2 / 6 / 6 px). The panel hugs the
+                    // cards: from a card's outline to the panel's border line there are exactly
+                    // as many white pixels as between two cards, on the left, top and bottom.
                     let full = resp.response.rect;
-                    let panel = crate::widgets::snap_rect(
+                    let mut panel = crate::widgets::snap_rect(
                         ppp,
                         egui::Rect::from_min_max(
                             full.min + egui::vec2(6.0, 2.0),
                             full.max - egui::vec2(6.0, 6.0),
                         ),
                     );
+                    if let Some(c) = crate::widgets::cards_bounds() {
+                        let m = (crate::widgets::gap_px(ppp) + 1.0) / ppp;
+                        panel.min = c.min - egui::vec2(m, m);
+                        panel.max.y = c.max.y + m;
+                    }
                     #[cfg(test)]
                     crate::widgets::probe::record(crate::widgets::probe::Seen {
                         label: "grouppanel".to_owned(),
