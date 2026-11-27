@@ -1311,7 +1311,9 @@ fn saving_moves_the_file_to_the_top_of_recent_with_the_save_time() {
     let r = &ui.app().recent;
     assert_eq!(r.items(), &[target.clone(), files[0].clone(), files[1].clone()], "the saved file is on top");
     assert!(r.opened_at(&target).unwrap() >= before, "stamped with the save time");
-    // The stamps persist in the recent file (path, tab, seconds).
+    // recent.txt stays paths only; the stamps are in the file next to it.
     let stored = std::fs::read_to_string(&ui.env.recent).unwrap();
-    assert!(stored.lines().next().unwrap().contains("saved-now.kern\t"), "{stored}");
+    assert!(stored.lines().next().unwrap().ends_with("saved-now.kern") && !stored.contains('\t'), "{stored}");
+    let times = std::fs::read_to_string(ui.env.recent.with_file_name("recent-times.txt")).unwrap();
+    assert!(times.lines().next().unwrap().contains('\t') && times.contains("saved-now.kern"), "{times}");
 }

@@ -1025,16 +1025,13 @@ impl App {
 }
 
 /// The label under a Recent card: when KernPage last opened or saved the file ("Opened today
-/// 10:24"). Lines written by older versions have no such time and show the file's modified date.
-/// In demo mode the made-up date is shown.
+/// 10:24"). Entries without a stored time show nothing, so a date is always the opened/saved
+/// date. In demo mode the made-up date is shown.
 fn opened_text(list: &recent::Recent, path: &Path) -> Option<String> {
     if crate::demo::is_on() {
         return crate::demo::date_of(path).map(str::to_owned);
     }
-    if let Some(t) = list.opened_at(path) {
-        return Some(recent::opened_label_now(t));
-    }
-    std::fs::metadata(path).and_then(|m| m.modified()).ok().map(recent::date_text)
+    list.opened_at(path).map(recent::opened_label_now)
 }
 
 fn trim(v: f64) -> String {

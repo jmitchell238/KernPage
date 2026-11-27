@@ -206,7 +206,8 @@ fn recent_list_renders_rows_and_not_found() {
     let rows = ui.rows();
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0].0, "alpha.pub");
-    assert!(rows[0].2.starts_with(|c: char| c.is_ascii_digit()) || !rows[0].2.is_empty());
+    // No opened/saved time is stored for it: no date at all (never the file's modified date).
+    assert_eq!(rows[0].2, "");
     assert_ne!(rows[0].2, "NOT FOUND");
     assert_eq!(rows[1].0, "gone.pub");
     assert_eq!(rows[1].2, "NOT FOUND");

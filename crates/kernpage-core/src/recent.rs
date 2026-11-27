@@ -1,6 +1,7 @@
 //! The list of recently opened or saved publications, kept in a small text file
-//! (one path per line, newest first, each followed by a tab and the Unix time KernPage last
-//! opened or saved it; older files without the time still load) in the user's configuration folder.
+//! (one path per line, newest first: the format older versions and the Launcher's "go back to an
+//! older version" read). When KernPage last opened or saved each file is kept in a second file
+//! next to it (`recent-times.txt`, lines `seconds<TAB>path`), which older versions ignore. in the user's configuration folder.
 //!
 //! Shared by the editor (which writes it) and the KernPage Launcher (which reads it and
 //! can remove entries), so both always agree on the file and its format.
@@ -57,22 +58,35 @@ impl Recent {
     }
 
     fn read(file: Option<PathBuf>, existing_only: bool) -> Self {
-        let entries: Vec<(PathBuf, Option<u64>)> = file
+        let items: Vec<PathBuf> = file
             .as_ref()
             .and_then(|f| std::fs::read_to_string(f).ok())
             .map(|t| {
                 t.lines()
                     .filter(|l| !l.trim().is_empty())
-                    .map(|l| match l.split_once('\t') {
-                        Some((p, secs)) => (PathBuf::from(p), secs.trim().parse().ok()),
-                        None => (PathBuf::from(l), None),
-                    })
-                    .filter(|(p, _)| !existing_only || p.is_file())
+                    .map(PathBuf::from)
+                    .filter(|p| !existing_only || p.is_file())
                     .take(MAX)
                     .collect()
             })
             .unwrap_or_default();
-        let (items, times) = entries.into_iter().unzip();
+        // A missing or damaged times file only means "no time known".
+        let stamps: Vec<(u64, PathBuf)> = file
+            .as_ref()
+            .and_then(|f| std::fs::read_to_string(times_path(f)).ok())
+            .map(|t| {
+                t.lines()
+                    .filter_map(|l| {
+                        let (secs, p) = l.split_once('\t')?;
+                        Some((secs.trim().parse().ok()?, PathBuf::from(p)))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let times = items
+            .iter()
+            .map(|p| stamps.iter().find(|(_, q)| q == p).map(|(s, _)| *s))
+            .collect();
         Recent { items, times, file, fixed: false }
     }
 
@@ -148,13 +162,16 @@ impl Recent {
             let text: Vec<String> = self
                 .items
                 .iter()
-                .zip(&self.times)
-                .map(|(p, t)| match t {
-                    Some(t) => format!("{}\t{t}", p.to_string_lossy()),
-                    None => p.to_string_lossy().into_owned(),
-                })
+                .map(|p| p.to_string_lossy().into_owned())
                 .collect();
             let _ = std::fs::write(f, text.join("\n"));
+            let stamps: Vec<String> = self
+                .items
+                .iter()
+                .zip(&self.times)
+                .filter_map(|(p, t)| t.map(|t| format!("{t}\t{}", p.to_string_lossy())))
+                .collect();
+            let _ = std::fs::write(times_path(f), stamps.join("\n"));
         }
     }
 
@@ -181,6 +198,14 @@ pub fn breadcrumb(dir: &Path) -> String {
         })
         .collect::<Vec<_>>()
         .join(" \u{00bb} ")
+}
+
+/// The file that holds the opened/saved times, next to the list file (`recent.txt` gives
+/// `recent-times.txt`).
+fn times_path(list: &Path) -> PathBuf {
+    let stem = list.file_stem().map_or_else(|| "recent".to_owned(), |s| s.to_string_lossy().into_owned());
+    let ext = list.extension().map_or_else(String::new, |e| format!(".{}", e.to_string_lossy()));
+    list.with_file_name(format!("{stem}-times{ext}"))
 }
 
 /// The current time, Unix seconds.
@@ -357,24 +382,35 @@ mod opened_tests {
     }
 
     #[test]
-    fn times_are_stored_after_a_tab_and_old_lines_still_load_in_order() {
+    fn the_list_file_stays_paths_only_and_the_times_live_in_a_second_file() {
         let dir = temp("fmt");
         let (a, b, c) = (dir.join("a.pub"), dir.join("b.pub"), dir.join("c.pub"));
         for f in [&a, &b, &c] {
             std::fs::write(f, b"x").unwrap();
         }
         let store = dir.join("recent.txt");
-        // An old-format file: paths only, newest first.
+        // An older-format file: paths only, newest first, and no times file at all.
         std::fs::write(&store, format!("{}\n{}\n{}", a.display(), b.display(), c.display())).unwrap();
         let r = Recent::load_from(Some(store.clone()));
         assert_eq!(r.items(), &[a.clone(), b.clone(), c.clone()], "order as stored");
-        assert_eq!(r.opened_at(&a), None);
-        // Mixed: a timed line followed by an untimed one.
-        std::fs::write(&store, format!("{}\t{NOW}\n{}", a.display(), b.display())).unwrap();
-        let r = Recent::load_from(Some(store.clone()));
-        assert_eq!(r.items(), &[a.clone(), b.clone()]);
-        assert_eq!(r.opened_at(&a), Some(NOW));
-        assert_eq!(r.opened_at(&b), None);
+        assert_eq!((r.opened_at(&a), r.opened_at(&b)), (None, None), "no times file: no times");
+        // Adding writes both files; the list file is still just paths.
+        let mut r = r;
+        r.add_at(&c, NOW);
+        let text = std::fs::read_to_string(&store).unwrap();
+        assert_eq!(text, format!("{}\n{}\n{}", c.display(), a.display(), b.display()));
+        assert!(!text.contains('\t'));
+        let times = std::fs::read_to_string(dir.join("recent-times.txt")).unwrap();
+        assert_eq!(times, format!("{NOW}\t{}", c.display()));
+        // Round trip: only c has a time.
+        let again = Recent::load_from(Some(store.clone()));
+        assert_eq!(again.items(), &[c.clone(), a.clone(), b.clone()]);
+        assert_eq!((again.opened_at(&c), again.opened_at(&a), again.opened_at(&b)), (Some(NOW), None, None));
+        // A damaged times file is harmless.
+        std::fs::write(dir.join("recent-times.txt"), "garbage\n12\n\tx\nabc\tdef\n").unwrap();
+        let broken = Recent::load_from(Some(store));
+        assert_eq!(broken.items(), &[c.clone(), a.clone(), b.clone()]);
+        assert_eq!(broken.opened_at(&c), None);
         let _ = std::fs::remove_dir_all(&dir);
     }
 
