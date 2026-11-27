@@ -124,6 +124,7 @@ jobs:
           $p = Start-Process $new -ArgumentList '/uninstall','/quiet','/norestart' -Wait -PassThru
           if (-not $ok) { throw 'the launcher desktop shortcut was lost on upgrade' }
           Write-Host 'upgrade kept the launcher desktop shortcut'
+          Remove-Item 'target-win/installer/KernPage-0.0.1-*' -Force
 
       - name: Build the release tool
         shell: pwsh
@@ -154,8 +155,8 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           path: |
-            target-win/installer/KernPage-*-x64.msi
-            target-win/installer/KernPage-*-Setup.exe
+            target-win/installer/KernPage-${{ env.VERSION }}-x64.msi
+            target-win/installer/KernPage-${{ env.VERSION }}-Setup.exe
             docs/release-notes/
             dry-run-feed/
 
