@@ -210,8 +210,8 @@ fn recent_all() -> Recent {
 }
 
 fn load_rows() -> Vec<Row> {
-    recent_all()
-        .items()
+    let list = recent_all();
+    list.items()
         .iter()
         .map(|p| Row {
             path: p.clone(),
@@ -220,8 +220,11 @@ fn load_rows() -> Vec<Row> {
             modified: std::fs::metadata(p)
                 .ok()
                 .filter(|m| m.is_file())
-                .and_then(|m| m.modified().ok())
-                .map(date_text),
+                .and_then(|m| m.modified().ok().map(|t| (t, m)))
+                .map(|(t, _)| match list.opened_at(p) {
+                    Some(at) => kernpage_core::recent::opened_label_now(at),
+                    None => date_text(t),
+                }),
         })
         .collect()
 }

@@ -1293,3 +1293,25 @@ fn the_new_cards_page_is_a_cut_corner_polygon_with_a_one_pixel_pixel_snapped_out
         assert_eq!(n, 4);
     }
 }
+
+#[test]
+fn saving_moves_the_file_to_the_top_of_recent_with_the_save_time() {
+    let mut ui = TestUi::start();
+    let files = recent_files(&mut ui, 2); // a1.pub newest, then a0.pub
+    assert_eq!(ui.app().recent.items(), &[files[1].clone(), files[0].clone()]);
+    // An old stamp for a1, so the save below visibly refreshes it.
+    ui.app().recent.add_at(&files[1], 1_000);
+    ui.app().recent.add_at(&files[0], 2_000);
+    ui.app().new_document(letter_doc(vec![]), None, None);
+    ui.settle();
+    let target = ui.env.files.join("saved-now.kern");
+    ui.dialogs.script_save(Some(target.clone()));
+    let before = kernpage_core::recent::now_secs();
+    ui.key(CTRL, Key::S);
+    let r = &ui.app().recent;
+    assert_eq!(r.items(), &[target.clone(), files[0].clone(), files[1].clone()], "the saved file is on top");
+    assert!(r.opened_at(&target).unwrap() >= before, "stamped with the save time");
+    // The stamps persist in the recent file (path, tab, seconds).
+    let stored = std::fs::read_to_string(&ui.env.recent).unwrap();
+    assert!(stored.lines().next().unwrap().contains("saved-now.kern\t"), "{stored}");
+}

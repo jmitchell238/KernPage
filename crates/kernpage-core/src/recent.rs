@@ -1,5 +1,6 @@
 //! The list of recently opened or saved publications, kept in a small text file
-//! (one path per line, newest first) in the user's configuration folder.
+//! (one path per line, newest first, each followed by a tab and the Unix time KernPage last
+//! opened or saved it; older files without the time still load) in the user's configuration folder.
 //!
 //! Shared by the editor (which writes it) and the KernPage Launcher (which reads it and
 //! can remove entries), so both always agree on the file and its format.
@@ -11,6 +12,9 @@ const MAX: usize = 20;
 
 pub struct Recent {
     items: Vec<PathBuf>,
+    /// When KernPage last opened or saved each item (same order); `None` for lines written by
+    /// older versions.
+    times: Vec<Option<u64>>,
     file: Option<PathBuf>,
     /// A fixed list (demo mode): never saved, never changed.
     fixed: bool,
@@ -53,24 +57,29 @@ impl Recent {
     }
 
     fn read(file: Option<PathBuf>, existing_only: bool) -> Self {
-        let items = file
+        let entries: Vec<(PathBuf, Option<u64>)> = file
             .as_ref()
             .and_then(|f| std::fs::read_to_string(f).ok())
             .map(|t| {
                 t.lines()
                     .filter(|l| !l.trim().is_empty())
-                    .map(PathBuf::from)
-                    .filter(|p| !existing_only || p.is_file())
+                    .map(|l| match l.split_once('\t') {
+                        Some((p, secs)) => (PathBuf::from(p), secs.trim().parse().ok()),
+                        None => (PathBuf::from(l), None),
+                    })
+                    .filter(|(p, _)| !existing_only || p.is_file())
                     .take(MAX)
                     .collect()
             })
             .unwrap_or_default();
-        Recent { items, file, fixed: false }
+        let (items, times) = entries.into_iter().unzip();
+        Recent { items, times, file, fixed: false }
     }
 
     /// A list that is never saved and that `add`, `remove` and `clear` leave alone.
     pub fn fixed(items: Vec<PathBuf>) -> Self {
-        Recent { items, file: None, fixed: true }
+        let times = vec![None; items.len()];
+        Recent { items, times, file: None, fixed: true }
     }
 
     /// Is this a fixed list (see `fixed`)?
@@ -82,14 +91,30 @@ impl Recent {
         &self.items
     }
 
-    /// Put `path` at the top of the list and save the list.
+    /// When KernPage last opened or saved `path` (Unix seconds), if the list knows.
+    pub fn opened_at(&self, path: &Path) -> Option<u64> {
+        let i = self.items.iter().position(|p| p == path)?;
+        self.times[i]
+    }
+
+    /// Put `path` at the top of the list, stamped with the current time, and save the list.
     pub fn add(&mut self, path: &Path) {
+        self.add_at(path, now_secs());
+    }
+
+    /// Like [`Recent::add`] with an explicit time (Unix seconds).
+    pub fn add_at(&mut self, path: &Path, secs: u64) {
         if self.fixed {
             return;
         }
-        self.items.retain(|p| p != path);
+        if let Some(i) = self.items.iter().position(|p| p == path) {
+            self.items.remove(i);
+            self.times.remove(i);
+        }
         self.items.insert(0, path.to_path_buf());
+        self.times.insert(0, Some(secs));
         self.items.truncate(MAX);
+        self.times.truncate(MAX);
         self.save();
     }
 
@@ -98,7 +123,10 @@ impl Recent {
         if self.fixed {
             return;
         }
-        self.items.retain(|p| p != path);
+        if let Some(i) = self.items.iter().position(|p| p == path) {
+            self.items.remove(i);
+            self.times.remove(i);
+        }
         self.save();
     }
 
@@ -108,6 +136,7 @@ impl Recent {
             return;
         }
         self.items.clear();
+        self.times.clear();
         self.save();
     }
 
@@ -119,7 +148,11 @@ impl Recent {
             let text: Vec<String> = self
                 .items
                 .iter()
-                .map(|p| p.to_string_lossy().into_owned())
+                .zip(&self.times)
+                .map(|(p, t)| match t {
+                    Some(t) => format!("{}\t{t}", p.to_string_lossy()),
+                    None => p.to_string_lossy().into_owned(),
+                })
                 .collect();
             let _ = std::fs::write(f, text.join("\n"));
         }
@@ -150,12 +183,51 @@ pub fn breadcrumb(dir: &Path) -> String {
         .join(" \u{00bb} ")
 }
 
-/// "YYYY-MM-DD" (UTC) for a file's modification time.
-pub fn date_text(t: SystemTime) -> String {
-    let secs = t
+/// The current time, Unix seconds.
+pub fn now_secs() -> u64 {
+    SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs());
-    let days = (secs / 86_400) as i64;
+        .map_or(0, |d| d.as_secs())
+}
+
+/// Seconds to add to UTC to get the user's local time now (0 where it cannot be found).
+#[cfg(windows)]
+pub fn local_utc_offset_secs() -> i64 {
+    #[repr(C)]
+    struct Tzi {
+        bias: i32,
+        std_name: [u16; 32],
+        std_date: [u16; 8],
+        std_bias: i32,
+        dst_name: [u16; 32],
+        dst_date: [u16; 8],
+        dst_bias: i32,
+    }
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetTimeZoneInformation(info: *mut Tzi) -> u32;
+    }
+    // SAFETY: `Tzi` matches TIME_ZONE_INFORMATION and the call only fills it in.
+    unsafe {
+        let mut t: Tzi = std::mem::zeroed();
+        let id = GetTimeZoneInformation(&mut t);
+        let extra = if id == 2 { t.dst_bias } else { t.std_bias };
+        -(i64::from(t.bias) + i64::from(extra)) * 60
+    }
+}
+
+#[cfg(not(windows))]
+pub fn local_utc_offset_secs() -> i64 {
+    0
+}
+
+/// The label under a Recent card for `at` (Unix seconds), relative to the current time and zone.
+pub fn opened_label_now(at: u64) -> String {
+    opened_label(at, now_secs(), local_utc_offset_secs())
+}
+
+/// (year, month, day) of a day count since 1970-01-01.
+fn civil(days: i64) -> (i64, i64, i64) {
     // Civil-from-days (Howard Hinnant).
     let z = days + 719_468;
     let era = z.div_euclid(146_097);
@@ -166,8 +238,34 @@ pub fn date_text(t: SystemTime) -> String {
     let mp = (5 * doy + 2) / 153;
     let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if m <= 2 { y + 1 } else { y };
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+/// "YYYY-MM-DD" (UTC) for a file's modification time.
+pub fn date_text(t: SystemTime) -> String {
+    let secs = t
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    let (y, m, d) = civil((secs / 86_400) as i64);
     format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// The short label under a Recent card: "Opened today 10:24", "Opened yesterday" or
+/// "Opened 23 Nov 2026". `at` and `now` are Unix seconds; `utc_offset_secs` converts them to
+/// the user's local day (local time = UTC + offset).
+pub fn opened_label(at: u64, now: u64, utc_offset_secs: i64) -> String {
+    const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let (la, ln) = (at as i64 + utc_offset_secs, now as i64 + utc_offset_secs);
+    let (da, dn) = (la.div_euclid(86_400), ln.div_euclid(86_400));
+    if da == dn {
+        let s = la.rem_euclid(86_400);
+        format!("Opened today {:02}:{:02}", s / 3600, s % 3600 / 60)
+    } else if da == dn - 1 {
+        "Opened yesterday".to_owned()
+    } else {
+        let (y, m, d) = civil(da);
+        format!("Opened {d} {} {y}", MONTHS[(m - 1) as usize])
+    }
 }
 
 #[cfg(test)]
@@ -229,6 +327,75 @@ mod tests {
         assert_eq!(r.folders(), vec![dir.clone()]);
         let again = Recent::load_from(Some(store));
         assert_eq!(again.items(), &[a, b]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod opened_tests {
+    use super::*;
+
+    fn temp(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("pw-core-opened-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    // 2026-11-27 10:24:00 UTC
+    const NOW: u64 = 1_795_775_040;
+
+    #[test]
+    fn the_label_says_today_yesterday_or_the_date() {
+        assert_eq!(opened_label(NOW, NOW, 0), "Opened today 10:24");
+        assert_eq!(opened_label(NOW - 3600, NOW, 0), "Opened today 09:24");
+        assert_eq!(opened_label(NOW - 86_400, NOW, 0), "Opened yesterday");
+        assert_eq!(opened_label(NOW - 4 * 86_400, NOW, 0), "Opened 23 Nov 2026");
+        // The same instants in a zone 14 hours ahead: 10:24 UTC is already 00:24 the next day.
+        assert_eq!(opened_label(NOW, NOW, 14 * 3600), "Opened today 00:24");
+        assert_eq!(opened_label(NOW - 3600, NOW, 14 * 3600), "Opened yesterday");
+    }
+
+    #[test]
+    fn times_are_stored_after_a_tab_and_old_lines_still_load_in_order() {
+        let dir = temp("fmt");
+        let (a, b, c) = (dir.join("a.pub"), dir.join("b.pub"), dir.join("c.pub"));
+        for f in [&a, &b, &c] {
+            std::fs::write(f, b"x").unwrap();
+        }
+        let store = dir.join("recent.txt");
+        // An old-format file: paths only, newest first.
+        std::fs::write(&store, format!("{}\n{}\n{}", a.display(), b.display(), c.display())).unwrap();
+        let r = Recent::load_from(Some(store.clone()));
+        assert_eq!(r.items(), &[a.clone(), b.clone(), c.clone()], "order as stored");
+        assert_eq!(r.opened_at(&a), None);
+        // Mixed: a timed line followed by an untimed one.
+        std::fs::write(&store, format!("{}\t{NOW}\n{}", a.display(), b.display())).unwrap();
+        let r = Recent::load_from(Some(store.clone()));
+        assert_eq!(r.items(), &[a.clone(), b.clone()]);
+        assert_eq!(r.opened_at(&a), Some(NOW));
+        assert_eq!(r.opened_at(&b), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn adding_stamps_the_time_orders_newest_first_and_persists() {
+        let dir = temp("add");
+        let (a, b) = (dir.join("a.pub"), dir.join("b.pub"));
+        std::fs::write(&a, b"x").unwrap();
+        std::fs::write(&b, b"x").unwrap();
+        let store = dir.join("recent.txt");
+        let mut r = Recent::load_from(Some(store.clone()));
+        r.add_at(&a, 100);
+        r.add_at(&b, 200);
+        assert_eq!(r.items(), &[b.clone(), a.clone()]);
+        // Saving a again moves it to the top with the new time.
+        r.add_at(&a, 300);
+        assert_eq!(r.items(), &[a.clone(), b.clone()]);
+        assert_eq!((r.opened_at(&a), r.opened_at(&b)), (Some(300), Some(200)));
+        let again = Recent::load_from(Some(store));
+        assert_eq!(again.items(), &[a.clone(), b.clone()]);
+        assert_eq!((again.opened_at(&a), again.opened_at(&b)), (Some(300), Some(200)));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

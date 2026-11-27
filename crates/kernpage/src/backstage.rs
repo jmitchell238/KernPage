@@ -719,7 +719,7 @@ impl App {
                     FontId::proportional(13.5),
                     crate::theme::text(),
                 );
-                if let Some(date) = modified_text(path) {
+                if let Some(date) = opened_text(&self.recent, path) {
                     p.text(
                         Pos2::new(rect.min.x + 12.0, rect.max.y - 20.0),
                         Align2::LEFT_TOP,
@@ -765,7 +765,7 @@ impl App {
             p.text(rect.min + Vec2::new(10.0, 8.0), Align2::LEFT_TOP, name, FontId::proportional(14.0), crate::theme::text());
             let crumb = path.parent().map(recent::breadcrumb).unwrap_or_default();
             p.text(rect.min + Vec2::new(10.0, 27.0), Align2::LEFT_TOP, crumb, FontId::proportional(11.5), crate::theme::group_label());
-            if let Some(date) = modified_text(path) {
+            if let Some(date) = opened_text(&self.recent, path) {
                 p.text(
                     Pos2::new(rect.max.x - 14.0, rect.center().y),
                     Align2::RIGHT_CENTER,
@@ -1024,10 +1024,15 @@ impl App {
     }
 }
 
-/// The modified date of a recent file as text (the made-up date in demo mode).
-fn modified_text(path: &Path) -> Option<String> {
+/// The label under a Recent card: when KernPage last opened or saved the file ("Opened today
+/// 10:24"). Lines written by older versions have no such time and show the file's modified date.
+/// In demo mode the made-up date is shown.
+fn opened_text(list: &recent::Recent, path: &Path) -> Option<String> {
     if crate::demo::is_on() {
         return crate::demo::date_of(path).map(str::to_owned);
+    }
+    if let Some(t) = list.opened_at(path) {
+        return Some(recent::opened_label_now(t));
     }
     std::fs::metadata(path).and_then(|m| m.modified()).ok().map(recent::date_text)
 }

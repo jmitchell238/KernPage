@@ -173,7 +173,7 @@ fn opening_a_file_adds_it_to_the_recent_list_at_the_top() {
     ui.app().open_path(&a);
     assert_eq!(ui.app().recent.items(), &[a.clone(), b.clone()], "newest first, no duplicates");
     let stored = std::fs::read_to_string(&ui.env.recent).unwrap();
-    assert!(stored.lines().next().unwrap().ends_with("a.pub"), "persisted to the temp recent file");
+    assert!(stored.lines().next().unwrap().split('\t').next().unwrap().ends_with("a.pub"), "persisted to the temp recent file");
 }
 
 #[test]
