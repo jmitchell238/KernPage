@@ -330,7 +330,7 @@ macro_rules! accessors {
 }
 
 accessors!(
-    accent, accent_text, accent_tint,
+    accent, accent_text, accent_tint, accent_tint_hover,
     window_bg, card, line, workspace, text, disabled, group_label, hover_bg,
     button_outline, frame, status_bg, status_text,
     status_dim, ink, shadow, on_accent,

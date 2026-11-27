@@ -179,12 +179,12 @@ fn the_insert_tabs_shapes_menu_arms_each_tool() {
 }
 
 #[test]
-fn the_tabs_are_greyed_without_a_publication() {
+fn the_tab_row_is_not_drawn_without_a_publication() {
+    // The File screen is all there is, and it hides the tab row (it used to show them greyed).
     let ui = TestUi::start();
-    for t in ["Home", "Insert", "Page Design", "Data", "Review", "View", "Help"] {
-        assert!(!ui.ribbon(&format!("tab:{t}")).enabled, "{t} needs a publication");
+    for t in ["File", "Home", "Insert", "Page Design", "Data", "Review", "View", "Help"] {
+        assert!(!ui.has_ribbon(&format!("tab:{t}")), "{t} is hidden in the File screen");
     }
-    assert!(ui.ribbon("tab:File").enabled);
 }
 
 // ---- Page Design ------------------------------------------------------------------------------------
@@ -275,9 +275,9 @@ fn the_data_tab_sits_between_page_design_and_review() {
 }
 
 #[test]
-fn the_data_tab_is_greyed_without_a_publication() {
+fn the_data_tab_is_not_drawn_without_a_publication() {
     let ui = TestUi::start();
-    assert!(!ui.ribbon("tab:Data").enabled);
+    assert!(!ui.has_ribbon("tab:Data"));
 }
 
 #[test]
@@ -585,9 +585,9 @@ fn the_canvas_still_works_with_the_ribbon_minimized() {
 }
 
 #[test]
-fn the_minimize_button_is_greyed_without_a_publication() {
+fn the_minimize_button_is_not_drawn_without_a_publication() {
     let ui = TestUi::start();
-    assert!(!ui.ribbon("Minimize the Ribbon").enabled);
+    assert!(!ui.has_ribbon("Minimize the Ribbon"));
 }
 
 // ---- Ribbon fit -------------------------------------------------------------------------------------------------------
