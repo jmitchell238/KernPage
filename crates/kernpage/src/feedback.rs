@@ -3,7 +3,7 @@
 //! editor; the person reads the text and submits it on GitHub (or closes the tab).
 
 /// The project's GitHub repository (the same address the Launcher's feed uses).
-pub const REPO_URL: &str = "https://github.com/jmitchell238/kernpage";
+pub const REPO_URL: &str = "https://github.com/jmitchell238/KernPage";
 /// Donation page (Buy Me a Coffee, shared by the 238apps apps); opened only when the user clicks it.
 pub const DONATE_URL: &str = "https://buymeacoffee.com/238apps";
 
@@ -128,11 +128,11 @@ mod tests {
     #[test]
     fn the_urls_carry_the_version_and_headings() {
         let r = report_url("1.2.3", "Windows 10.0 (build 1)");
-        assert!(r.starts_with("https://github.com/jmitchell238/kernpage/issues/new?labels=bug&body="));
+        assert!(r.starts_with("https://github.com/jmitchell238/KernPage/issues/new?labels=bug&body="));
         assert!(r.contains("KernPage%20version%3A%201.2.3%0AWindows%3A%20Windows%2010.0%20%28build%201%29"), "{r}");
         assert!(r.contains("Steps%20to%20reproduce"));
         let i = idea_url("1.2.3");
-        assert!(i.starts_with("https://github.com/jmitchell238/kernpage/issues/new?labels=idea&body="));
+        assert!(i.starts_with("https://github.com/jmitchell238/KernPage/issues/new?labels=idea&body="));
         assert!(i.contains("1.2.3") && i.contains("Why%20would%20it%20help"));
         assert!(!r.contains(' ') && !i.contains(' ') && !r.contains('\n'));
     }

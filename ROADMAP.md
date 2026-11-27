@@ -166,7 +166,7 @@ These ideas are catalogued, with issues, in the "Beyond Publisher" and "Launcher
 
 ## Releases
 
-**0.2.2 is released** on [GitHub](https://github.com/jmitchell238/kernpage/releases/latest): fixes for desktop shortcuts after updates, a sharper ribbon, Recent dates that match the list order, a backup interface font and the new logo ([`docs/release-notes/0.2.2.md`](docs/release-notes/0.2.2.md)).
+**0.2.2 is released** on [GitHub](https://github.com/jmitchell238/KernPage/releases/latest): fixes for desktop shortcuts after updates, a sharper ribbon, Recent dates that match the list order, a backup interface font and the new logo ([`docs/release-notes/0.2.2.md`](docs/release-notes/0.2.2.md)).
 
 0.2.1 moved KernPage to the GPL-3.0 licence (with a contributor licence agreement, see [CLA.md](CLA.md)) and to the fonts that come with Windows for its own text. Versions up to and including 0.2.0 stay available under MIT OR Apache-2.0 at the `v0.2.0` tag. See [`docs/release-notes/0.2.1.md`](docs/release-notes/0.2.1.md).
 

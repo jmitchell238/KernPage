@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 pub type Result<T> = std::result::Result<T, String>;
 
 pub const APP_ID: &str = "kernpage";
-pub const DEFAULT_REPO: &str = "jmitchell238/kernpage";
+pub const DEFAULT_REPO: &str = "jmitchell238/KernPage";
 /// Two years: a release index must keep working through a long quiet stretch (see docs/RELEASING.md).
 pub const DEFAULT_EXPIRES_DAYS: u64 = 730;
 pub const DEFAULT_KEEP: usize = 10;
@@ -143,9 +143,9 @@ fn default_item() -> Value {
     json!({
         "id": APP_ID, "kind": "app", "name": "KernPage",
         "tagline": "Desktop publishing for bulletins, newsletters and flyers. Opens Publisher (.pub) files too.",
-        "website": "https://github.com/jmitchell238/kernpage",
-        "repo": "https://github.com/jmitchell238/kernpage",
-        "releases_url": "https://github.com/jmitchell238/kernpage/releases",
+        "website": "https://github.com/jmitchell238/KernPage",
+        "repo": "https://github.com/jmitchell238/KernPage",
+        "releases_url": "https://github.com/jmitchell238/KernPage/releases",
         "license": "GPL-3.0-only",
         "features": [
             {"title": "Opens Publisher files", "text": "Reads .pub files and shows text, shapes, pictures, tables, groups and linked text boxes."},

@@ -75,7 +75,7 @@ exists, and refuses a `setup` file on an all-users install.
 ### Update keys, feeds and verification
 
 - **Feed**: `index.json` plus `index.json.minisig` at `FEED_URL` (`crates/kernpage-launcher/src/feed.rs`): the assets of
-  the newest GitHub release (`https://github.com/jmitchell238/kernpage/releases/latest/download/index.json`);
+  the newest GitHub release (`https://github.com/jmitchell238/KernPage/releases/latest/download/index.json`);
   set the `KERNPAGE_FEED_URL` environment variable at build time to use another. Releases and the signing
   tool are described in `docs/RELEASING.md`. Schema 1; each release lists `files`, each with
   `os`, `arch`, `kind` (`msi`, `setup`, `zip`...), `url` (HTTPS), `size`, `sha256` and `sig` (a minisign signature

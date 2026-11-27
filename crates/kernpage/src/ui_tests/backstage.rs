@@ -1210,15 +1210,15 @@ fn the_about_page_shows_version_licence_privacy_and_independence() {
     assert!(has_label_containing(&ui, "Opens and saves KernPage (.kern) and Microsoft Publisher (.pub) files."));
     crate::feedback::test_os::take_opened();
     ui.click_ribbon("link:Website: https://238apps.com/kernpage");
-    ui.click_ribbon("link:Source code: https://github.com/jmitchell238/kernpage");
-    ui.click_ribbon("link:Report a problem: https://github.com/jmitchell238/kernpage/issues");
+    ui.click_ribbon("link:Source code: https://github.com/jmitchell238/KernPage");
+    ui.click_ribbon("link:Report a problem: https://github.com/jmitchell238/KernPage/issues");
     ui.click_ribbon("link:Buy me a RedBull: https://buymeacoffee.com/238apps");
     assert_eq!(
         crate::feedback::test_os::take_opened(),
         [
             "https://238apps.com/kernpage",
-            "https://github.com/jmitchell238/kernpage",
-            "https://github.com/jmitchell238/kernpage/issues",
+            "https://github.com/jmitchell238/KernPage",
+            "https://github.com/jmitchell238/KernPage/issues",
             "https://buymeacoffee.com/238apps"
         ]
     );

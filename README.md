@@ -80,7 +80,7 @@ date in it is made up.
 ## Download and install
 
 Download **`KernPage-<version>-Setup.exe`** from the
-[latest release](https://github.com/jmitchell238/kernpage/releases/latest) and run it. It installs just
+[latest release](https://github.com/jmitchell238/KernPage/releases/latest) and run it. It installs just
 for you, needs no administrator rights, and puts KernPage and the KernPage Launcher in the Start menu.
 KernPage shows up under **Open with** for `.pub` files and never takes over double-click from another program.
 Windows will warn about an unknown publisher the first time, because KernPage isn't code-signed yet;
@@ -132,7 +132,7 @@ To regenerate the sample newsletter: `cargo run -p kernpage-core --example make_
 
 ## Project status
 
-Early development: version 0.2.2 is released (see the [latest release](https://github.com/jmitchell238/kernpage/releases/latest) and [docs/release-notes/0.2.2.md](docs/release-notes/0.2.2.md)). See
+Early development: version 0.2.2 is released (see the [latest release](https://github.com/jmitchell238/KernPage/releases/latest) and [docs/release-notes/0.2.2.md](docs/release-notes/0.2.2.md)). See
 [ROADMAP.md](ROADMAP.md) for what is done and what is next, and [docs/FEATURES.md](docs/FEATURES.md)
 for the feature-by-feature list. Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md). Privacy: [PRIVACY.md](PRIVACY.md).
@@ -161,7 +161,7 @@ Reporting problems and sharing ideas helps just as much.
 KernPage is licensed under the [GNU General Public License, version 3 only](LICENSE) (GPL-3.0-only).
 
 Versions up to and including 0.2.0 were released under MIT OR Apache-2.0 and remain available under those
-terms at the [v0.2.0 tag](https://github.com/jmitchell238/kernpage/tree/v0.2.0).
+terms at the [v0.2.0 tag](https://github.com/jmitchell238/KernPage/tree/v0.2.0).
 
 Contributions are accepted under the GPL-3.0 and the [Contributor Licence Agreement](CLA.md); see
 [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -11,9 +11,9 @@
           Version="$(var.Version)"
           UpgradeCode="5D0E7B3A-2C41-4F6B-9A18-C3E7F0A4B6D2"
           IconSourceFile="$(var.IconPath)"
-          AboutUrl="https://github.com/jmitchell238/kernpage"
-          HelpUrl="https://github.com/jmitchell238/kernpage"
-          UpdateUrl="https://github.com/jmitchell238/kernpage/releases">
+          AboutUrl="https://github.com/jmitchell238/KernPage"
+          HelpUrl="https://github.com/jmitchell238/KernPage"
+          UpdateUrl="https://github.com/jmitchell238/KernPage/releases">
     <BootstrapperApplication>
       <bal:WixStandardBootstrapperApplication Theme="rtfLicense"
           LicenseFile="$(var.LicenseRtf)" LogoFile="$(var.LogoPng)"

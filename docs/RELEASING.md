@@ -29,7 +29,7 @@ launcher's update feed is two assets of the newest release.
    Actions tab. It then signs `index.json` / `index.json.minisig`, creates the release as a draft with
    `KernPage-X.Y.Z-x64.msi`, `KernPage-X.Y.Z-Setup.exe`, the index and its signature, and
    publishes it as "latest".
-6. Check: `https://github.com/jmitchell238/kernpage/releases/latest/download/index.json` downloads, and
+6. Check: `https://github.com/jmitchell238/KernPage/releases/latest/download/index.json` downloads, and
    a launcher offers the new version.
 
 **Dry run (no publishing):** Actions > release > Run workflow. It builds and tests, then signs the feed with a
@@ -40,7 +40,7 @@ to prove the toolchain setup (GNU Rust + MSYS2 gcc + WiX 5.0.2) works on the run
 ## How the feed works
 
 - `FEED_URL` in `crates/kernpage-launcher/src/feed.rs` is
-  `https://github.com/jmitchell238/kernpage/releases/latest/download/index.json`; the signature is
+  `https://github.com/jmitchell238/KernPage/releases/latest/download/index.json`; the signature is
   fetched from `.../index.json.minisig`. GitHub redirects both to its HTTPS asset hosts; the launcher follows
   redirects (HTTPS only, enforced for redirects too) and does not trust the host: the minisign signature, the
   SHA-256, the exact size and the per-file signature are what is trusted.
@@ -102,7 +102,7 @@ A leaked key alone cannot push a malicious update: the launcher only reads the f
 URL and downloads over HTTPS, so an attacker would also need write access to the repository (or to break TLS).
 Still, act at once:
 
-1. Delete the secret: `gh secret delete KERNPAGE_SIGNING_KEY --env release --repo jmitchell238/kernpage`, and
+1. Delete the secret: `gh secret delete KERNPAGE_SIGNING_KEY --env release --repo jmitchell238/KernPage`, and
    check the repository's collaborators, tokens and recent releases.
 2. On a trusted machine, sign a release with the BACKUP key (installed launchers trust it): set
    `KERNPAGE_SIGNING_KEY` to the backup key text and `KERNPAGE_SIGNING_KEY_PASSWORD` to its password and run
