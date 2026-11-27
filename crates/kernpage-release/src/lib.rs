@@ -146,11 +146,11 @@ fn default_item() -> Value {
         "website": "https://github.com/jmitchell238/kernpage",
         "repo": "https://github.com/jmitchell238/kernpage",
         "releases_url": "https://github.com/jmitchell238/kernpage/releases",
-        "license": "MIT OR Apache-2.0",
+        "license": "GPL-3.0-only",
         "features": [
             {"title": "Opens Publisher files", "text": "Reads .pub files and shows text, shapes, pictures, tables, groups and linked text boxes."},
             {"title": "Edits and saves .pub", "text": "Change text and formatting, move and resize objects, and save back into the same file."},
-            {"title": "Open source, works offline", "text": "Licensed MIT or Apache-2.0. Nothing is sent anywhere unless you ask for it."}
+            {"title": "Open source, works offline", "text": "Licensed GPL-3.0. Nothing is sent anywhere unless you ask for it."}
         ],
         "channels": {}
     })

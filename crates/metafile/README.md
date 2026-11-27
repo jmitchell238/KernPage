@@ -16,7 +16,7 @@ Output coordinates are in the *base window space*: the logical space of the
 window in effect at the first drawing record (for placeable WMF files this is
 the space of the placeable bounding box). See the crate docs for details.
 
-Licensed under MIT OR Apache-2.0.
+Licensed under GPL-3.0-only (versions up to 0.2.0: MIT OR Apache-2.0).
 
 [MS-WMF]: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wmf/
 [MS-EMF]: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-emf/

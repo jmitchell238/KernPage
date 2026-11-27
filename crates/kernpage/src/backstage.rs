@@ -1080,7 +1080,7 @@ fn about_page(ui: &mut Ui) {
         text(ui, "A free desktop publishing app for Windows. Opens and saves KernPage (.kern) and Microsoft Publisher (.pub) files.");
         ui.add_space(14.0);
         section_title(ui, "Licence");
-        text(ui, "Free and open source under the MIT or Apache 2.0 licence.");
+        text(ui, "Free and open source under the GNU General Public License, version 3 (GPL-3.0).");
         let notices = std::env::current_exe().ok().and_then(|e| notices_in(e.parent()?));
         if let Some(path) = notices {
             ui.add_space(4.0);

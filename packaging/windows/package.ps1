@@ -74,9 +74,7 @@ if (-not (Test-Path $launcherExe)) { throw "Missing $launcherExe (build with: ca
 $stage = Join-Path $outDir 'stage'
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'notices') | Out-Null
-foreach ($f in 'LICENSE-MIT', 'LICENSE-APACHE') {
-    Copy-Item (Join-Path $repo $f) (Join-Path $stage "notices\$f.txt")
-}
+Copy-Item (Join-Path $repo 'LICENSE') (Join-Path $stage 'notices\LICENSE.txt')
 Copy-Item (Join-Path $repo 'THIRD_PARTY_NOTICES.md') (Join-Path $stage 'notices\THIRD_PARTY_NOTICES.txt')
 Copy-Item (Join-Path $repo 'LICENSES\MS-RL.txt') (Join-Path $stage 'notices\LICENSE-MS-RL.txt')
 
@@ -103,9 +101,9 @@ function ConvertTo-RtfText([string]$text) {
     }
     $sb.ToString()
 }
-$intro = ConvertTo-RtfText 'KernPage is dual-licensed under the MIT License or the Apache License 2.0, at your option. Both texts follow. Third-party components keep their own licences; see THIRD_PARTY_LICENSES.html in the install folder. KernPage is an independent project, not affiliated with or endorsed by Microsoft. Microsoft and Publisher are trademarks of the Microsoft group of companies.'
+$intro = ConvertTo-RtfText 'KernPage is licensed under the GNU General Public License, version 3 only (GPL-3.0-only). The full text follows, and is also installed as LICENSE.txt in the install folder. Versions of KernPage up to and including 0.2.0 were released under MIT OR Apache-2.0. Third-party components keep their own licences; see THIRD_PARTY_LICENSES.html in the install folder. KernPage is an independent project, not affiliated with or endorsed by Microsoft. Microsoft and Publisher are trademarks of the Microsoft group of companies.'
 $parts = @("\b0 $intro\par \par ")
-foreach ($f in @(@('LICENSE-MIT', 'MIT License'), @('LICENSE-APACHE', 'Apache License 2.0'))) {
+foreach ($f in @(,@('LICENSE', 'GNU General Public License, version 3'))) {
     $text = ConvertTo-RtfText (Get-Content (Join-Path $repo $f[0]) -Raw)
     $parts += "\b $($f[1])\b0\par \par $text\par \par "
 }

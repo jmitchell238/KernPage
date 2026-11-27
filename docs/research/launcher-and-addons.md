@@ -18,7 +18,7 @@ Design rules that make it trustworthy: it never installs anything the user did n
 
 Source: the public repository [storytold/craft-launcher](https://github.com/storytold/craft-launcher) (README read on 2026-11-12). We describe behaviour only; no code is copied.
 
-- **Licence:** dual MIT or Apache-2.0, the same as KernPage. The name, logo and "A" mark are trademarks excluded from the licence. Lesson: we can freely study and even reuse ideas, but must never reuse its branding.
+- **Licence:** dual MIT or Apache-2.0 (KernPage itself is GPL-3.0-only from after 0.2.0). The name, logo and "A" mark are trademarks excluded from the licence. Lesson: we can freely study and even reuse ideas, but must never reuse its branding.
 - **Technology:** a Rust workspace; the desktop app is native egui (no Electron or web view), plus a WebAssembly build for the browser. Tray icon on Linux via StatusNotifierItem. This is the same stack as KernPage, which makes it the best reference we have.
 - **Update source:** reads each app's GitHub Releases, picks the build for the user's OS and CPU, and verifies it against the release's SHA-256 checksums before installing. A local mirror can replace GitHub for testing (set by an environment variable and only honoured for loopback addresses; `cargo xtask local serve` serves "the builds and a release feed"). Its feed schema is not documented in the README **(verify in the source)**.
 - **Windows install:** uses the release MSI through Windows Installer. Per-machine installs go to Program Files and ask for administrator permission each time; per-user installs go to `%LOCALAPPDATA%\Programs\...` and keep that scope on update. The launcher's own MSI is per-user and needs no admin rights.

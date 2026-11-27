@@ -168,6 +168,11 @@ These ideas are catalogued, with issues, in the "Beyond Publisher" and "Launcher
 
 **0.2.0 is released** on [GitHub](https://github.com/jmitchell238/kernpage/releases/latest): signed updates through the KernPage Launcher, the `.kern` format, the About page with a Support KernPage link, Create a PDF, and an [install guide](INSTALL.md). See [`docs/release-notes/0.2.0.md`](docs/release-notes/0.2.0.md) and the release process in [`docs/RELEASING.md`](docs/RELEASING.md). Further 0.x releases follow the "Next up" list above. Version 1.0 will come when KernPage covers everyday publishing tasks end to end.
 
+### Unreleased
+
+- **Licence change.** From the next version, KernPage is licensed under GPL-3.0-only (with a contributor licence agreement, see [CLA.md](CLA.md)). Versions up to and including 0.2.0 stay available under MIT OR Apache-2.0 at the `v0.2.0` tag.
+- The fonts used by the program are now loaded from the Windows fonts folder at start-up instead of being built in.
+
 ## How to help
 
 Pick a 🔬 or 🛠️ row in [`docs/FEATURES.md`](docs/FEATURES.md) (or an item above), open or claim its issue to say you are working on it, and read

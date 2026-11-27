@@ -45,8 +45,8 @@ compare its SHA-256 with the one shown next to the file on the release page.
 
 ## 3. Run the installer
 
-1. **Licence and options.** Read the licence if you like (KernPage is open source, under the MIT or
-   Apache 2.0 licence). Choose your desktop shortcuts:
+1. **Licence and options.** Read the licence if you like (KernPage is free software, under the GNU
+   General Public License, version 3). Choose your desktop shortcuts:
    - **Create a desktop shortcut for KernPage** (ticked already): opens the editor.
    - **Create a desktop shortcut for KernPage Launcher**: opens the Launcher, which installs updates.
 

@@ -17,7 +17,8 @@ accepted = [
     "Unicode-3.0",
     "CDLA-Permissive-2.0",
     "OFL-1.1",
-    "Ubuntu-font-1.0",
+    # KernPage's own crates (GPL-3.0-only); no dependency is under it.
+    "GPL-3.0-only",
 ]
 # Only what ships on Windows (same targets as deny.toml).
 targets = ["x86_64-pc-windows-gnu", "x86_64-pc-windows-msvc"]

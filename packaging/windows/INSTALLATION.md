@@ -2,7 +2,7 @@
 
 ## For users
 
-Run `KernPage-<version>-Setup.exe` (shows the KernPage icon; installs just for you, no administrator prompt). It wraps the MSI below with a license page and one Settings > Apps entry. Or run `KernPage-<version>-x64.msi` directly. The installer shows a license page (MIT or Apache-2.0, your option), then installs. The finish page has **Launch** and **Close** buttons; silent installs never launch the app. A picture-by-picture guide for users is in [INSTALL.md](../../INSTALL.md).
+Run `KernPage-<version>-Setup.exe` (shows the KernPage icon; installs just for you, no administrator prompt). It wraps the MSI below with a license page and one Settings > Apps entry. Or run `KernPage-<version>-x64.msi` directly. The installer shows a license page (GPL-3.0-only), then installs. The finish page has **Launch** and **Close** buttons; silent installs never launch the app. A picture-by-picture guide for users is in [INSTALL.md](../../INSTALL.md).
 
 - **Just for you (default):** no administrator rights needed. Files go to
   `%LOCALAPPDATA%\Programs\KernPage`.
@@ -35,6 +35,8 @@ upgrade without those properties (the launcher's update) keeps it; a value given
 Uninstalling removes the shortcuts. Re-running `Setup.exe` over an existing install starts with the defaults again.
 
 ### Setup.exe vs the MSI
+
+Licence note: KernPage itself is GPL-3.0-only. The two theme files `bundle-theme.xml` and `bundle-theme.wxl` are derived from the WiX standard theme and stay under the MS-RL (see `LICENSES/MS-RL.txt`) as a separate installer component; they are not part of the GPL-3.0 code.
 
 `Setup.exe` is a WiX Burn bundle (`kernpage-bundle.wxs`, WixStandardBootstrapperApplication with the
 license page and logo). It is per-user only (`PerMachine="no"`, `asInvoker` manifest, so no UAC). It
@@ -130,7 +132,7 @@ Optional signing (nothing is signed by default):
 | `kernpage-bundle.wxs` | Setup.exe Burn bundle: icon, per-user, hides the MSI's ARP row, desktop-shortcut variables |
 | `bundle-theme.xml`, `bundle-theme.wxl` | Setup.exe window layout and strings (stock RtfTheme plus the two shortcut checkboxes) |
 | `kernpage.en-us.wxl` | User-visible installer strings |
-| `package.ps1` | Builds the exes (editor and launcher) and the MSI; makes the license page from `LICENSE-MIT` and `LICENSE-APACHE` |
+| `package.ps1` | Builds the exes (editor and launcher) and the MSI; makes the license page from `LICENSE` (GPL-3.0) |
 | `check-installer.ps1` | Read-only MSI, Setup.exe and release-launcher checks |
 | `sign.ps1` | Signing helper that needs an explicit certificate |
 | `assets/` | `kernpage.ico`, `banner.bmp` (493x58), `dialog.bmp` (493x312); regenerate with `make_art.py` |

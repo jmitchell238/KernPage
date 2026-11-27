@@ -38,7 +38,7 @@ pub const KERNPAGE: AppInfo = AppInfo {
         },
         Feature {
             title: "Open source, works offline",
-            text: "Licensed MIT or Apache-2.0. Not affiliated with Microsoft. Still in development: no master page editing, spell check or data-driven publishing yet.",
+            text: "Licensed GPL-3.0. Not affiliated with Microsoft. Still in development: no master page editing, spell check or data-driven publishing yet.",
         },
     ],
 };

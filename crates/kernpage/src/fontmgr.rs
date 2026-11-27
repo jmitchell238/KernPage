@@ -1,6 +1,7 @@
 //! Loads the system TrueType fonts that the document uses into egui.
 
 use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, FontId};
+use kernpage_core::sysfonts;
 use pub2pdf::Fonts;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -23,41 +24,41 @@ pub struct FontMgr {
     attempted: HashSet<String>,
 }
 
-/// Family holding egui's bundled fonts: what page text falls back to (the UI font is
-/// Segoe UI when installed, and the page must not change with it).
+/// Family for page text that falls back from its own font: Arial, then Segoe UI, then symbols.
+/// The UI font is Segoe UI when installed, and the page must not change with it.
 pub const PAGE_FALLBACK: &str = "pw-page-fallback";
 
-/// Name of the UI font's data in the font definitions.
-pub const UI_FONT_KEY: &str = "ui-segoe";
+/// Name of the UI font's data in the font definitions (tests check it comes first).
+#[cfg(test)]
+pub const UI_FONT_KEY: &str = sysfonts::UI_FONT_KEY;
 
 /// The system's Segoe UI (Publisher's UI font); never bundled, it is not ours to ship.
+#[cfg(test)]
 pub fn ui_font_file() -> Option<PathBuf> {
-    let win = std::env::var_os("WINDIR").map_or_else(|| PathBuf::from(r"C:\Windows"), PathBuf::from);
-    let p = win.join("Fonts").join("segoeui.ttf");
-    p.is_file().then_some(p)
+    sysfonts::locate().ui
 }
 
-/// egui's fonts with Segoe UI first in the proportional (UI) family when it is installed.
+/// The fonts egui starts with. Nothing is bundled on Windows: they all come from the Windows
+/// fonts folder (Segoe UI, Consolas, Segoe UI Symbol and Emoji, Arial). Without any of them
+/// (a non-Windows development machine) one small embedded font is used so egui can still draw text.
 pub fn base_definitions() -> FontDefinitions {
-    base_definitions_with(ui_font_file())
+    definitions_from(&sysfonts::plan())
 }
 
-fn base_definitions_with(ui: Option<PathBuf>) -> FontDefinitions {
-    let mut defs = FontDefinitions::default();
-    let page = defs
-        .families
-        .get(&FontFamily::Proportional)
-        .cloned()
-        .unwrap_or_default();
-    defs.families
-        .insert(FontFamily::Name(PAGE_FALLBACK.into()), page);
-    if let Some(bytes) = ui.and_then(|p| std::fs::read(p).ok()) {
-        defs.font_data
-            .insert(UI_FONT_KEY.to_owned(), Arc::new(FontData::from_owned(bytes)));
-        if let Some(list) = defs.families.get_mut(&FontFamily::Proportional) {
-            list.insert(0, UI_FONT_KEY.to_owned());
-        }
+/// Turns a font plan into egui font definitions.
+pub fn definitions_from(plan: &sysfonts::FontPlan) -> FontDefinitions {
+    let mut defs = FontDefinitions::empty();
+    for (k, bytes) in &plan.data {
+        let data = match bytes {
+            std::borrow::Cow::Borrowed(b) => FontData::from_static(b),
+            std::borrow::Cow::Owned(v) => FontData::from_owned(v.clone()),
+        };
+        defs.font_data.insert(k.clone(), Arc::new(data));
     }
+    defs.families.insert(FontFamily::Proportional, plan.proportional.clone());
+    defs.families.insert(FontFamily::Monospace, plan.monospace.clone());
+    defs.families
+        .insert(FontFamily::Name(PAGE_FALLBACK.into()), plan.page.clone());
     defs
 }
 

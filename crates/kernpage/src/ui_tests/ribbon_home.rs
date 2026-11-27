@@ -1063,6 +1063,24 @@ fn the_ui_font_is_segoe_ui_when_installed() {
 }
 
 #[test]
+fn fonts_come_from_the_system_and_every_family_has_one() {
+    // No bundled egui fonts: every family must still end up with at least one usable font.
+    let defs = crate::fontmgr::base_definitions();
+    for fam in [
+        egui::FontFamily::Proportional,
+        egui::FontFamily::Monospace,
+        egui::FontFamily::Name(crate::fontmgr::PAGE_FALLBACK.into()),
+    ] {
+        let list = defs.families.get(&fam).cloned().unwrap_or_default();
+        assert!(!list.is_empty(), "{fam:?} has no font");
+        assert!(list.iter().all(|k| defs.font_data.contains_key(k)), "{fam:?} names a missing font");
+    }
+    for name in ["Hack", "Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"] {
+        assert!(!defs.font_data.contains_key(name), "{name} must not be bundled");
+    }
+}
+
+#[test]
 fn the_size_box_is_wide_enough_for_12_and_10_5() {
     let ctx = egui::Context::default();
     ctx.set_fonts(crate::fontmgr::base_definitions());
