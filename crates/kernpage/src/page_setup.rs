@@ -102,7 +102,7 @@ impl App {
         self.size_menu(ui, enabled, (w, h));
     }
 
-    fn open_for_debug(&self, ui: &Ui, resp: &egui::Response, name: &str) {
+    pub(crate) fn open_for_debug(&self, ui: &Ui, resp: &egui::Response, name: &str) {
         if ui.is_visible() && self.debug_menu.as_deref() == Some(name) {
             Popup::open_id(ui.ctx(), Popup::default_response_id(resp));
         }

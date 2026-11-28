@@ -380,6 +380,27 @@ fn the_pub_save_refuses_master_changes_it_cannot_write() {
     plan_says(&source, &e, "master pages");
 }
 
+// ---- page-number fields in text -------------------------------------------------------------
+
+#[test]
+fn insert_field_splits_the_run_at_the_caret() {
+    use kernpage_core::text::insert_field;
+    use kernpage_core::Field;
+    let ps = vec![Paragraph::plain("Page of"), Paragraph::plain("Second")];
+    let out = insert_field(&ps, 5, Field::PageNumber);
+    let texts: Vec<_> = out[0].runs.iter().map(|r| (r.text.as_str(), r.field)).collect();
+    assert_eq!(texts, [("Page ", None), ("#", Some(Field::PageNumber)), ("of", None)]);
+    assert_eq!(out[1], ps[1]);
+    // Into the second paragraph (offsets count one \n between paragraphs) and past the end.
+    let out = insert_field(&ps, 8 + 2, Field::PageNumber);
+    assert_eq!(out[1].text(), "Se#cond");
+    assert_eq!(insert_field(&ps, 999, Field::PageNumber)[1].text(), "Second#");
+    // An empty paragraph gets just the field.
+    let out = insert_field(&[Paragraph::plain("")], 0, Field::PageNumber);
+    assert_eq!(out[0].runs.len(), 1);
+    assert_eq!(out[0].runs[0].field, Some(Field::PageNumber));
+}
+
 #[kernpage_samples::test]
 fn adding_a_page_to_a_file_with_masters_is_still_supported() {
     let (source, mut e, _) = open_pub("master-pn-2p.pub");

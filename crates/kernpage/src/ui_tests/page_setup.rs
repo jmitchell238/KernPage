@@ -615,7 +615,7 @@ fn layout_guides_dialog_shows_the_margin_guides_tab_and_the_unavailable_ones() {
             "{name} is not available yet"
         );
     }
-    ui.h.get_by_label("Master Pages");
+    assert!(ui.h.get_all_by_label("Master Pages").count() >= 1); // the dialog heading (and the Page Design button behind it)
     assert!(ui.h.get_by_label("Two-page master").accesskit_node().is_disabled());
     // No page size boxes here, only the four margin boxes.
     assert!(ui.h.query_by_label("Width:").is_none());

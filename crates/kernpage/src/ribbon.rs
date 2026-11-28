@@ -107,6 +107,7 @@ impl App {
                 Tab::PictureFormat => self.picture_format_tab(ui),
                 Tab::TableDesign => Self::table_design_tab(ui),
                 Tab::Layout => self.table_layout_tab(ui),
+                Tab::MasterPage => self.master_page_tab(ui),
             }
         });
     }
@@ -637,13 +638,8 @@ impl App {
     fn selection_wrap_columns(&self) -> Option<(kernpage_core::WrapType, u32, bool)> {
         let ids = self.selected_ids();
         let ed = self.editor.as_ref()?;
-        let s = ed
-            .doc()
-            .pages
-            .get(self.page)?
-            .shapes
-            .iter()
-            .find(|s| ids.contains(&s.id))?;
+        let pg = ed.doc().surface(self.page)?;
+        let s = pg.shapes.iter().find(|s| ids.contains(&s.id))?;
         Some((s.wrap, s.columns, s.is_text_box()))
     }
 
@@ -736,7 +732,7 @@ impl App {
         let has_sel = !self.selected_ids().is_empty();
         let any_line = self.editor.as_ref().is_some_and(|ed| {
             let ids = self.selected_ids();
-            ed.doc().pages.get(self.page).is_some_and(|p| {
+            ed.doc().surface(self.page).is_some_and(|p| {
                 p.shapes.iter().any(|s| {
                     ids.contains(&s.id) && matches!(s.kind, kernpage_core::ShapeKind::Line)
                 })
@@ -995,11 +991,7 @@ impl App {
             soon(ui, Icon::Link, "Link", true);
             soon(ui, Icon::Bookmark, "Bookmark", true);
         });
-        group(ui, "Header & Footer", false, |ui| {
-            soon(ui, Icon::Header, "Header", true);
-            soon(ui, Icon::Footer, "Footer", true);
-            soon_dd(ui, Icon::Hash, "Page\nNumber", true);
-        });
+        self.header_footer_group(ui);
     }
 
     fn page_design_tab(&mut self, ui: &mut Ui) {
@@ -1039,7 +1031,7 @@ impl App {
             soon_dd(ui, Icon::Fonts, "Fonts", true);
             soon_dd(ui, Icon::Background, "Apply\nImage", true);
             soon_dd(ui, Icon::Palette, "Background", true);
-            soon_dd(ui, Icon::Pages, "Master\nPages", true);
+            self.master_pages_dropdown(ui);
         });
     }
 
@@ -1162,13 +1154,7 @@ impl App {
     }
 
     fn view_tab(&mut self, ui: &mut Ui) {
-        group(ui, "Views", false, |ui| {
-            Btn::large(Icon::Page, "Normal")
-                .selected(true)
-                .tip("Normal view")
-                .show(ui);
-            soon(ui, Icon::Pages, "Master\nPage", true);
-        });
+        self.views_group(ui);
         group(ui, "Layout", false, |ui| {
             Btn::large(Icon::SinglePage, "Single\nPage")
                 .selected(true)

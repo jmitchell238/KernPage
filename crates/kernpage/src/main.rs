@@ -18,6 +18,7 @@ mod linkmarks;
 mod logo;
 mod lists_ui;
 mod metapic;
+mod masters;
 mod nav;
 mod output;
 mod page_dialog;
@@ -42,7 +43,7 @@ use app::{App, Options};
 use std::path::PathBuf;
 
 const USAGE: &str =
-    "Usage: kernpage [file.pub] [--screenshot out.png] [--open file.pub] [--page N] [--tab name] [--file-screen home|new|open|info|saveas|print|share|export|about|feedback|options] [--edit-cell shape-index,cell] [--edit-text shape-index[,start-end]] [--spacing-dialog] [--dialog page-setup|custom-margins] [--menu wrap|columns|margins|orientation|size] [--select i,j,...] [--window-size WxH] [--scale F] [--open-group name] [--print-layout one|copies|pages|booklet] [--print-sheet N] [--theme light|dark|system] [--accent teal|blue|purple|graphite|orange] [--demo]";
+    "Usage: kernpage [file.pub] [--screenshot out.png] [--open file.pub] [--page N] [--tab name] [--file-screen home|new|open|info|saveas|print|share|export|about|feedback|options] [--edit-cell shape-index,cell] [--edit-text shape-index[,start-end]] [--spacing-dialog] [--dialog page-setup|custom-margins] [--menu wrap|columns|margins|orientation|size] [--select i,j,...] [--window-size WxH] [--scale F] [--open-group name] [--print-layout one|copies|pages|booklet] [--print-sheet N] [--theme light|dark|system] [--accent teal|blue|purple|graphite|orange] [--demo] [--master]";
 
 fn parse_args() -> Result<Options, String> {
     let mut opts = Options::default();
@@ -122,6 +123,7 @@ fn parse_args() -> Result<Options, String> {
             "--theme" => opts.theme = Some(value("--theme")?),
             "--accent" => opts.accent = Some(value("--accent")?),
             "--demo" => opts.demo = true,
+            "--master" => opts.master = true,
             "--tab" => opts.tab = Some(value("--tab")?),
             "--page" => {
                 let v = value("--page")?;

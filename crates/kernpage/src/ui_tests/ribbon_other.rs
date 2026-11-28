@@ -64,10 +64,10 @@ fn click_checkbox_with_the_mouse(ui: &mut TestUi, label: &str) {
 
 // ---- Insert ---------------------------------------------------------------------------------------
 
-const INSERT_GREYED: [&str; 18] = [
+const INSERT_GREYED: [&str; 15] = [
     "Catalog Pages", "Online Pictures", "Picture Placeholder", "Page Elements", "Calendars",
     "Borders & Accents", "Advertisements", "Contact Details", "Styled Text", "Insert File", "Symbol",
-    "Date & Time", "Object", "Link", "Bookmark", "Header", "Footer", "Page Number",
+    "Date & Time", "Object", "Link", "Bookmark",
 ];
 
 #[test]
@@ -220,12 +220,12 @@ fn the_page_background_group_holds_greyed_fonts_images_backgrounds_and_master_pa
     let mut ui = ui_with_shapes();
     ui.click_tab("Page Design");
     open_page_background(&mut ui);
-    for n in ["Fonts", "Apply Image", "Background", "Master Pages"] {
+    for n in ["Fonts", "Apply Image", "Background"] {
         assert!(ui.has_ribbon(n), "{n}");
         assert!(!on(&ui, n), "{n} is greyed");
     }
     let rev = ui.revision();
-    for n in ["Fonts", "Apply Image", "Background", "Master Pages"] {
+    for n in ["Fonts", "Apply Image", "Background"] {
         let p = ui.ribbon(n).rect.center();
         ui.click_at(p);
     }
@@ -439,10 +439,10 @@ fn the_question_mark_beside_the_ribbon_opens_the_same_about_page() {
 fn the_view_tab_has_working_and_greyed_controls_as_planned() {
     let mut ui = ui_with_shapes();
     ui.click_tab("View");
-    for n in ["Normal", "Single Page", "100%", "Whole Page", "Page Width"] {
+    for n in ["Normal", "Master Page", "Single Page", "100%", "Whole Page", "Page Width"] {
         assert!(ui.body(n).enabled, "{n} is live");
     }
-    for n in ["Master Page", "Two-Page Spread", "Selected Objects", "Arrange All", "Cascade", "Switch Windows"] {
+    for n in ["Two-Page Spread", "Selected Objects", "Arrange All", "Cascade", "Switch Windows"] {
         assert!(!ui.body(n).enabled, "{n} is greyed");
     }
     assert!(ui.body("Normal").selected && ui.body("Single Page").selected, "Normal and Single Page are current");

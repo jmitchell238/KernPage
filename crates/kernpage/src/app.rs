@@ -46,6 +46,8 @@ pub enum Tab {
     PictureFormat,
     TableDesign,
     Layout,
+    /// Shown only in the Master Page view.
+    MasterPage,
 }
 
 /// What kind of object a selected shape is, for choosing the contextual tabs.
@@ -95,12 +97,13 @@ pub fn context_tabs(kinds: &[ObjKind]) -> Vec<Tab> {
 }
 
 impl Tab {
-    pub const CONTEXTUAL: [Tab; 5] = [
+    pub const CONTEXTUAL: [Tab; 6] = [
         Tab::ShapeFormat,
         Tab::TextBox,
         Tab::PictureFormat,
         Tab::TableDesign,
         Tab::Layout,
+        Tab::MasterPage,
     ];
 
     pub fn is_contextual(self) -> bool {
@@ -131,6 +134,7 @@ impl Tab {
             Tab::PictureFormat => "Picture Format",
             Tab::TableDesign => "Table Design",
             Tab::Layout => "Layout",
+            Tab::MasterPage => "Master Page",
         }
     }
 
@@ -279,6 +283,8 @@ pub struct Options {
     pub accent: Option<String>,
     /// `--demo`: invented data in place of the real profile (for screenshots); see `crate::demo`.
     pub demo: bool,
+    /// `--master`: open the Master Page view at start-up (screenshot option).
+    pub master: bool,
 }
 
 impl Options {
@@ -371,7 +377,7 @@ pub mod live_timing {
 }
 
 /// The caret of the open text editor, as a character offset (the end when unknown).
-fn caret_chars(ctx: &Context, edit: &EditState) -> usize {
+pub(crate) fn caret_chars(ctx: &Context, edit: &EditState) -> usize {
     egui::TextEdit::load_state(ctx, edit_widget_id(edit))
         .and_then(|s| s.cursor.char_range())
         .map_or_else(|| edit.text.chars().count(), |r| r.primary.index.0)
@@ -536,6 +542,13 @@ pub struct App {
     pub paste_count: i64,
     pub spacing_dialog: Option<SpacingDialog>,
     pub page_dialog: Option<crate::page_dialog::PageSetupDialog>,
+    /// The Master Page view is open (`page` then holds the pseudo page index of the master
+    /// being edited, see `kernpage_core::master_surface`).
+    pub master_view: Option<crate::masters::MasterView>,
+    /// The Add / Duplicate / Rename Master Page dialog.
+    pub master_dialog: Option<crate::masters::MasterDialog>,
+    /// The Apply Master Page dialog.
+    pub apply_dialog: Option<crate::masters::ApplyDialog>,
     /// The Create Table dialog (Insert > Table > Insert Table...).
     pub table_dialog: Option<crate::table_ui::TableDialog>,
     /// The Bullets and Numbering dialog (Home > Bullets / Numbering > Bullets and Numbering...).
@@ -650,6 +663,9 @@ impl App {
             paste_count: 0,
             spacing_dialog: None,
             page_dialog: None,
+            master_view: None,
+            master_dialog: None,
+            apply_dialog: None,
             table_dialog: None,
             list_dialog: None,
             recent_bullets: crate::lists_ui::default_recent(),
@@ -698,6 +714,9 @@ impl App {
                 .saturating_sub(1)
                 .min(app.page_count().saturating_sub(1));
         }
+        if opts.master {
+            app.enter_master_view(None);
+        }
         let tab = opts.tab.as_deref();
         match tab.map(str::to_lowercase).as_deref() {
             Some("file") => app.backstage = true,
@@ -731,9 +750,8 @@ impl App {
             let id = app
                 .editor
                 .as_ref()
-                .and_then(|e| e.doc().pages.get(app.page))
-                .and_then(|p| p.shapes.get(shape_ix))
-                .map(|s| s.id);
+                .and_then(|e| e.doc().surface(app.page))
+                .and_then(|p| p.shapes.get(shape_ix).map(|s| s.id));
             if let Some(id) = id {
                 app.begin_cell_edit(id, cell);
             }
@@ -742,9 +760,8 @@ impl App {
             let id = app
                 .editor
                 .as_ref()
-                .and_then(|e| e.doc().pages.get(app.page))
-                .and_then(|p| p.shapes.get(shape_ix))
-                .map(|s| s.id);
+                .and_then(|e| e.doc().surface(app.page))
+                .and_then(|p| p.shapes.get(shape_ix).map(|s| s.id));
             if let Some(id) = id {
                 app.begin_edit(id);
                 app.pending_selection = Some(range);
@@ -754,7 +771,7 @@ impl App {
             let ids: Vec<ShapeId> = app
                 .editor
                 .as_ref()
-                .and_then(|e| e.doc().pages.get(app.page))
+                .and_then(|e| e.doc().surface(app.page))
                 .map(|p| {
                     opts.select
                         .iter()
@@ -835,6 +852,9 @@ impl App {
         self.source = source;
         self.dirty_cache = None;
         self.page = 0;
+        self.master_view = None;
+        self.master_dialog = None;
+        self.apply_dialog = None;
         self.selection = None;
         self.edit = None;
         self.drag = None;
@@ -1027,6 +1047,9 @@ impl App {
         self.dirty_cache = None;
         self.path = None;
         self.selection = None;
+        self.master_view = None;
+        self.master_dialog = None;
+        self.apply_dialog = None;
         self.pics.clear();
         self.backstage = true;
         self.section = Section::Home;
@@ -1550,7 +1573,7 @@ It is not a PNG or JPEG picture it can read."));
     pub fn page_size(&self) -> (i64, i64) {
         self.editor
             .as_ref()
-            .and_then(|e| e.doc().pages.get(self.page))
+            .and_then(|e| e.doc().surface(self.page))
             .map_or((0, 0), |p| (p.width_emu, p.height_emu))
     }
 
@@ -2008,7 +2031,11 @@ It is not a PNG or JPEG picture it can read."));
             .filter_map(|id| ed.doc().shape(self.page, *id))
             .map(|s| ObjKind::of(&s.kind))
             .collect();
-        context_tabs(&kinds)
+        let mut tabs = context_tabs(&kinds);
+        if self.master_view.is_some() {
+            tabs.insert(0, Tab::MasterPage);
+        }
+        tabs
     }
 
     /// Select exactly `ids`.
@@ -2018,7 +2045,7 @@ It is not a PNG or JPEG picture it can read."));
 
     /// The paragraphs being formatted: the text as typed so far while editing, otherwise
     /// those of the selected text box.
-    fn formatted_paragraphs(&self) -> Option<Vec<Paragraph>> {
+    pub(crate) fn formatted_paragraphs(&self) -> Option<Vec<Paragraph>> {
         let ed = self.editor.as_ref()?;
         if let Some(edit) = &self.edit {
             let shape = ed.doc().shape(edit.page, edit.id)?;
@@ -2307,7 +2334,7 @@ It is not a PNG or JPEG picture it can read."));
         let Some(pg) = self
             .editor
             .as_ref()
-            .and_then(|e| e.doc().pages.get(self.page))
+            .and_then(|e| e.doc().surface(self.page))
         else {
             return false;
         };
@@ -2352,7 +2379,7 @@ It is not a PNG or JPEG picture it can read."));
         let members: Vec<ShapeId> = self
             .editor
             .as_ref()
-            .and_then(|e| e.doc().pages.get(self.page))
+            .and_then(|e| e.doc().surface(self.page))
             .map(|p| {
                 p.shapes
                     .iter()
@@ -2371,7 +2398,7 @@ It is not a PNG or JPEG picture it can read."));
     pub fn copy_selection(&mut self) {
         let ids = self.selected_ids();
         let Some(ed) = &self.editor else { return };
-        let Some(pg) = ed.doc().pages.get(self.page) else {
+        let Some(pg) = ed.doc().surface(self.page) else {
             return;
         };
         // A copied group brings its members; pasting makes them ordinary objects.
@@ -2457,7 +2484,7 @@ It is not a PNG or JPEG picture it can read."));
     }
 
     pub fn insert_page(&mut self) {
-        if self.editor.is_none() {
+        if self.editor.is_none() || self.master_view.is_some() {
             return;
         }
         self.exec(Command::InsertPage { after: self.page });
@@ -2465,7 +2492,7 @@ It is not a PNG or JPEG picture it can read."));
     }
 
     pub fn delete_page(&mut self) {
-        if self.page_count() > 1 {
+        if self.page_count() > 1 && self.master_view.is_none() {
             let page = self.page;
             self.exec(Command::DeletePage { page });
             self.go_page(page.min(self.page_count().saturating_sub(1)));
@@ -2474,7 +2501,7 @@ It is not a PNG or JPEG picture it can read."));
 
     /// Insert a blank page after page `page` (Pages pane > Insert Blank Page) and show it.
     pub fn insert_page_after(&mut self, page: usize) {
-        if self.editor.is_none() || page >= self.page_count() {
+        if self.editor.is_none() || self.master_view.is_some() || page >= self.page_count() {
             return;
         }
         self.exec(Command::InsertPage { after: page });
@@ -2483,7 +2510,7 @@ It is not a PNG or JPEG picture it can read."));
 
     /// Insert a copy of page `page` after it (Pages pane > Insert Duplicate Page) and show it.
     pub fn duplicate_page_at(&mut self, page: usize) {
-        if self.editor.is_none() || page >= self.page_count() {
+        if self.editor.is_none() || self.master_view.is_some() || page >= self.page_count() {
             return;
         }
         self.exec(Command::DuplicatePage { page });
@@ -2492,7 +2519,7 @@ It is not a PNG or JPEG picture it can read."));
 
     /// Delete page `page` (Pages pane > Delete Page); the last page cannot be deleted.
     pub fn delete_page_at(&mut self, page: usize) {
-        if self.page_count() > 1 && page < self.page_count() {
+        if self.page_count() > 1 && self.master_view.is_none() && page < self.page_count() {
             self.exec(Command::DeletePage { page });
             let cur = if self.page > page { self.page - 1 } else { self.page };
             self.go_page(cur.min(self.page_count().saturating_sub(1)));
@@ -2501,6 +2528,9 @@ It is not a PNG or JPEG picture it can read."));
 
     /// Move page `page` one place up (`-1`) or down (`1`) and show it there.
     pub fn move_page_by(&mut self, page: usize, delta: isize) {
+        if self.master_view.is_some() {
+            return;
+        }
         let to = page as isize + delta;
         if to < 0 || to as usize >= self.page_count() {
             return;
@@ -2513,6 +2543,9 @@ It is not a PNG or JPEG picture it can read."));
     }
 
     pub fn go_page(&mut self, page: usize) {
+        if self.master_view.is_some() {
+            return; // the Master Page view shows masters; `go_master` moves between them
+        }
         let page = page.min(self.page_count().saturating_sub(1));
         if page != self.page {
             self.commit_edit();
@@ -2554,6 +2587,7 @@ It is not a PNG or JPEG picture it can read."));
             // A normal exit: the snapshot is deleted; only a dying process leaves one.
             self.ar.shutdown();
         }
+        self.keep_master_view_valid();
         if let Some(ed) = &self.editor {
             if self.fonts_rev != Some(ed.revision()) {
                 self.fonts_rev = Some(ed.revision());
@@ -2564,7 +2598,7 @@ It is not a PNG or JPEG picture it can read."));
             }
             // Keep the selection, page and editor valid after undo, redo or page changes.
             let pages = ed.doc().pages.len();
-            if self.page >= pages {
+            if self.master_view.is_none() && self.page >= pages {
                 self.page = pages.saturating_sub(1);
             }
             if let Some(id) = self.selection {
@@ -2641,6 +2675,8 @@ It is not a PNG or JPEG picture it can read."));
             || self.prompt.is_some()
             || self.spacing_dialog.is_some()
             || self.page_dialog.is_some()
+            || self.master_dialog.is_some()
+            || self.apply_dialog.is_some()
             || self.table_dialog.is_some()
             || self.list_dialog.is_some()
         {
@@ -2668,6 +2704,7 @@ It is not a PNG or JPEG picture it can read."));
                 ("new", ctrl, Key::N),
                 ("open", ctrl, Key::O),
                 ("print", ctrl, Key::P),
+                ("master_view", ctrl, Key::M),
                 ("undo", ctrl, Key::Z),
                 ("redo", ctrl, Key::Y),
             ] {
@@ -2726,7 +2763,7 @@ It is not a PNG or JPEG picture it can read."));
             keys.retain(|k| {
                 matches!(
                     *k,
-                    "new" | "open" | "f9" | "insert_page" | "save" | "save_as" | "print"
+                    "new" | "open" | "f9" | "insert_page" | "save" | "save_as" | "print" | "master_view"
                 ) || (cell_untouched && matches!(*k, "undo" | "redo"))
             });
         }
@@ -2750,8 +2787,11 @@ It is not a PNG or JPEG picture it can read."));
                 "redo" => self.redo(),
                 "insert_page" => self.insert_page(),
                 "f9" => self.toggle_100_whole(),
+                "pgup" if self.master_view.is_some() => self.step_master(-1),
+                "pgdn" if self.master_view.is_some() => self.step_master(1),
                 "pgup" => self.go_page(self.page.saturating_sub(1)),
                 "pgdn" => self.go_page(self.page + 1),
+                "master_view" => self.toggle_master_view(),
                 _ => {}
             }
         }
@@ -2770,7 +2810,7 @@ It is not a PNG or JPEG picture it can read."));
             let ids: Vec<ShapeId> = self
                 .editor
                 .as_ref()
-                .and_then(|e| e.doc().pages.get(self.page))
+                .and_then(|e| e.doc().surface(self.page))
                 .map(|p| {
                     p.shapes
                         .iter()
@@ -3225,8 +3265,9 @@ It is not a PNG or JPEG picture it can read."));
                             selected,
                         });
                         if resp.clicked() {
-                            // The caret stays in a table cell: the Layout tab acts on it.
-                            if self.edit.as_ref().is_some_and(|e| e.cell.is_some()) {
+                            // The caret stays in a table cell (the Layout tab acts on it) and in a text box
+                            // when the Insert tab opens (Page Number > Insert in Current Text Box).
+                            if self.edit.as_ref().is_some_and(|e| e.cell.is_some() || t == Tab::Insert) {
                                 self.refocus_edit();
                             } else {
                                 self.commit_edit();
@@ -3441,6 +3482,8 @@ impl eframe::App for App {
         self.prompts(&ctx);
         self.spacing_dialog_ui(&ctx);
         self.page_dialog_ui(&ctx);
+        self.master_dialog_ui(&ctx);
+        self.apply_dialog_ui(&ctx);
         self.table_dialog_ui(&ctx);
         self.list_dialog_ui(&ctx);
         self.screenshot_step(&ctx);
