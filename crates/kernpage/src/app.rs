@@ -270,6 +270,10 @@ pub struct Options {
     pub scale: Option<f32>,
     /// Debug: draw this ribbon group collapsed with its popup open.
     pub open_group: Option<String>,
+    /// Screenshot option `--print-layout one|copies|pages|booklet`: the File > Print layout.
+    pub print_layout: Option<String>,
+    /// Screenshot option `--print-sheet N`: the 0-based sheet side the Print preview starts on.
+    pub print_sheet: Option<usize>,
     /// Screenshot options: `--theme light|dark|system`, `--accent teal|blue|purple|graphite|orange`.
     pub theme: Option<String>,
     pub accent: Option<String>,
@@ -455,6 +459,9 @@ pub enum Prompt {
         target: PathBuf,
         then: Option<Pending>,
     },
+    /// Manual two-sided printing: the front sides are printed; waiting for the user to turn the
+    /// stack over (the back sides are in `print.pending_backs`).
+    TurnOver,
 }
 
 pub struct App {
@@ -706,6 +713,19 @@ impl App {
             app.section = Section::parse(page);
             // `options-appearance` opens the Appearance category.
             app.options_cat = usize::from(page.to_lowercase().contains("appearance"));
+        }
+        if let Some(n) = opts.print_sheet {
+            app.print_sheet = n;
+        }
+        if let Some(name) = opts.print_layout.as_deref() {
+            use kernpage_core::imposition::PrintLayout;
+            app.print.layout = match name {
+                "one" => Some(PrintLayout::OnePerSheet),
+                "copies" => Some(PrintLayout::CopiesPerSheet),
+                "pages" => Some(PrintLayout::PagesPerSheet),
+                "booklet" => Some(PrintLayout::Booklet),
+                _ => None,
+            };
         }
         if let Some((shape_ix, cell)) = opts.edit_cell {
             let id = app
@@ -1302,6 +1322,35 @@ impl App {
         #[allow(deprecated)]
         let modal_id = egui::Id::new("save_prompt");
         match prompt {
+            Prompt::TurnOver => {
+                let mut choice = None; // Some(true) = Continue, Some(false) = Cancel
+                egui::Modal::new(modal_id).show(ctx, |ui| {
+                    ui.set_width(400.0);
+                    ui.heading("KernPage");
+                    ui.add_space(8.0);
+                    ui.label(
+                        "Take the printed pages out, turn the stack over without changing its order, \
+                         put it back in the tray, then click Continue.",
+                    );
+                    ui.add_space(12.0);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                        if ui.button("  Cancel  ").clicked() {
+                            choice = Some(false);
+                        }
+                        if ui.button("  Continue  ").clicked() {
+                            choice = Some(true);
+                        }
+                    });
+                });
+                if esc {
+                    choice = Some(false);
+                }
+                match choice {
+                    None => self.prompt = Some(Prompt::TurnOver),
+                    Some(true) => self.print_backs(ctx),
+                    Some(false) => self.print.pending_backs = None,
+                }
+            }
             Prompt::Unsaved { then } => {
                 let mut choice = None; // Some(true) = save, Some(false) = don't save
                 let can_save = self.can_save();

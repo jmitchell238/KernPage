@@ -905,7 +905,7 @@ fn info_unsupported_rows_are_described_and_their_buttons_are_greyed() {
 fn the_print_page_shows_the_first_sheet_and_the_page_counter() {
     let mut ui = pages_doc(3);
     file_entry(&mut ui, "Print");
-    assert!(has_label(&ui, "1  of 3"));
+    assert!(has_label(&ui, "Sheet 1 of 3"));
     assert!(has_label(&ui, "Printer") && has_label(&ui, "Settings"));
     assert!(has_label_containing(&ui, "Copies of print job"));
     assert!(ui.ribbon("print:Print").enabled);
@@ -918,16 +918,16 @@ fn the_print_preview_arrows_step_through_the_sheets_and_stop_at_both_ends() {
     assert!(!ui.ribbon("printnav:prev").enabled, "no sheet before the first");
     assert!(ui.ribbon("printnav:next").enabled);
     ui.click_ribbon("printnav:next");
-    assert!(has_label(&ui, "2  of 3"));
+    assert!(has_label(&ui, "Sheet 2 of 3"));
     assert_eq!(ui.app().print_sheet, 1);
     ui.click_ribbon("printnav:next");
-    assert!(has_label(&ui, "3  of 3"));
+    assert!(has_label(&ui, "Sheet 3 of 3"));
     assert!(!ui.ribbon("printnav:next").enabled, "no sheet after the last");
     ui.click_ribbon("printnav:next");
     assert_eq!(ui.app().print_sheet, 2, "clicking the greyed arrow does nothing");
     ui.click_ribbon("printnav:prev");
     ui.click_ribbon("printnav:prev");
-    assert!(has_label(&ui, "1  of 3"));
+    assert!(has_label(&ui, "Sheet 1 of 3"));
     ui.click_ribbon("printnav:prev");
     assert_eq!(ui.app().print_sheet, 0);
     // The preview does not change the publication or the current page.
@@ -938,14 +938,15 @@ fn the_print_preview_arrows_step_through_the_sheets_and_stop_at_both_ends() {
 fn a_single_page_publication_has_both_preview_arrows_greyed() {
     let mut ui = new_doc();
     file_entry(&mut ui, "Print");
-    assert!(has_label(&ui, "1  of 1"));
+    assert!(has_label(&ui, "Sheet 1 of 1"));
     assert!(!ui.ribbon("printnav:prev").enabled && !ui.ribbon("printnav:next").enabled);
 }
 
-/// The Print page draws three combo boxes; counting back from the last one drawn.
-const COLLATION: usize = 0;
-const PAGES: usize = 1;
-const PRINTER: usize = 2;
+/// The Print page draws four combo boxes; counting back from the last one drawn.
+const LAYOUT: usize = 0;
+const COLLATION: usize = 1;
+const PAGES: usize = 2;
+const PRINTER: usize = 3;
 
 fn open_print_combo(ui: &mut TestUi, from_last: usize) {
     let all: Vec<_> = ui.h.get_all_by_role(egui::accesskit::Role::ComboBox).collect();
@@ -963,7 +964,7 @@ fn the_print_page_offers_printers_copies_pages_and_collation() {
     assert_eq!(ui.app().print.printer.as_deref(), Some("Test Inkjet"));
     assert_eq!(ui.app().print.scope, crate::printing::PageScope::All);
     assert!(ui.app().print.collate);
-    assert_eq!(ui.h.get_all_by_role(egui::accesskit::Role::ComboBox).count(), 3, "printer, pages, collation");
+    assert_eq!(ui.h.get_all_by_role(egui::accesskit::Role::ComboBox).count(), 4, "printer, pages, collation, layout");
     assert!(has_label(&ui, "Pages:"));
     assert!(has_label_containing(&ui, "Portrait Orientation"));
     assert!(ui.ribbon("link:Printer Properties").enabled);
@@ -990,7 +991,7 @@ fn the_pages_dropdown_lists_all_current_and_custom_and_custom_enables_the_pages_
 fn the_remaining_print_settings_are_greyed_and_inert() {
     let mut ui = new_doc();
     file_entry(&mut ui, "Print");
-    let rows = ["Publication page size", "Print One Sided", "Composite RGB"];
+    let rows = ["Publication page size", "Composite RGB"];
     for r in rows {
         assert!(!ui.ribbon(&format!("setting:{r}")).enabled, "{r}");
     }
@@ -1404,4 +1405,379 @@ fn saving_moves_the_file_to_the_top_of_recent_with_the_save_time() {
     assert!(stored.lines().next().unwrap().ends_with("saved-now.kern") && !stored.contains('\t'), "{stored}");
     let times = std::fs::read_to_string(ui.env.recent.with_file_name("recent-times.txt")).unwrap();
     assert!(times.lines().next().unwrap().contains('\t') && times.contains("saved-now.kern"), "{times}");
+}
+
+// ---- Print layouts and the print preview ---------------------------------------------------------
+
+/// A document of `n` pages of `w` x `h` inches; page k carries k rectangles so pages differ.
+fn sized_doc(w: f64, h: f64, n: usize) -> TestUi {
+    use kernpage_core::geometry::in_to_emu;
+    let pages = (1..=n)
+        .map(|k| {
+            let mut p = kernpage_core::Page::blank(in_to_emu(w), in_to_emu(h));
+            p.shapes = (0..k).map(|i| rect_shape(0.2 + 0.3 * i as f64, 0.3, 0.2, 0.4)).collect();
+            p
+        })
+        .collect();
+    TestUi::with_doc(kernpage_core::Document::new("Layouts", pages))
+}
+
+fn layout_texts() -> [&'static str; 4] {
+    ["One page per sheet", "Multiple copies per sheet", "Multiple pages per sheet", "Booklet, side-fold"]
+}
+
+fn count_label(ui: &TestUi, text: &str) -> usize {
+    ui.h.query_all_by_label(text).count()
+}
+
+/// The page numbers drawn on the previewed sheet side, left to right.
+fn drawn_pages(ui: &TestUi) -> Vec<usize> {
+    let mut v: Vec<(f32, usize)> = ui
+        .ribbon_buttons()
+        .iter()
+        .filter_map(|b| b.label.strip_prefix("printpage:").map(|n| (b.rect.min.x, n.parse().unwrap())))
+        .collect();
+    v.sort_by(|a, b| a.0.total_cmp(&b.0));
+    v.into_iter().map(|p| p.1).collect()
+}
+
+#[test]
+fn a_letter_page_offers_only_one_page_per_sheet() {
+    let mut ui = pages_doc(2);
+    file_entry(&mut ui, "Print");
+    assert_eq!(ui.app().print_layout(), kernpage_core::PrintLayout::OnePerSheet);
+    open_print_combo(&mut ui, LAYOUT);
+    assert!(has_label(&ui, "One page per sheet"));
+    for other in &layout_texts()[1..] {
+        assert_eq!(count_label(&ui, other), 0, "{other}");
+    }
+}
+
+#[test]
+fn a_business_card_page_defaults_to_copies_per_sheet_and_offers_all_four_layouts() {
+    let mut ui = sized_doc(3.5, 2.0, 3);
+    file_entry(&mut ui, "Print");
+    assert_eq!(ui.app().print_layout(), kernpage_core::PrintLayout::CopiesPerSheet);
+    // One sheet per page, each full of one page: 2 x 5 cells.
+    assert!(has_label(&ui, "Sheet 1 of 3"));
+    assert_eq!(drawn_pages(&ui), vec![1; 10]);
+    open_print_combo(&mut ui, LAYOUT);
+    for t in layout_texts() {
+        assert!(has_label(&ui, t), "{t}");
+    }
+}
+
+#[test]
+fn half_letter_pages_default_to_one_page_per_sheet_and_offer_all_four_layouts() {
+    let mut ui = sized_doc(5.5, 8.5, 4);
+    file_entry(&mut ui, "Print");
+    assert_eq!(ui.app().print_layout(), kernpage_core::PrintLayout::OnePerSheet);
+    open_print_combo(&mut ui, LAYOUT);
+    for t in layout_texts() {
+        assert!(has_label(&ui, t), "{t}");
+    }
+    click_button(&mut ui, "Multiple pages per sheet");
+    assert_eq!(ui.app().print.layout, Some(kernpage_core::PrintLayout::PagesPerSheet));
+    assert!(has_label(&ui, "Sheet 1 of 2"), "two pages per sheet: 4 pages make 2 sheets");
+    assert_eq!(drawn_pages(&ui), vec![1, 2]);
+}
+
+#[test]
+fn the_preview_arrows_step_through_the_sheet_sides_of_a_layout() {
+    let mut ui = sized_doc(5.5, 8.5, 5);
+    file_entry(&mut ui, "Print");
+    open_print_combo(&mut ui, LAYOUT);
+    click_button(&mut ui, "Multiple pages per sheet");
+    // 5 pages, 2 per sheet: 3 sheets, the last with an empty cell.
+    assert!(has_label(&ui, "Sheet 1 of 3"));
+    assert!(!ui.ribbon("printnav:prev").enabled);
+    ui.click_ribbon("printnav:next");
+    ui.click_ribbon("printnav:next");
+    assert!(has_label(&ui, "Sheet 3 of 3"));
+    assert_eq!(drawn_pages(&ui), vec![5], "the empty cell draws nothing");
+    assert!(!ui.ribbon("printnav:next").enabled);
+    // Copies change the sheet count.
+    ui.app().print.copies = 2;
+    ui.settle();
+    assert!(has_label(&ui, "Sheet 3 of 6"));
+}
+
+#[test]
+fn an_eight_page_half_letter_booklet_previews_in_folding_order() {
+    let mut ui = sized_doc(5.5, 8.5, 8);
+    file_entry(&mut ui, "Print");
+    open_print_combo(&mut ui, LAYOUT);
+    click_button(&mut ui, "Booklet, side-fold");
+    assert_eq!(ui.app().print_layout(), kernpage_core::PrintLayout::Booklet);
+    let expected = [vec![8, 1], vec![2, 7], vec![6, 3], vec![4, 5]];
+    let names = ["Sheet 1, front", "Sheet 1, back", "Sheet 2, front", "Sheet 2, back"];
+    for (i, (pages, name)) in expected.iter().zip(names).enumerate() {
+        assert!(has_label(&ui, name), "{name}");
+        assert_eq!(&drawn_pages(&ui), pages, "side {}", i + 1);
+        // The sheet is landscape: the two pages sit side by side.
+        let sheet = ui.ribbon("printsheet").rect;
+        assert!(sheet.width() > sheet.height());
+        if i < 3 {
+            ui.click_ribbon("printnav:next");
+        }
+    }
+    assert!(!ui.ribbon("printnav:next").enabled, "four sides in all");
+}
+
+#[test]
+fn changing_the_page_range_updates_the_preview() {
+    let mut ui = sized_doc(5.5, 8.5, 8);
+    file_entry(&mut ui, "Print");
+    open_print_combo(&mut ui, LAYOUT);
+    click_button(&mut ui, "Booklet, side-fold");
+    open_print_combo(&mut ui, PAGES);
+    click_button(&mut ui, "Custom Print");
+    ui.h.get_by_role(egui::accesskit::Role::TextInput).click();
+    ui.type_text("1-4");
+    ui.settle();
+    assert_eq!(drawn_pages(&ui), vec![4, 1]);
+    ui.click_ribbon("printnav:next");
+    assert_eq!(drawn_pages(&ui), vec![2, 3]);
+    assert!(!ui.ribbon("printnav:next").enabled);
+}
+
+// ---- Printing a layout, two-sided printing, paper size ---------------------------------------------
+
+use crate::printing::Duplex;
+
+fn pick(ui: &mut TestUi, from_last: usize, label: &str) {
+    open_print_combo(ui, from_last);
+    click_button(ui, label);
+}
+
+/// Open the two-sided row's menu (a row like Publication page size, not a combo box).
+fn open_duplex(ui: &mut TestUi) {
+    ui.click_ribbon("setting:Print duplex");
+    ui.settle();
+}
+
+fn pick_duplex(ui: &mut TestUi, label: &str) {
+    open_duplex(ui);
+    click_button(ui, label);
+}
+
+fn select_printer(ui: &mut TestUi, name: &str) {
+    pick(ui, PRINTER, name);
+}
+
+fn booklet_ui(printer: &str) -> TestUi {
+    let mut ui = sized_doc(5.5, 8.5, 8);
+    file_entry(&mut ui, "Print");
+    select_printer(&mut ui, printer);
+    pick(&mut ui, LAYOUT, "Booklet, side-fold");
+    crate::printing::test_os::take_printed();
+    ui
+}
+
+/// The page numbers (1-based) in each placement of each side, left to right.
+fn job_pages(job: &crate::printing::PrintJob) -> Vec<Vec<Option<usize>>> {
+    job.sides.iter().map(|s| s.placements.iter().map(|p| p.page.map(|n| n + 1)).collect()).collect()
+}
+
+fn expect_booklet_8() -> Vec<Vec<Option<usize>>> {
+    [[8, 1], [2, 7], [6, 3], [4, 5]].iter().map(|p| p.iter().map(|&n| Some(n)).collect()).collect()
+}
+
+#[test]
+fn printing_a_booklet_submits_every_side_in_folding_order_on_landscape_sheets() {
+    let mut ui = booklet_ui("Test Inkjet");
+    assert_eq!(ui.app().print_duplex(), Duplex::ShortEdge, "booklets default to both sides, short edge");
+    ui.click_ribbon("print:Print");
+    let jobs = crate::printing::test_os::take_printed();
+    assert_eq!(jobs.len(), 1, "{:?}", ui.app().error);
+    let j = &jobs[0];
+    assert_eq!(j.layout, kernpage_core::PrintLayout::Booklet);
+    assert_eq!(job_pages(j), expect_booklet_8());
+    assert!(j.landscape);
+    assert!(j.sides.iter().all(|s| s.paper == (792.0, 612.0)));
+    assert_eq!(j.duplex, Duplex::ShortEdge);
+    assert_eq!(j.pages, (0..8).collect::<Vec<_>>());
+    // The placements are the preview's: half a landscape sheet each.
+    let r = j.sides[0].placements[1].rect;
+    assert_eq!((r.x, r.y, r.w, r.h), (396.0, 0.0, 396.0, 612.0));
+    assert!(ui.app().prompt.is_none(), "automatic two-sided printing asks nothing");
+}
+
+#[test]
+fn one_page_per_sheet_prints_as_before() {
+    let mut ui = pages_doc(3);
+    file_entry(&mut ui, "Print");
+    crate::printing::test_os::take_printed();
+    ui.click_ribbon("print:Print");
+    let jobs = crate::printing::test_os::take_printed();
+    assert_eq!(jobs.len(), 1);
+    let j = &jobs[0];
+    assert_eq!(j.layout, kernpage_core::PrintLayout::OnePerSheet);
+    assert_eq!(j.duplex, Duplex::OneSided);
+    assert!(!j.landscape);
+    assert_eq!(job_pages(j), vec![vec![Some(1)], vec![Some(2)], vec![Some(3)]]);
+    assert!(j.sides.iter().all(|s| s.paper == (612.0, 792.0)));
+    assert!(ui.app().prompt.is_none() && ui.app().print.pending_backs.is_none());
+}
+
+#[test]
+fn copies_per_sheet_prints_the_grid() {
+    let mut ui = sized_doc(3.5, 2.0, 2);
+    file_entry(&mut ui, "Print");
+    crate::printing::test_os::take_printed();
+    ui.click_ribbon("print:Print");
+    let jobs = crate::printing::test_os::take_printed();
+    assert_eq!(jobs.len(), 1);
+    assert_eq!(jobs[0].sides.len(), 2);
+    assert!(jobs[0].sides.iter().all(|s| s.placements.len() == 10));
+    assert_eq!(jobs[0].duplex, Duplex::OneSided);
+}
+
+#[test]
+fn the_two_sided_choice_sets_the_duplex_flag_of_the_job() {
+    let cases = [
+        ("Print One Sided", Duplex::OneSided),
+        (Duplex::LongEdge.label(), Duplex::LongEdge),
+        (Duplex::ShortEdge.label(), Duplex::ShortEdge),
+    ];
+    for (label, want) in cases {
+        let mut ui = booklet_ui("Test Inkjet");
+        pick_duplex(&mut ui, label);
+        assert_eq!(ui.app().print_duplex(), want, "{label}");
+        ui.click_ribbon("print:Print");
+        let jobs = crate::printing::test_os::take_printed();
+        assert_eq!(jobs.len(), 1, "{label}: {:?}", ui.app().error);
+        assert_eq!(jobs[0].duplex, want, "{label}");
+        assert_eq!(jobs[0].sides.len(), 4);
+    }
+}
+
+#[test]
+fn automatic_two_sided_choices_are_hidden_when_the_printer_cannot_duplex() {
+    let mut ui = sized_doc(5.5, 8.5, 4);
+    file_entry(&mut ui, "Print");
+    // The recorded inkjet can duplex, the recorded laser cannot.
+    assert_eq!(ui.app().duplex_choices(), Duplex::ALL.to_vec());
+    open_duplex(&mut ui);
+    for d in Duplex::ALL {
+        assert!(has_label(&ui, d.label()), "{}", d.label());
+    }
+    click_button(&mut ui, "Print One Sided");
+    select_printer(&mut ui, "Test Laser");
+    assert_eq!(ui.app().duplex_choices(), vec![Duplex::OneSided, Duplex::Manual]);
+    open_duplex(&mut ui);
+    assert!(has_label(&ui, Duplex::Manual.label()));
+    assert_eq!(count_label(&ui, Duplex::LongEdge.label()), 0);
+    assert_eq!(count_label(&ui, Duplex::ShortEdge.label()), 0);
+}
+
+#[test]
+fn a_chosen_automatic_mode_falls_back_when_the_printer_cannot_duplex() {
+    let mut ui = booklet_ui("Test Inkjet");
+    pick_duplex(&mut ui, Duplex::LongEdge.label());
+    select_printer(&mut ui, "Test Laser");
+    assert_eq!(ui.app().print_duplex(), Duplex::Manual, "the booklet default without duplex support");
+}
+
+#[test]
+fn manual_two_sided_prints_the_fronts_asks_then_prints_the_backs_last_sheet_first() {
+    let mut ui = booklet_ui("Test Laser");
+    assert_eq!(ui.app().print_duplex(), Duplex::Manual, "no duplex support: booklets default to by hand");
+    ui.click_ribbon("print:Print");
+    ui.settle();
+    let jobs = crate::printing::test_os::take_printed();
+    assert_eq!(jobs.len(), 1, "only the fronts so far: {:?}", ui.app().error);
+    assert_eq!(job_pages(&jobs[0]), vec![vec![Some(8), Some(1)], vec![Some(6), Some(3)]]);
+    assert_eq!(jobs[0].duplex, Duplex::OneSided, "the printer prints one side");
+    assert!(jobs[0].landscape);
+    assert!(has_label_containing(&ui, "turn the stack over without changing its order"));
+    assert!(has_label(&ui, "  Continue  ") && has_label(&ui, "  Cancel  "));
+    click_button(&mut ui, "  Continue  ");
+    ui.settle();
+    let jobs = crate::printing::test_os::take_printed();
+    assert_eq!(jobs.len(), 1, "{:?}", ui.app().error);
+    // The back sides, last sheet first.
+    assert_eq!(job_pages(&jobs[0]), vec![vec![Some(4), Some(5)], vec![Some(2), Some(7)]]);
+    assert_eq!(jobs[0].duplex, Duplex::OneSided);
+    assert!(ui.app().prompt.is_none() && ui.app().print.pending_backs.is_none());
+    assert!(!has_label_containing(&ui, "turn the stack over"));
+}
+
+#[test]
+fn cancelling_the_turn_over_message_prints_no_backs() {
+    let mut ui = booklet_ui("Test Laser");
+    ui.click_ribbon("print:Print");
+    ui.settle();
+    assert_eq!(crate::printing::test_os::take_printed().len(), 1);
+    click_button(&mut ui, "  Cancel  ");
+    ui.settle();
+    assert!(crate::printing::test_os::take_printed().is_empty());
+    assert!(ui.app().prompt.is_none() && ui.app().print.pending_backs.is_none());
+    assert!(!has_label_containing(&ui, "turn the stack over"));
+}
+
+#[test]
+fn manual_two_sided_for_an_odd_booklet_leaves_a_blank_back() {
+    let mut ui = sized_doc(5.5, 8.5, 6);
+    file_entry(&mut ui, "Print");
+    select_printer(&mut ui, "Test Laser");
+    pick(&mut ui, LAYOUT, "Booklet, side-fold");
+    crate::printing::test_os::take_printed();
+    ui.click_ribbon("print:Print");
+    ui.settle();
+    let fronts = crate::printing::test_os::take_printed();
+    assert_eq!(job_pages(&fronts[0]), vec![vec![Some(6), Some(1)], vec![Some(4), Some(3)]]);
+    click_button(&mut ui, "  Continue  ");
+    ui.settle();
+    let backs = crate::printing::test_os::take_printed();
+    // Three sides pad to four; the second sheet's back is blank and goes first.
+    assert_eq!(job_pages(&backs[0]), vec![vec![], vec![Some(2), Some(5)]]);
+}
+
+#[test]
+fn the_preview_of_a_two_sided_job_counts_sheets_front_and_back() {
+    let mut ui = sized_doc(5.5, 8.5, 3);
+    file_entry(&mut ui, "Print");
+    pick_duplex(&mut ui, Duplex::LongEdge.label());
+    // 3 pages one per side, padded to 4 sides = 2 sheets.
+    assert!(has_label(&ui, "Sheet 1, front"));
+    ui.click_ribbon("printnav:next");
+    assert!(has_label(&ui, "Sheet 1, back"));
+    assert_eq!(drawn_pages(&ui), vec![2]);
+    ui.click_ribbon("printnav:next");
+    ui.click_ribbon("printnav:next");
+    assert!(has_label(&ui, "Sheet 2, back"));
+    assert!(drawn_pages(&ui).is_empty(), "the padded back is blank");
+    assert!(!ui.ribbon("printnav:next").enabled);
+}
+
+#[test]
+fn the_printers_paper_size_drives_the_preview_and_the_layout() {
+    use crate::printing::PrinterCaps;
+    // Legal paper (8.5 x 14 in): a business-card grid gets another row.
+    crate::printing::test_os::set_caps("Test Inkjet", PrinterCaps { paper: Some((612.0, 1008.0)), duplex: true });
+    let mut ui = sized_doc(3.5, 2.0, 1);
+    file_entry(&mut ui, "Print");
+    assert_eq!(ui.app().print_paper(), (612.0, 1008.0));
+    assert_eq!(drawn_pages(&ui).len(), 12, "2 x 6 cards on legal, not 2 x 5 on letter");
+    assert!(has_label_containing(&ui, "Paper: 8.5 x 14\""));
+    let sheet = ui.ribbon("printsheet").rect;
+    assert!((sheet.height() / sheet.width() - 1008.0 / 612.0).abs() < 0.01);
+    crate::printing::test_os::take_printed();
+    ui.click_ribbon("print:Print");
+    let jobs = crate::printing::test_os::take_printed();
+    assert_eq!(jobs[0].sides[0].paper, (612.0, 1008.0));
+    assert_eq!(jobs[0].sides[0].placements.len(), 12);
+    // Restore the default for later tests on this thread.
+    crate::printing::test_os::set_caps("Test Inkjet", PrinterCaps { paper: Some((612.0, 792.0)), duplex: true });
+}
+
+#[test]
+fn an_unknown_paper_size_falls_back_to_letter() {
+    use crate::printing::PrinterCaps;
+    crate::printing::test_os::set_caps("Test Inkjet", PrinterCaps { paper: None, duplex: false });
+    let mut ui = pages_doc(1);
+    file_entry(&mut ui, "Print");
+    assert_eq!(ui.app().print_paper(), (612.0, 792.0));
+    crate::printing::test_os::set_caps("Test Inkjet", PrinterCaps { paper: Some((612.0, 792.0)), duplex: true });
 }
