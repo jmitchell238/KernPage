@@ -675,8 +675,7 @@ pub(crate) fn install(input: &[u8], contents: &[u8], escher: &[u8]) -> Result<Ve
 pub fn group_shapes(input: &[u8], page_index: usize, shape_indexes: &[usize]) -> Result<Vec<u8>> {
     let doc = pub_format::read_bytes(input)?;
     let page = doc
-        .pages
-        .get(page_index)
+        .surface(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?;
     let mut wanted = HashSet::new();
     let mut union: Option<[f64; 4]> = None;
@@ -858,8 +857,7 @@ pub fn ungroup_with(
 ) -> Result<Vec<u8>> {
     let doc = pub_format::read_bytes(input)?;
     let page = doc
-        .pages
-        .get(page_index)
+        .surface(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?;
     let g = page
         .shapes

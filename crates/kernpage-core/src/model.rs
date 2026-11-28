@@ -397,8 +397,13 @@ pub struct Page {
 
 /// A master page (spec 4T): shapes drawn behind the shapes of the pages that use it. Edited
 /// in the Master Page view through the pseudo page indexes of [`master_surface`].
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MasterPage {
+    /// Identity (like [`PageId`] for pages): the save planner matches a master with the one
+    /// of the opened file by it. Not part of the content, never saved in a `.kern` file
+    /// (`0` after reading one; [`Document::repair_masters`] gives it a fresh one).
+    #[serde(skip)]
+    pub uid: u64,
     /// The one-character id Publisher shows (`'A'`, `'B'`, ...), assigned automatically when
     /// the master is added; `'\0'` (a `.kern` file from before ids existed) is repaired on
     /// load.
@@ -424,6 +429,24 @@ pub struct MasterPage {
     pub left_shapes: Vec<Shape>,
 }
 
+impl PartialEq for MasterPage {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name == other.name
+            && self.description == other.description
+            && self.two_page == other.two_page
+            && self.margins_emu == other.margins_emu
+            && self.shapes == other.shapes
+            && self.left_shapes == other.left_shapes
+    }
+}
+
+/// A fresh master identity.
+pub fn new_master_uid() -> u64 {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1 << 32);
+    NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
 impl MasterPage {
     /// Longest description the Master Page dialogs accept.
     pub const MAX_DESCRIPTION: usize = 40;
@@ -440,6 +463,7 @@ impl MasterPage {
     /// An empty single-page master.
     pub fn new(id: char, margins: Margins) -> MasterPage {
         MasterPage {
+            uid: new_master_uid(),
             id,
             name: Self::default_name(id),
             description: String::new(),
@@ -698,6 +722,9 @@ impl Document {
     pub(crate) fn repair_masters(&mut self) {
         let mut used: Vec<char> = Vec::new();
         for i in 0..self.masters.len() {
+            if self.masters[i].uid == 0 {
+                self.masters[i].uid = new_master_uid();
+            }
             let id = self.masters[i].id;
             if id == '\0' || id.is_control() || used.contains(&id) {
                 let fresh = ('A'..='Z')
@@ -746,6 +773,15 @@ impl Document {
             master: None,
             ignore_master: false,
         }))
+    }
+
+    /// Every shape list of the document: each page's, then each master's halves.
+    pub fn shape_lists_mut(&mut self) -> impl Iterator<Item = &mut Vec<Shape>> {
+        self.pages.iter_mut().map(|p| &mut p.shapes).chain(
+            self.masters
+                .iter_mut()
+                .flat_map(|m| [&mut m.left_shapes, &mut m.shapes]),
+        )
     }
 
     /// The shape list of a page or of a master half (pseudo index).

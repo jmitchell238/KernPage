@@ -572,17 +572,34 @@ fn saving_a_pub_with_master_changes_names_what_cannot_be_saved() {
     let mut ui = TestUi::with_pub_sample("gen/master-pn-2p.pub");
     ui.key(CTRL, Key::M);
     assert!(ui.app().in_master_view());
+    // A new footer and a new master are written; a two-page master is not (it is named).
     ui.app().add_shape(text_box("New footer"));
     ui.click_ribbon("Add Master Page");
     ok(&mut ui);
+    ui.click_ribbon("Two-Page Master");
     ui.key(CTRL, Key::S);
     ui.settle();
     match &ui.app().prompt {
         Some(Prompt::Unsupported { items, .. }) => {
-            assert!(items.iter().any(|i| i.contains("adding master pages")), "{items:?}");
+            assert!(items.iter().any(|i| i.contains("two-page master pages")), "{items:?}");
+            assert!(!items.iter().any(|i| i.contains("adding master pages")), "{items:?}");
         }
         other => panic!("expected the unsupported-changes prompt, got {}", other.is_some()),
     }
+}
+
+#[test]
+fn a_new_master_and_a_footer_on_it_are_part_of_the_save_plan() {
+    let mut ui = TestUi::with_pub_sample("gen/master-pn-2p.pub");
+    ui.key(CTRL, Key::M);
+    ui.app().add_shape(text_box("New footer"));
+    ui.click_ribbon("Add Master Page");
+    ok(&mut ui);
+    let doc = ui.doc().clone();
+    let plan = ui.app().source.as_ref().unwrap().plan(&doc);
+    assert!(plan.unsupported.is_empty(), "{:?}", plan.unsupported);
+    assert_eq!(plan.new_masters.len(), 1);
+    assert_eq!(plan.new_text_boxes.len(), 1);
 }
 
 #[test]

@@ -347,37 +347,29 @@ fn an_untouched_file_with_masters_saves_byte_for_byte_like_before() {
 }
 
 #[kernpage_samples::test]
-fn the_pub_save_refuses_master_changes_it_cannot_write() {
+fn the_pub_save_still_refuses_what_the_writer_cannot_do_for_masters() {
+    // Everything else about masters is written (tests/master_save.rs); a two-page master is
+    // not: which half owns a shape and where its anchor starts was only seen on a document
+    // with one page per view (spec 4T.10).
     let (source, mut e, _) = open_pub("master-pn-2p.pub");
-    let surface = master_surface(0, false);
-    // Objects on a master.
-    e.execute(Command::AddShape { page: surface, shape: text_box("x") }).unwrap();
-    plan_says(&source, &e, "objects on master pages");
-    e.undo();
-    assert!(source.plan(e.doc()).unsupported.is_empty());
-    // Renaming, two-page.
-    e.execute(Command::SetMasterInfo { master: 0, id: 'A', name: "Other".into(), description: String::new() })
-        .unwrap();
-    plan_says(&source, &e, "renaming master pages");
     e.execute(Command::SetTwoPageMaster { master: 0, two_page: true }).unwrap();
     plan_says(&source, &e, "two-page master pages");
-    // Adding.
+    // A master's description has no place in the file: it is neither written nor reported.
+    let (source, mut e, _) = open_pub("master-pn-2p.pub");
+    e.execute(Command::SetMasterInfo {
+        master: 0,
+        id: e.doc().masters[0].id,
+        name: e.doc().masters[0].name.clone(),
+        description: "for the footer".into(),
+    })
+    .unwrap();
+    assert!(source.plan(e.doc()).is_empty());
+    // Margins that differ between masters cannot be written.
     let (source, mut e, _) = open_pub("master-pn-2p.pub");
     add_master(&mut e);
-    plan_says(&source, &e, "adding master pages");
-    // Applying another master / ignoring.
-    let (source, mut e, _) = open_pub("master-pn-2p.pub");
-    add_master(&mut e);
-    e.execute(Command::ApplyMaster { pages: vec![0], master: Some(1) }).unwrap();
-    plan_says(&source, &e, "other than the first");
-    e.execute(Command::ApplyMaster { pages: vec![0], master: Some(0) }).unwrap();
-    e.execute(Command::ApplyMaster { pages: vec![0], master: None }).unwrap();
-    plan_says(&source, &e, "turning off the master page");
-    // And deleting.
-    let (source, mut e, _) = open_pub("master-pn-2p.pub");
-    add_master(&mut e);
-    e.execute(Command::DeleteMaster { master: 0 }).unwrap();
-    plan_says(&source, &e, "master pages");
+    let mut d = e.doc().clone();
+    d.masters[1].margins_emu = kernpage_core::Margins::all(1_000_000);
+    plan_says(&source, &Editor::new(d), "margins that differ");
 }
 
 // ---- page-number fields in text -------------------------------------------------------------
@@ -408,9 +400,11 @@ fn a_new_publication_whose_master_was_only_looked_at_still_saves() {
     let source = SaveSource::for_new(e.doc()).unwrap();
     let plan = source.plan(e.doc());
     assert!(plan.unsupported.is_empty(), "{:?}", plan.unsupported);
-    // Anything on the master is refused: the writer cannot put it in the new file yet.
+    // Objects on the master go into the new file too.
     e.execute(Command::AddShape { page: master_surface(0, false), shape: text_box("x") }).unwrap();
-    plan_says(&source, &e, "objects on master pages");
+    let plan = source.plan(e.doc());
+    assert!(plan.unsupported.is_empty(), "{:?}", plan.unsupported);
+    assert_eq!(plan.new_text_boxes.len(), 1);
 }
 
 #[kernpage_samples::test]

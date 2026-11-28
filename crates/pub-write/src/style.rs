@@ -109,8 +109,7 @@ pub fn set_shape_style(
 ) -> Result<Vec<u8>> {
     let doc = pub_format::read_bytes(input)?;
     let page = doc
-        .pages
-        .get(page_index)
+        .surface(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?;
     let shape = page
         .shapes

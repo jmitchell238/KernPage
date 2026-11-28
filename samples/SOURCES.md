@@ -105,3 +105,6 @@ The research samples this project was developed against are kept in a private ar
 
 ## Printer name scrub
 The project-made `.pub` samples (`blank.pub`, `hello.pub`, `two-boxes.pub`, `gen/*.pub`) carried the name of the printer they were saved on, stored as UTF-16LE. `tools/scrub_printer_name.py` overwrites it in place with the neutral name `Sample Printer`, padded with spaces to the same length, so file sizes do not change. Run it again after adding a sample saved on a real machine, giving the printer name to remove as the first argument (`python tools/scrub_printer_name.py "<printer name>"`); it never touches `tika-testPUBLISHER.pub` or `lo-fdo59355-1.pub`.
+
+## Master page samples (made by the project owner with Publisher 2021, 2026-11-28)
+`masters/*.pub` are Publisher 2021's own output for one master page operation each (research `masters-2026-11-28`): `base-1p`, `base-3p` (the starting files), `m-add` (a second master), `m-add-box` (a text box on it), `m-apply` (page 2 uses it), `m-ignore-b` (page 2 ignores its master), `m-rename`, `m-del-used` and `m-del-a-used` (a master deleted), `m-rect-M` (a rectangle on a master). The master page tests in `pub-write` and `kernpage-core` compare the writer's output with them.
