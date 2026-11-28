@@ -395,12 +395,99 @@ pub struct Page {
     pub ignore_master: bool,
 }
 
-/// A master page: shapes drawn behind the shapes of the pages that use it. Displayed, not
-/// editable yet (the editor never selects or saves them).
+/// A master page (spec 4T): shapes drawn behind the shapes of the pages that use it. Edited
+/// in the Master Page view through the pseudo page indexes of [`master_surface`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MasterPage {
+    /// The one-character id Publisher shows (`'A'`, `'B'`, ...), assigned automatically when
+    /// the master is added; `'\0'` (a `.kern` file from before ids existed) is repaired on
+    /// load.
+    #[serde(default)]
+    pub id: char,
+    /// The name, e.g. `Master Page A`.
     pub name: String,
+    /// What the user typed as the description (at most [`MasterPage::MAX_DESCRIPTION`]
+    /// characters). A `.pub` file has no place for it that we know of (research 2026-11-28).
+    #[serde(default)]
+    pub description: String,
+    /// A two-page master (for facing pages): `left_shapes` is the left half and `shapes` the
+    /// right half; page 1, 3, ... show the right half and page 2, 4, ... the left one.
+    #[serde(default)]
+    pub two_page: bool,
+    /// The margin guides, used while the master is edited.
+    #[serde(default = "MasterPage::default_margins")]
+    pub margins_emu: Margins,
+    /// The shapes of a single-page master, or of the right half of a two-page master.
     pub shapes: Vec<Shape>,
+    /// The shapes of the left half of a two-page master (empty otherwise).
+    #[serde(default)]
+    pub left_shapes: Vec<Shape>,
+}
+
+impl MasterPage {
+    /// Longest description the Master Page dialogs accept.
+    pub const MAX_DESCRIPTION: usize = 40;
+
+    fn default_margins() -> Margins {
+        Margins::all(DEFAULT_MARGIN_EMU)
+    }
+
+    /// The default name of the master with id `id`.
+    pub fn default_name(id: char) -> String {
+        format!("Master Page {id}")
+    }
+
+    /// An empty single-page master.
+    pub fn new(id: char, margins: Margins) -> MasterPage {
+        MasterPage {
+            id,
+            name: Self::default_name(id),
+            description: String::new(),
+            two_page: false,
+            margins_emu: margins,
+            shapes: Vec::new(),
+            left_shapes: Vec::new(),
+        }
+    }
+
+    /// The shapes shown on a page: the left half for the left page of a two-page master.
+    pub fn half(&self, left: bool) -> &[Shape] {
+        if left && self.two_page {
+            &self.left_shapes
+        } else {
+            &self.shapes
+        }
+    }
+
+    /// Both halves, left first.
+    pub fn all_shapes(&self) -> impl Iterator<Item = &Shape> {
+        self.left_shapes.iter().chain(self.shapes.iter())
+    }
+}
+
+/// The first id letter no master of `masters` uses: `A`..`Z`, then `a`..`z`, then `0`..`9`.
+pub fn next_master_id(masters: &[MasterPage]) -> Option<char> {
+    ('A'..='Z')
+        .chain('a'..='z')
+        .chain('0'..='9')
+        .find(|c| !masters.iter().any(|m| m.id == *c))
+}
+
+/// Pseudo page indexes: a [`Command`](crate::command::Command) whose `page` is at least this
+/// addresses a master page (see [`master_surface`]) instead of a document page, so every
+/// shape command also edits master shapes.
+pub const MASTER_SURFACE_BASE: usize = 1 << 30;
+
+/// The page index that stands for master `master` (the right or only half; `left` for the
+/// left half of a two-page master).
+pub fn master_surface(master: usize, left: bool) -> usize {
+    MASTER_SURFACE_BASE + master * 2 + usize::from(left)
+}
+
+/// `(master, left half)` for a pseudo page index, `None` for a real page index.
+pub fn master_surface_parts(page: usize) -> Option<(usize, bool)> {
+    let n = page.checked_sub(MASTER_SURFACE_BASE)?;
+    Some((n / 2, n % 2 == 1))
 }
 
 impl PartialEq for Page {
@@ -409,6 +496,8 @@ impl PartialEq for Page {
             && self.height_emu == other.height_emu
             && self.margins_emu == other.margins_emu
             && self.shapes == other.shapes
+            && self.master == other.master
+            && self.ignore_master == other.ignore_master
     }
 }
 
@@ -519,7 +608,10 @@ pub struct Document {
 impl PartialEq for Document {
     /// The id counter is bookkeeping, not content.
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.pages == other.pages && self.stories == other.stories
+        self.name == other.name
+            && self.pages == other.pages
+            && self.stories == other.stories
+            && self.masters == other.masters
     }
 }
 
@@ -554,7 +646,7 @@ impl Document {
             .pages
             .iter()
             .flat_map(|p| p.shapes.iter())
-            .chain(self.masters.iter().flat_map(|m| m.shapes.iter()))
+            .chain(self.masters.iter().flat_map(|m| m.all_shapes()))
             .map(|s| s.id)
             .max()
             .unwrap_or(0);
@@ -585,14 +677,86 @@ impl Document {
     }
 
     /// The shapes of the master page that page `index` shows behind its own shapes (none
-    /// when the page ignores its master).
+    /// when the page ignores its master). A two-page master shows its right half on pages
+    /// 1, 3, ... and its left half on pages 2, 4, ...
     pub fn master_shapes(&self, index: usize) -> &[Shape] {
         let Some(p) = self.pages.get(index).filter(|p| !p.ignore_master) else {
             return &[];
         };
         p.master
             .and_then(|m| self.masters.get(m))
-            .map_or(&[], |m| m.shapes.as_slice())
+            .map_or(&[], |m| m.half(index % 2 == 1))
+    }
+
+    /// The first id letter no master uses: `A`..`Z`, then `a`..`z`, then `0`..`9`.
+    pub fn next_master_id(&self) -> Option<char> {
+        next_master_id(&self.masters)
+    }
+
+    /// Give masters without a usable id one, and an empty name its default (after reading a
+    /// file).
+    pub(crate) fn repair_masters(&mut self) {
+        let mut used: Vec<char> = Vec::new();
+        for i in 0..self.masters.len() {
+            let id = self.masters[i].id;
+            if id == '\0' || id.is_control() || used.contains(&id) {
+                let fresh = ('A'..='Z')
+                    .chain('a'..='z')
+                    .chain('0'..='9')
+                    .find(|c| !used.contains(c) && !self.masters[i + 1..].iter().any(|m| m.id == *c))
+                    .unwrap_or('?');
+                self.masters[i].id = fresh;
+            }
+            used.push(self.masters[i].id);
+            if self.masters[i].name.is_empty() {
+                self.masters[i].name = MasterPage::default_name(self.masters[i].id);
+            }
+            let n = self.masters[i].description.chars().count();
+            if n > MasterPage::MAX_DESCRIPTION {
+                self.masters[i].description =
+                    self.masters[i].description.chars().take(MasterPage::MAX_DESCRIPTION).collect();
+            }
+        }
+        let count = self.masters.len();
+        for p in &mut self.pages {
+            if p.master.is_some_and(|m| m >= count) {
+                p.master = None;
+            }
+        }
+    }
+
+    /// A page, or a master page (a pseudo index, see [`master_surface`]) as a page of the
+    /// document's size and the master's margins. Masters are copied; pages are borrowed.
+    pub fn surface(&self, index: usize) -> Option<std::borrow::Cow<'_, Page>> {
+        let Some((mi, left)) = master_surface_parts(index) else {
+            return self.pages.get(index).map(std::borrow::Cow::Borrowed);
+        };
+        let m = self.masters.get(mi)?;
+        if left && !m.two_page {
+            return None;
+        }
+        let first = self.pages.first()?;
+        Some(std::borrow::Cow::Owned(Page {
+            id: 0,
+            width_emu: first.width_emu,
+            height_emu: first.height_emu,
+            margins_emu: m.margins_emu,
+            shapes: m.half(left).to_vec(),
+            duplicate_of: None,
+            master: None,
+            ignore_master: false,
+        }))
+    }
+
+    /// The shape list of a page or of a master half (pseudo index).
+    pub fn shapes_mut(&mut self, index: usize) -> Option<&mut Vec<Shape>> {
+        match master_surface_parts(index) {
+            None => self.pages.get_mut(index).map(|p| &mut p.shapes),
+            Some((mi, left)) => {
+                let m = self.masters.get_mut(mi)?;
+                Some(if left && m.two_page { &mut m.left_shapes } else { &mut m.shapes })
+            }
+        }
     }
 
     pub fn alloc_id(&mut self) -> ShapeId {
@@ -610,15 +774,24 @@ impl Document {
         self.pages.get(index)
     }
 
+    /// A shape of page `page` (or of a master half, see [`master_surface`]).
     pub fn shape(&self, page: usize, id: ShapeId) -> Option<&Shape> {
-        self.pages.get(page)?.shape(id)
+        match master_surface_parts(page) {
+            None => self.pages.get(page)?.shape(id),
+            Some((mi, left)) => self.masters.get(mi)?.half(left).iter().find(|s| s.id == id),
+        }
     }
 
     /// Every font family named by any text in the document, with the bold/italic
     /// combinations used (for loading fonts on screen).
     pub fn fonts_used(&self) -> Vec<(String, bool, bool)> {
         let mut out: Vec<(String, bool, bool)> = Vec::new();
-        for s in self.pages.iter().flat_map(|p| p.shapes.iter()) {
+        for s in self
+            .pages
+            .iter()
+            .flat_map(|p| p.shapes.iter())
+            .chain(self.masters.iter().flat_map(|m| m.all_shapes()))
+        {
             let paras: Vec<&Paragraph> = match &s.kind {
                 ShapeKind::TextBox { paragraphs } => paragraphs.iter().collect(),
                 ShapeKind::Table { cells, .. } => {

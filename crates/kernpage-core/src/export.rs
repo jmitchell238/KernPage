@@ -280,7 +280,10 @@ fn pub_document(doc: &Document, keep: impl Fn(usize) -> bool, layout_only: bool)
             .enumerate()
             .map(|(i, p)| pf::Page {
                 object_number: i as u32 + 1,
-                master: p.master.filter(|&m| m < doc.masters.len()),
+                master: p
+                    .master
+                    .filter(|&m| m < doc.masters.len())
+                    .map(|m| pub_master_index(doc, m, i % 2 == 1)),
                 ignore_master: p.ignore_master,
                 shapes: if keep(i) {
                     p.shapes
@@ -308,16 +311,15 @@ fn pub_document(doc: &Document, keep: impl Fn(usize) -> bool, layout_only: bool)
         columns_mapped: 0,
         columns_unmapped: 0,
         shapes_without_anchor: 0,
-        masters: doc
-            .masters
-            .iter()
-            .enumerate()
-            .map(|(i, m)| pf::MasterPage {
-                object_number: 100_000 + i as u32,
+        masters: {
+            // Every master's right (or only) half first, then the left halves of the
+            // two-page masters: see `pub_master_index`.
+            let half = |m: &MasterPage, id: usize, shapes: &[Shape]| pf::MasterPage {
+                object_number: 100_000 + id as u32,
                 name: m.name.clone(),
-                letter: String::new(),
+                letter: m.id.to_string(),
                 shapes: if !layout_only {
-                    m.shapes
+                    shapes
                         .iter()
                         .filter(|s| !matches!(s.kind, ShapeKind::Group))
                         .map(|s| shape(s, w, h, layout_only))
@@ -325,9 +327,29 @@ fn pub_document(doc: &Document, keep: impl Fn(usize) -> bool, layout_only: bool)
                 } else {
                     Vec::new()
                 },
-            })
-            .collect(),
+            };
+            let mut out: Vec<pf::MasterPage> = doc
+                .masters
+                .iter()
+                .enumerate()
+                .map(|(i, m)| half(m, i, &m.shapes))
+                .collect();
+            for (i, m) in doc.masters.iter().enumerate().filter(|(_, m)| m.two_page) {
+                out.push(half(m, 100 + i, &m.left_shapes));
+            }
+            out
+        },
         sections: doc.sections.clone(),
+    }
+}
+
+/// The index in the reader document's master list of the half of master `m` that the page
+/// on the `left` side shows (see `pub_document`).
+fn pub_master_index(doc: &Document, m: usize, left: bool) -> usize {
+    if left && doc.masters[m].two_page {
+        doc.masters.len() + doc.masters[..m].iter().filter(|x| x.two_page).count()
+    } else {
+        m
     }
 }
 

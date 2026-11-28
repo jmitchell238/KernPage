@@ -337,10 +337,16 @@ pub fn from_pub_flowed(name: &str, doc: &pf::Document, breaks: &[Vec<StoryPos>])
             })
             .collect();
         out.masters.push(MasterPage {
+            id: m.letter.chars().next().unwrap_or('\0'),
             name: m.name.clone(),
+            description: String::new(),
+            two_page: false,
+            margins_emu: margins,
             shapes,
+            left_shapes: Vec::new(),
         });
     }
+    out.repair_masters();
     out
 }
 

@@ -15,8 +15,13 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
 /// The format version this build writes (major.minor).
 pub const FORMAT_VERSION: &str = "1.0";
+/// The version written when the document has master pages (ids, descriptions, two-page
+/// masters and margins of masters; spec KERN-FORMAT.md, "Version 1.1").
+pub const FORMAT_VERSION_MASTERS: &str = "1.1";
+/// The optional feature named in the manifest of such a file.
+pub const FEATURE_MASTER_PAGES: &str = "master-pages";
 const MAJOR: u32 = 1;
-const MINOR: u32 = 0;
+const MINOR: u32 = 1;
 pub const MIMETYPE: &str = "application/vnd.kernpage.document+zip";
 const DOCUMENT_ENTRY: &str = "document.json";
 const IMAGE_DIR: &str = "assets/images/";
@@ -150,15 +155,19 @@ pub fn write_kern_with_id(doc: &Document, document_id: &str) -> Result<Vec<u8>> 
     let json = serde_json::to_vec(doc).map_err(damaged);
     let pictures = guard.take_written();
     let json = json?;
+    // Master pages carry more than a 1.0 reader knows (an id, a description, two-page masters,
+    // margins): such a file is 1.1 and says so in an optional feature, so a 1.0 reader still
+    // opens it (and shows the shapes behind the pages, as before).
+    let masters = !doc.masters.is_empty();
     let manifest = serde_json::to_vec(&ManifestOut {
         format: "KERN",
-        format_version: FORMAT_VERSION,
+        format_version: if masters { FORMAT_VERSION_MASTERS } else { FORMAT_VERSION },
         minimum_reader_version: FORMAT_VERSION,
         document_id,
         generator: GeneratorOut { application: "KernPage", version: env!("CARGO_PKG_VERSION") },
         document: DOCUMENT_ENTRY,
         required_features: Vec::new(),
-        optional_features: Vec::new(),
+        optional_features: if masters { vec![FEATURE_MASTER_PAGES.to_owned()] } else { Vec::new() },
     })
     .map_err(damaged)?;
 
@@ -301,6 +310,7 @@ pub fn read_kern_with_id(bytes: &[u8]) -> Result<(Document, String)> {
     }
     doc.renew_page_ids();
     doc.repair_next_id();
+    doc.repair_masters();
     let id = if manifest.document_id.is_empty() { new_document_id() } else { manifest.document_id };
     Ok((doc, id))
 }

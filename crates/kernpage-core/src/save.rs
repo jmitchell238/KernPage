@@ -1135,6 +1135,16 @@ impl SaveSource {
             return std::borrow::Cow::Borrowed(doc);
         }
         let mut d = doc.clone();
+        // The masters follow the first page's size change (they keep one size).
+        let (mdx, mdy) = doc.pages.first().map_or((0, 0), |p| {
+            (b.width_emu / 2 - p.width_emu / 2, b.height_emu / 2 - p.height_emu / 2)
+        });
+        for m in &mut d.masters {
+            m.margins_emu = b.margins_emu;
+            for s in m.shapes.iter_mut().chain(m.left_shapes.iter_mut()) {
+                s.rect = s.rect.translated(mdx, mdy);
+            }
+        }
         for p in &mut d.pages {
             let dx = b.width_emu / 2 - p.width_emu / 2;
             let dy = b.height_emu / 2 - p.height_emu / 2;
@@ -1416,8 +1426,60 @@ impl SaveSource {
                 None => unsupported.add("changes to page-number sections"),
             }
         }
+        self.plan_masters(doc, &pairs, &mut unsupported);
         plan.unsupported = unsupported.into_list();
         plan
+    }
+
+    /// Master page changes: the writer cannot save any yet (adding, deleting or renaming
+    /// masters, objects on masters, two-page masters, applying a master other than the first
+    /// to a page, turning a page's master off), so each one is reported. A document whose
+    /// masters were never touched (no masters in the editor model) has no changes.
+    fn plan_masters(&self, doc: &Document, pairs: &[(usize, usize)], unsupported: &mut Unsupported) {
+        let base = &self.baseline;
+        if doc.masters.is_empty() {
+            return;
+        }
+        if base.masters.len() < doc.masters.len() {
+            unsupported.add("adding master pages");
+        } else if base.masters.len() > doc.masters.len() {
+            unsupported.add("deleting master pages");
+        } else {
+            for (b, d) in base.masters.iter().zip(&doc.masters) {
+                if b.id != d.id || b.name != d.name || b.description != d.description {
+                    unsupported.add("renaming master pages or changing their ID or description");
+                }
+                if b.two_page != d.two_page {
+                    unsupported.add("two-page master pages");
+                }
+                if b.shapes != d.shapes || b.left_shapes != d.left_shapes {
+                    unsupported.add("changes to the objects on master pages");
+                }
+            }
+        }
+        const APPLY: &str = "applying a master page other than the first to a page";
+        const IGNORE: &str = "turning off the master page of a page";
+        for &(bi, ci) in pairs {
+            let (bp, cp) = (&base.pages[bi], &doc.pages[ci]);
+            if bp.master != cp.master {
+                unsupported.add(APPLY);
+            }
+            if bp.ignore_master != cp.ignore_master {
+                unsupported.add(IGNORE);
+            }
+        }
+        // A page added since opening is written with the first master.
+        for p in &doc.pages {
+            if base.pages.iter().any(|b| b.id == p.id) {
+                continue;
+            }
+            if p.master.is_some_and(|m| m != 0) {
+                unsupported.add(APPLY);
+            }
+            if p.ignore_master {
+                unsupported.add(IGNORE);
+            }
+        }
     }
 
     /// Publisher's default outline colour: scheme colour 0 of the source file (spec 4N).
