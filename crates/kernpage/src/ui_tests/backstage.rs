@@ -943,11 +943,10 @@ fn a_single_page_publication_has_both_preview_arrows_greyed() {
 }
 
 /// The Print page draws four combo boxes; counting back from the last one drawn.
-const DUPLEX: usize = 0;
-const LAYOUT: usize = 1;
-const COLLATION: usize = 2;
-const PAGES: usize = 3;
-const PRINTER: usize = 4;
+const LAYOUT: usize = 0;
+const COLLATION: usize = 1;
+const PAGES: usize = 2;
+const PRINTER: usize = 3;
 
 fn open_print_combo(ui: &mut TestUi, from_last: usize) {
     let all: Vec<_> = ui.h.get_all_by_role(egui::accesskit::Role::ComboBox).collect();
@@ -965,7 +964,7 @@ fn the_print_page_offers_printers_copies_pages_and_collation() {
     assert_eq!(ui.app().print.printer.as_deref(), Some("Test Inkjet"));
     assert_eq!(ui.app().print.scope, crate::printing::PageScope::All);
     assert!(ui.app().print.collate);
-    assert_eq!(ui.h.get_all_by_role(egui::accesskit::Role::ComboBox).count(), 5, "printer, pages, collation, layout, two-sided");
+    assert_eq!(ui.h.get_all_by_role(egui::accesskit::Role::ComboBox).count(), 4, "printer, pages, collation, layout");
     assert!(has_label(&ui, "Pages:"));
     assert!(has_label_containing(&ui, "Portrait Orientation"));
     assert!(ui.ribbon("link:Printer Properties").enabled);
@@ -1551,6 +1550,17 @@ fn pick(ui: &mut TestUi, from_last: usize, label: &str) {
     click_button(ui, label);
 }
 
+/// Open the two-sided row's menu (a row like Publication page size, not a combo box).
+fn open_duplex(ui: &mut TestUi) {
+    ui.click_ribbon("setting:Print duplex");
+    ui.settle();
+}
+
+fn pick_duplex(ui: &mut TestUi, label: &str) {
+    open_duplex(ui);
+    click_button(ui, label);
+}
+
 fn select_printer(ui: &mut TestUi, name: &str) {
     pick(ui, PRINTER, name);
 }
@@ -1632,7 +1642,7 @@ fn the_two_sided_choice_sets_the_duplex_flag_of_the_job() {
     ];
     for (label, want) in cases {
         let mut ui = booklet_ui("Test Inkjet");
-        pick(&mut ui, DUPLEX, label);
+        pick_duplex(&mut ui, label);
         assert_eq!(ui.app().print_duplex(), want, "{label}");
         ui.click_ribbon("print:Print");
         let jobs = crate::printing::test_os::take_printed();
@@ -1648,14 +1658,14 @@ fn automatic_two_sided_choices_are_hidden_when_the_printer_cannot_duplex() {
     file_entry(&mut ui, "Print");
     // The recorded inkjet can duplex, the recorded laser cannot.
     assert_eq!(ui.app().duplex_choices(), Duplex::ALL.to_vec());
-    open_print_combo(&mut ui, DUPLEX);
+    open_duplex(&mut ui);
     for d in Duplex::ALL {
         assert!(has_label(&ui, d.label()), "{}", d.label());
     }
     click_button(&mut ui, "Print One Sided");
     select_printer(&mut ui, "Test Laser");
     assert_eq!(ui.app().duplex_choices(), vec![Duplex::OneSided, Duplex::Manual]);
-    open_print_combo(&mut ui, DUPLEX);
+    open_duplex(&mut ui);
     assert!(has_label(&ui, Duplex::Manual.label()));
     assert_eq!(count_label(&ui, Duplex::LongEdge.label()), 0);
     assert_eq!(count_label(&ui, Duplex::ShortEdge.label()), 0);
@@ -1664,7 +1674,7 @@ fn automatic_two_sided_choices_are_hidden_when_the_printer_cannot_duplex() {
 #[test]
 fn a_chosen_automatic_mode_falls_back_when_the_printer_cannot_duplex() {
     let mut ui = booklet_ui("Test Inkjet");
-    pick(&mut ui, DUPLEX, Duplex::LongEdge.label());
+    pick_duplex(&mut ui, Duplex::LongEdge.label());
     select_printer(&mut ui, "Test Laser");
     assert_eq!(ui.app().print_duplex(), Duplex::Manual, "the booklet default without duplex support");
 }
@@ -1728,7 +1738,7 @@ fn manual_two_sided_for_an_odd_booklet_leaves_a_blank_back() {
 fn the_preview_of_a_two_sided_job_counts_sheets_front_and_back() {
     let mut ui = sized_doc(5.5, 8.5, 3);
     file_entry(&mut ui, "Print");
-    pick(&mut ui, DUPLEX, Duplex::LongEdge.label());
+    pick_duplex(&mut ui, Duplex::LongEdge.label());
     // 3 pages one per side, padded to 4 sides = 2 sheets.
     assert!(has_label(&ui, "Sheet 1, front"));
     ui.click_ribbon("printnav:next");

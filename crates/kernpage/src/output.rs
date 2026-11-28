@@ -553,14 +553,7 @@ impl App {
                         format!("{} x {}\"", inches(w), inches(h))
                     });
                     setting(ui, "Publication page size", &paper, Icon::Size, soon);
-                    egui::ComboBox::from_id_salt("print_duplex")
-                        .width(290.0)
-                        .selected_text(duplex.label())
-                        .show_ui(ui, |ui| {
-                            for d in &duplex_choices {
-                                ui.selectable_value(&mut chosen_duplex, *d, d.label());
-                            }
-                        });
+                    setting_menu(ui, duplex, &duplex_choices, &mut chosen_duplex);
                     setting(ui, "Composite RGB", "Print as RGB color publication.", Icon::Palette, soon);
                     let mut keep = false;
                     ui.add_enabled(false, egui::Checkbox::new(&mut keep, "Save settings with publication"));
@@ -755,6 +748,37 @@ fn setting(ui: &mut Ui, title: &str, desc: &str, icon: Icon, tip: &str) {
     }
     tri(p, rect.max - Vec2::new(14.0, 19.0), 0, crate::theme::disabled());
     resp.on_hover_text(tip);
+    ui.add_space(4.0);
+}
+
+/// The two-sided row: drawn like [`setting`] (icon, title, grey subtitle, arrow), but live; a
+/// click opens a menu with the choices.
+fn setting_menu(ui: &mut Ui, current: Duplex, choices: &[Duplex], chosen: &mut Duplex) {
+    let w = ui.available_width().min(290.0);
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(w, 38.0), Sense::click());
+    #[cfg(test)]
+    crate::backstage::seen("setting:Print duplex".to_owned(), rect, true, false);
+    let p = ui.painter();
+    if resp.hovered() {
+        p.rect_filled(rect, 0.0, crate::theme::hover_bg());
+    }
+    p.rect_stroke(rect, 0.0, Stroke::new(1.0, crate::theme::frame()), StrokeKind::Inside);
+    icons::paint(
+        p,
+        egui::Rect::from_center_size(rect.min + Vec2::new(20.0, 19.0), Vec2::splat(20.0)),
+        Icon::Page,
+        crate::theme::text(),
+    );
+    p.text(rect.min + Vec2::new(40.0, 11.0), egui::Align2::LEFT_CENTER, current.title(), egui::FontId::proportional(13.0), crate::theme::text());
+    p.text(rect.min + Vec2::new(40.0, 27.0), egui::Align2::LEFT_CENTER, current.subtitle(), egui::FontId::proportional(12.0), crate::theme::disabled());
+    tri(p, rect.max - Vec2::new(14.0, 19.0), 0, crate::theme::text());
+    egui::Popup::menu(&resp).show(|ui| {
+        for d in choices {
+            if ui.selectable_label(*d == current, d.label()).clicked() {
+                *chosen = *d;
+            }
+        }
+    });
     ui.add_space(4.0);
 }
 

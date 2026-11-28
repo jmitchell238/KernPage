@@ -57,6 +57,25 @@ impl Duplex {
         }
     }
 
+    /// The first line of the Print page's two-sided row.
+    pub fn title(self) -> &'static str {
+        match self {
+            Duplex::OneSided => "Print One Sided",
+            Duplex::LongEdge | Duplex::ShortEdge => "Print on Both Sides",
+            Duplex::Manual => "Manually Print on Both Sides",
+        }
+    }
+
+    /// The grey second line of the row.
+    pub fn subtitle(self) -> &'static str {
+        match self {
+            Duplex::OneSided => "Only print on one side of the sheet",
+            Duplex::LongEdge => "Flip sheets on long edge",
+            Duplex::ShortEdge => "Flip sheets on short edge",
+            Duplex::Manual => "Turn the stack over when asked",
+        }
+    }
+
     /// The printer itself prints both sides (needs duplex support).
     pub fn is_automatic(self) -> bool {
         matches!(self, Duplex::LongEdge | Duplex::ShortEdge)
@@ -189,6 +208,12 @@ pub fn device_rect(r: &SheetRect, dpi: (f64, f64)) -> (i32, i32, i32, i32) {
     let (x0, x1) = ((r.x * dpi.0 / 72.0).round(), ((r.x + r.w) * dpi.0 / 72.0).round());
     let (y0, y1) = ((r.y * dpi.1 / 72.0).round(), ((r.y + r.h) * dpi.1 / 72.0).round());
     (x0 as i32, y0 as i32, ((x1 - x0) as i32).max(1), ((y1 - y0) as i32).max(1))
+}
+
+/// Where a page printed `size` (w, h) pixels big goes on `paper` (w, h) pixels so that it is
+/// centred on both axes; a page that fills the paper (or is bigger) starts at the corner.
+pub fn centred_origin(paper: (f64, f64), size: (f64, f64)) -> (i32, i32) {
+    (((paper.0 - size.0) / 2.0).round().max(0.0) as i32, ((paper.1 - size.1) / 2.0).round().max(0.0) as i32)
 }
 
 /// The most resolution the PDF renderer is asked for; the printer scales the rest.
@@ -369,7 +394,7 @@ pub fn is_landscape<T: PartialOrd>(size: Option<(T, T)>) -> bool {
 #[cfg(windows)]
 #[cfg_attr(test, allow(dead_code))]
 pub(crate) mod win {
-    use super::{device_rect, render_size, Duplex, PrintJob, PrintLayout, PrinterCaps, PrinterList, Shared};
+    use super::{centred_origin, device_rect, render_size, Duplex, PrintJob, PrintLayout, PrinterCaps, PrinterList, Shared};
     use std::ptr::{null, null_mut};
     use windows::core::Interface;
     use windows::Data::Pdf::{PdfDocument, PdfPageRenderOptions};
@@ -767,11 +792,12 @@ pub(crate) mod win {
                 for pl in &side.placements {
                     let Some(p) = pl.page.filter(|&p| (p as u32) < page_count) else { continue };
                     if job.layout == PrintLayout::OnePerSheet {
-                        // One page per sheet keeps its long-standing placement: the page at 100%
-                        // (smaller if it is bigger than the paper) at the paper's top-left corner.
+                        // One page per sheet: the page at 100% (smaller if it is bigger than the
+                        // paper), centred on the sheet like the preview shows it.
                         let size = doc.GetPage(p as u32).and_then(|pg| pg.Size()).map_err(err("The PDF page has no size"))?;
                         let (w, h, rw, rh) = page_layout((f64::from(size.Width), f64::from(size.Height)), dpi, paper);
-                        draw_page(dc.0, &doc, p as u32, (0, 0), (w, h), (rw, rh), off)?;
+                        let origin = centred_origin(paper, (w, h));
+                        draw_page(dc.0, &doc, p as u32, origin, (w, h), (rw, rh), off)?;
                     } else {
                         let (x, y, w, h) = device_rect(&pl.rect, dpi);
                         let (rw, rh) = render_size(f64::from(w), f64::from(h), dpi);
@@ -915,7 +941,24 @@ mod tests {
     }
 
     #[test]
+    fn a_small_page_is_centred_on_the_paper_and_a_full_one_is_not_moved() {
+        // Letter on letter at 600 dpi: unchanged, at the corner.
+        assert_eq!(centred_origin((5100.0, 6600.0), (5100.0, 6600.0)), (0, 0));
+        // Half letter (1650 x 2550 px at 300 dpi) on letter (2550 x 3300): centred on both axes.
+        assert_eq!(centred_origin((2550.0, 3300.0), (1650.0, 2550.0)), (450, 375));
+        // A page shrunk to fit the height is centred across.
+        assert_eq!(centred_origin((2550.0, 3300.0), (2000.0, 3300.0)), (275, 0));
+        // Never negative.
+        assert_eq!(centred_origin((100.0, 100.0), (120.0, 90.0)), (0, 5));
+    }
+
+    #[test]
     fn duplex_labels_and_automatic_choices() {
+        assert_eq!(Duplex::LongEdge.title(), "Print on Both Sides");
+        assert_eq!(Duplex::LongEdge.subtitle(), "Flip sheets on long edge");
+        assert_eq!(Duplex::OneSided.subtitle(), "Only print on one side of the sheet");
+        assert_eq!(Duplex::Manual.title(), "Manually Print on Both Sides");
+        assert_eq!(Duplex::Manual.subtitle(), "Turn the stack over when asked");
         assert_eq!(Duplex::OneSided.label(), "Print One Sided");
         assert!(Duplex::LongEdge.is_automatic() && Duplex::ShortEdge.is_automatic());
         assert!(!Duplex::OneSided.is_automatic() && !Duplex::Manual.is_automatic());
