@@ -933,7 +933,7 @@ impl App {
         group(ui, "Pages", false, |ui| {
             let resp = Btn::large(Icon::Page, "Page")
                 .dropdown()
-                .enabled(has_doc)
+                .enabled(has_doc && self.master_view.is_none())
                 .tip("Insert a page after this one")
                 .show(ui);
             Popup::menu(&resp).show(|ui| {
@@ -995,7 +995,7 @@ impl App {
     }
 
     fn page_design_tab(&mut self, ui: &mut Ui) {
-        let can_delete = self.page_count() > 1;
+        let can_delete = self.page_count() > 1 && self.master_view.is_none();
         group(ui, "Template", false, |ui| {
             soon(ui, Icon::Page, "Change\nTemplate", true);
             soon(ui, Icon::Gear, "Options", true);

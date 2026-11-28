@@ -276,6 +276,7 @@ pub fn decode(bytes: &[u8]) -> Result<Snapshot, SnapshotError> {
         serde_json::from_slice(bytes).map_err(|e| SnapshotError::Parse(e.to_string()))?;
     let mut document = env.document;
     document.renew_page_ids();
+    document.repair_masters();
     Ok(Snapshot {
         meta: env.meta,
         document,

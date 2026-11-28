@@ -567,6 +567,37 @@ fn header_and_footer_open_the_master_view_with_boxes_and_select_the_one_to_type_
 }
 
 #[test]
+fn saving_a_pub_with_master_changes_names_what_cannot_be_saved() {
+    use crate::app::Prompt;
+    let mut ui = TestUi::with_pub_sample("gen/master-pn-2p.pub");
+    ui.key(CTRL, Key::M);
+    assert!(ui.app().in_master_view());
+    ui.app().add_shape(text_box("New footer"));
+    ui.click_ribbon("Add Master Page");
+    ok(&mut ui);
+    ui.key(CTRL, Key::S);
+    ui.settle();
+    match &ui.app().prompt {
+        Some(Prompt::Unsupported { items, .. }) => {
+            assert!(items.iter().any(|i| i.contains("adding master pages")), "{items:?}");
+        }
+        other => panic!("expected the unsupported-changes prompt, got {}", other.is_some()),
+    }
+}
+
+#[test]
+fn opening_and_saving_a_pub_without_master_changes_asks_nothing() {
+    let mut ui = TestUi::with_pub_sample("gen/master-pn-2p.pub");
+    assert!(!ui.doc().masters.is_empty());
+    // Looking at the master changes nothing.
+    ui.key(CTRL, Key::M);
+    ui.key(CTRL, Key::M);
+    assert!(!ui.can_undo());
+    let plan = ui.app().source.as_ref().unwrap().plan(ui.doc());
+    assert!(plan.unsupported.is_empty() && plan.is_empty(), "{:?}", plan.unsupported);
+}
+
+#[test]
 fn each_master_command_is_one_undo_step() {
     let mut ui = three_page_ui();
     ui.key(CTRL, Key::M);

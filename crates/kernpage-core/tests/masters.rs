@@ -401,6 +401,18 @@ fn insert_field_splits_the_run_at_the_caret() {
     assert_eq!(out[0].runs[0].field, Some(Field::PageNumber));
 }
 
+#[test]
+fn a_new_publication_whose_master_was_only_looked_at_still_saves() {
+    let mut e = three_pages();
+    e.execute(Command::EnsureMaster).unwrap();
+    let source = SaveSource::for_new(e.doc()).unwrap();
+    let plan = source.plan(e.doc());
+    assert!(plan.unsupported.is_empty(), "{:?}", plan.unsupported);
+    // Anything on the master is refused: the writer cannot put it in the new file yet.
+    e.execute(Command::AddShape { page: master_surface(0, false), shape: text_box("x") }).unwrap();
+    plan_says(&source, &e, "objects on master pages");
+}
+
 #[kernpage_samples::test]
 fn adding_a_page_to_a_file_with_masters_is_still_supported() {
     let (source, mut e, _) = open_pub("master-pn-2p.pub");
