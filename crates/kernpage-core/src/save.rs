@@ -183,6 +183,8 @@ pub struct NewTextBox {
     pub text: String,
     /// The formatted paragraphs, written after the plain text is added.
     pub paragraphs: Vec<Paragraph>,
+    /// Text offsets (UTF-16 units) of the page-number fields in `text` (spec 4T.3).
+    pub fields: Vec<usize>,
     /// Text columns (1 = none) and the gap between them, EMU (spec 4I); written after the box is added.
     pub columns: u32,
     pub column_gap_emu: i64,
@@ -485,16 +487,6 @@ pub struct SaveSource {
     tables: HashMap<ShapeId, usize>,
     /// The document save counter was already raised for this opened file (spec 4M).
     counter_bumped: bool,
-}
-
-/// Why a copy of a text box with a page-number field cannot be saved: its field would need
-/// its own entry in the file's field table, whose layout for several fields is not known.
-const FIELD_COPY: &str = "page-number fields in duplicated or new text boxes";
-
-/// Whether a text box holds a page-number field.
-fn has_field(s: &Shape) -> bool {
-    matches!(&s.kind, ShapeKind::TextBox { paragraphs }
-        if paragraphs.iter().flat_map(|p| &p.runs).any(|r| r.field.is_some()))
 }
 
 /// Map the editor's sections onto the records of the file's sections: the editor's list is
@@ -1095,9 +1087,6 @@ impl SaveSource {
         if self.page_blocks_duplicate(sp) {
             return Err(Some("duplicated pages with groups, tables or linked text boxes"));
         }
-        if sp.shapes.iter().any(has_field) {
-            return Err(Some(FIELD_COPY));
-        }
         let same_objects = sp.shapes.len() == bp.shapes.len()
             && sp.shapes.iter().zip(&bp.shapes).all(|(a, b)| {
                 a.id == b.id
@@ -1137,10 +1126,6 @@ impl SaveSource {
             .iter()
             .filter(|s| !is_group(s) && !in_page(&s.id, bp))
         {
-            if has_field(ns) {
-                unsupported.add(FIELD_COPY);
-                continue;
-            }
             let pt = EMU_PER_POINT as f64;
             let seq = plan.new_text_boxes.len()
                 + plan.new_shapes.len()
@@ -1164,6 +1149,7 @@ impl SaveSource {
                             .collect::<Vec<_>>()
                             .join("\r"),
                         paragraphs: paragraphs.clone(),
+                        fields: field_offsets(paragraphs),
                         columns: ns.columns,
                         column_gap_emu: ns.column_gap_emu,
                     });
@@ -1389,21 +1375,7 @@ impl SaveSource {
                 });
             }
             if !same_text {
-                // A field lost from a file with several fields cannot be written (the
-                // writer refuses): find out now.
-                let had_field = before.iter().flat_map(|p| &p.runs).any(|r| r.field.is_some());
                 let fields = field_offsets(&after);
-                if had_field
-                    && pub_write::set_story_text_with_fields(
-                        &self.original,
-                        unit.story_index,
-                        &after_text,
-                        &fields,
-                    )
-                    .is_err()
-                {
-                    unsupported.add("removing a page-number field when the file has several");
-                }
                 plan.stories.push(StoryChange {
                     story_index: unit.story_index,
                     text: after_text,
@@ -2366,7 +2338,7 @@ impl SaveSource {
                 let gap = u32::try_from(b.column_gap_emu).unwrap_or(0);
                 bytes = pub_write::set_text_columns(&bytes, b.page_index, shape, b.columns, gap)?;
             }
-            if b.paragraphs.iter().any(|p| !is_plain_para(p)) {
+            if !b.fields.is_empty() || b.paragraphs.iter().any(|p| !is_plain_para(p)) {
                 // The new box is the last shape of its page; read its story back.
                 let doc = pf::read_bytes(&bytes).map_err(|e| SaveError::Verify(e.to_string()))?;
                 let numbers = doc.story_numbers();
@@ -2376,11 +2348,22 @@ impl SaveSource {
                     .and_then(|s| s.story)
                     .and_then(|n| numbers.iter().position(|&x| x == n))
                     .ok_or_else(|| SaveError::Verify("the new text box has no story".into()))?;
-                let flags = vec![true; b.paragraphs.len()];
-                let (chars, paras, lists) = format_spans(&[], &b.paragraphs, &flags);
-                bytes = pub_write::set_story_format(&bytes, story_index, &chars, &paras)?;
-                if !lists.is_empty() {
-                    bytes = pub_write::set_story_lists(&bytes, story_index, &lists)?;
+                if !b.fields.is_empty() {
+                    // The field characters get their own runs and the story its field table.
+                    bytes = pub_write::set_story_text_with_fields(
+                        &bytes,
+                        story_index,
+                        &b.text,
+                        &b.fields,
+                    )?;
+                }
+                if b.paragraphs.iter().any(|p| !is_plain_para(p)) {
+                    let flags = vec![true; b.paragraphs.len()];
+                    let (chars, paras, lists) = format_spans(&[], &b.paragraphs, &flags);
+                    bytes = pub_write::set_story_format(&bytes, story_index, &chars, &paras)?;
+                    if !lists.is_empty() {
+                        bytes = pub_write::set_story_lists(&bytes, story_index, &lists)?;
+                    }
                 }
             }
         }

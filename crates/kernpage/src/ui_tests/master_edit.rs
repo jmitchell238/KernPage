@@ -589,6 +589,21 @@ fn saving_a_pub_with_master_changes_names_what_cannot_be_saved() {
 }
 
 #[test]
+fn insert_page_number_in_a_pub_is_part_of_the_save_plan() {
+    let mut ui = TestUi::with_pub_sample("gen/master-pn-2p.pub");
+    click_insert(&mut ui);
+    ui.click_ribbon("Page Number");
+    click_label(&mut ui, "Bottom Center");
+    assert_eq!(ui.doc().masters[0].shapes.len(), 2, "the file's own footer and the new one");
+    let doc = ui.doc().clone();
+    let plan = ui.app().source.as_ref().unwrap().plan(&doc);
+    assert!(plan.unsupported.is_empty(), "{:?}", plan.unsupported);
+    assert_eq!(plan.new_text_boxes.len(), 1);
+    assert_eq!(plan.new_text_boxes[0].fields, [0]);
+    assert!(!matches!(&ui.app().prompt, Some(crate::app::Prompt::Unsupported { .. })));
+}
+
+#[test]
 fn a_new_master_and_a_footer_on_it_are_part_of_the_save_plan() {
     let mut ui = TestUi::with_pub_sample("gen/master-pn-2p.pub");
     ui.key(CTRL, Key::M);

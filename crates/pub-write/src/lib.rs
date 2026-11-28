@@ -811,10 +811,8 @@ pub fn set_story_text_keep_formatting(
 
 /// [`set_story_text_keep_formatting`] for a story that holds page-number fields (spec 4T.3):
 /// `fields` are the text offsets (UTF-16 units, paragraph breaks count one) of the fields
-/// the story has after the edit, so the file's `TOKN` table follows exactly: cps of other
-/// stories move with the length change, the story's own become `fields`, and a story left
-/// with no field at all loses its `TOKN` entry. The number of fields in the file may only
-/// change to none.
+/// the story has after the edit, so the story's `TOKN` table (created when it had none)
+/// follows exactly, and a story left with no field at all loses its `TOKN` entry. Any number of fields per story is written.
 pub fn set_story_text_with_fields(
     input: &[u8],
     story_index: usize,

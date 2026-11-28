@@ -550,3 +550,186 @@ fn write_publisher_check_files() {
     e.execute(Command::InsertPage { after: 2 }).unwrap();
     put("k8-new-page-after-b", &mut source, &e);
 }
+
+// ---- page-number fields in new boxes (spec 4T.3) ------------------------------------------------
+
+fn field_paragraphs(text: &str, at: usize) -> Vec<Paragraph> {
+    kernpage_core::text::insert_field(&[Paragraph::plain(text)], at, kernpage_core::Field::PageNumber)
+}
+
+fn field_box(y: i64, text: &str, at: usize) -> Shape {
+    Shape::text_box(Rect::new(914_400, y, 2_743_200, 457_200), field_paragraphs(text, at))
+}
+
+fn fields_in(shape: &Shape) -> usize {
+    match &shape.kind {
+        ShapeKind::TextBox { paragraphs } => {
+            paragraphs.iter().flat_map(|p| &p.runs).filter(|r| r.field.is_some()).count()
+        }
+        _ => 0,
+    }
+}
+
+/// A blank publication of three pages.
+fn blank_three() -> (SaveSource, Editor) {
+    let (source, mut e) = open_bytes(kernpage_samples::read("blank.pub"));
+    e.execute(Command::InsertPage { after: 0 }).unwrap();
+    e.execute(Command::InsertPage { after: 1 }).unwrap();
+    assert_eq!(e.doc().pages.len(), 3);
+    (source, e)
+}
+
+/// The text each page shows in the master box `shape` of master `master`.
+fn shown(d: &Document, shape: usize) -> Vec<String> {
+    (0..d.pages.len())
+        .map(|i| {
+            let s = &d.master_shapes(i)[shape];
+            let n = d.page_number_text(i);
+            let s = s.with_page_number(&n).expect("a field");
+            match s.kind {
+                ShapeKind::TextBox { paragraphs } => paragraphs[0].text(),
+                k => panic!("{k:?}"),
+            }
+        })
+        .collect()
+}
+
+#[kernpage_samples::test]
+fn a_page_number_footer_on_master_a_is_written_and_reopens() {
+    let (mut source, mut e) = blank_three();
+    e.execute(Command::AddShape { page: master_surface(0, false), shape: field_box(9_000_000, "", 0) })
+        .unwrap();
+    let out = save(&mut source, &e);
+    let d = reread(&out);
+    assert_eq!(d.masters[0].shapes.len(), 1);
+    assert_eq!(fields_in(&d.masters[0].shapes[0]), 1);
+    assert_eq!(shown(&d, 0), ["1", "2", "3"]);
+    assert_clean(&source, &e);
+    // The same file, edited and saved again.
+    e.execute(Command::AddShape { page: master_surface(0, false), shape: field_box(100_000, "Page ", 5) })
+        .unwrap();
+    let out = save(&mut source, &e);
+    let d = reread(&out);
+    assert_eq!(d.masters[0].shapes.len(), 2);
+    assert_eq!(shown(&d, 1), ["Page 1", "Page 2", "Page 3"]);
+    assert_eq!(shown(&d, 0), ["1", "2", "3"]);
+}
+
+#[kernpage_samples::test]
+fn a_header_and_a_footer_field_and_two_fields_in_one_box_are_written() {
+    let (mut source, mut e) = blank_three();
+    let s = master_surface(0, false);
+    e.execute(Command::AddShape { page: s, shape: field_box(100_000, "", 0) }).unwrap();
+    // "Page # of #": two fields in one box.
+    let two = kernpage_core::text::insert_field(
+        &kernpage_core::text::insert_field(&[Paragraph::plain("Page  of ")], 5, kernpage_core::Field::PageNumber),
+        10,
+        kernpage_core::Field::PageNumber,
+    );
+    e.execute(Command::AddShape {
+        page: s,
+        shape: Shape::text_box(Rect::new(914_400, 9_000_000, 2_743_200, 457_200), two),
+    })
+    .unwrap();
+    let out = save(&mut source, &e);
+    let d = reread(&out);
+    assert_eq!(d.masters[0].shapes.len(), 2);
+    assert_eq!(fields_in(&d.masters[0].shapes[0]), 1);
+    assert_eq!(fields_in(&d.masters[0].shapes[1]), 2);
+    assert_eq!(shown(&d, 1), ["Page 1 of 1", "Page 2 of 2", "Page 3 of 3"]);
+    assert_clean(&source, &e);
+}
+
+#[kernpage_samples::test]
+fn a_page_number_on_master_b_applied_to_page_two_is_written() {
+    let (mut source, mut e) = blank_three();
+    add_master(&mut e);
+    e.execute(Command::AddShape { page: master_surface(1, false), shape: field_box(9_000_000, "", 0) })
+        .unwrap();
+    e.execute(Command::ApplyMaster { pages: vec![1], master: Some(1) }).unwrap();
+    let out = save(&mut source, &e);
+    let d = reread(&out);
+    assert_eq!(d.masters.len(), 2);
+    assert_eq!(fields_in(&d.masters[1].shapes[0]), 1);
+    assert_eq!(page_masters(&d)[1].0, Some(1));
+    assert!(d.master_shapes(0).is_empty());
+    assert_eq!(d.master_shapes(1).len(), 1);
+    assert_eq!(d.page_number_text(1), "2");
+    assert_clean(&source, &e);
+}
+
+#[kernpage_samples::test]
+fn a_field_in_a_page_text_box_and_in_a_copy_of_the_page_is_written() {
+    let (mut source, mut e) = blank_three();
+    e.execute(Command::AddShape { page: 1, shape: field_box(1_000_000, "Zed ", 4) }).unwrap();
+    let out = save(&mut source, &e);
+    let d = reread(&out);
+    assert_eq!(fields_in(&d.pages[1].shapes[0]), 1);
+    assert_clean(&source, &e);
+    // A copy of that page carries the field too.
+    e.execute(Command::DuplicatePage { page: 1 }).unwrap();
+    let out = save(&mut source, &e);
+    let d = reread(&out);
+    assert_eq!(d.pages.len(), 4);
+    assert_eq!(fields_in(&d.pages[1].shapes[0]), 1);
+    assert_eq!(fields_in(&d.pages[2].shapes[0]), 1);
+    assert_clean(&source, &e);
+}
+
+/// `cargo test -p kernpage-core --test master_save -- --ignored write_page_number_check_files`
+/// writes files with page-number fields (folder in `PN_OUT_DIR`) to open in Publisher 2021.
+#[kernpage_samples::test]
+#[ignore = "writes files for Publisher to open"]
+fn write_page_number_check_files() {
+    let out = std::path::PathBuf::from(
+        std::env::var("PN_OUT_DIR")
+            .unwrap_or_else(|_| std::env::temp_dir().join("pw-pagenum").to_string_lossy().into_owned()),
+    );
+    std::fs::create_dir_all(&out).unwrap();
+    let put = |name: &str, source: &mut SaveSource, e: &Editor| {
+        let bytes = save(source, e);
+        std::fs::write(out.join(format!("{name}.pub")), &bytes).unwrap();
+    };
+    let centred = |y: i64, text: &str, at: usize| {
+        let mut b = field_box(y, text, at);
+        if let ShapeKind::TextBox { paragraphs } = &mut b.kind {
+            paragraphs[0].align = kernpage_core::Align::Center;
+        }
+        b
+    };
+    let s = master_surface(0, false);
+    // Controls: no fields.
+    let (mut source, e) = blank_three();
+    put("c0-three-pages", &mut source, &e);
+    let (mut source, mut e) = blank_three();
+    e.execute(Command::AddShape { page: s, shape: text_box("plain footer") }).unwrap();
+    put("c1-plain-footer", &mut source, &e);
+    // 1. Insert > Page Number, bottom centre, on master A of three pages.
+    let (mut source, mut e) = blank_three();
+    e.execute(Command::AddShape { page: s, shape: centred(9_300_000, "", 0) }).unwrap();
+    put("p1-footer-number", &mut source, &e);
+    // 2. A header page number and a footer page number ("Page #" and "# of #" style).
+    let (mut source, mut e) = blank_three();
+    e.execute(Command::AddShape { page: s, shape: centred(200_000, "Header ", 7) }).unwrap();
+    let two = kernpage_core::text::insert_field(
+        &kernpage_core::text::insert_field(&[Paragraph::plain("Page  of ")], 5, kernpage_core::Field::PageNumber),
+        10,
+        kernpage_core::Field::PageNumber,
+    );
+    e.execute(Command::AddShape {
+        page: s,
+        shape: Shape::text_box(Rect::new(914_400, 9_300_000, 2_743_200, 457_200), two),
+    })
+    .unwrap();
+    put("p2-header-and-footer", &mut source, &e);
+    // 3. A page number on master B, applied to page 2.
+    let (mut source, mut e) = blank_three();
+    add_master(&mut e);
+    e.execute(Command::AddShape { page: master_surface(1, false), shape: centred(9_300_000, "B ", 2) }).unwrap();
+    e.execute(Command::ApplyMaster { pages: vec![1], master: Some(1) }).unwrap();
+    put("p3-master-b", &mut source, &e);
+    // 4. A page text box with a field (page 2).
+    let (mut source, mut e) = blank_three();
+    e.execute(Command::AddShape { page: 1, shape: field_box(1_000_000, "On page ", 8) }).unwrap();
+    put("p4-page-box", &mut source, &e);
+}

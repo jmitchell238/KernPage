@@ -370,21 +370,6 @@ pub fn read(data: &[u8]) -> Result<Quill, PubError> {
             fmts[from..to].fill(char_fmt(&record));
         }
     }
-    // `TOKN` (spec 4T.3): a `PLC ` whose first `u32` is the field count n and whose cps start
-    // at offset 12 (n + 1 of them: a field per cp, then the end). ~ A cp is a position in
-    // the whole TEXT chunk; it is a field only when that unit is a literal `#`.
-    if let Some(c) = find(b"TOKN") {
-        let b = chunk_bytes(data, c)?;
-        let n = u32_at(b, 0).unwrap_or(0) as usize;
-        for i in 0..n.min(1 << 12) {
-            let Some(cp) = u32_at(b, 12 + 4 * i).map(|v| v as usize) else {
-                break;
-            };
-            if text.get(cp) == Some(&0x23) {
-                fmts[cp].field = true;
-            }
-        }
-    }
     let mut aligns = vec![Alignment::Left; text.len()];
     let mut spacings = vec![ParaSpacing::default(); text.len()];
     let mut lists = vec![(None, ParaIndents::default()); text.len()];
@@ -401,9 +386,39 @@ pub fn read(data: &[u8]) -> Result<Quill, PubError> {
         // UNCONFIRMED: with no STRS chunk the whole text is treated as one story.
         None => vec![text.len()],
     };
+    // `TOKN` (spec 4T.3): one chunk per story that has fields, its instance the story's index
+    // in `STRS`. A `PLC `: the field count n, two constants, then n + 1 cps counted from the
+    // start of the story (a field per cp, then the story length). ~ A cp is a field only when
+    // that unit is a literal `#`.
+    {
+        let mut starts = Vec::with_capacity(lengths.len());
+        let mut at = 0;
+        for l in &lengths {
+            starts.push(at);
+            at += l;
+        }
+        for c in all(b"TOKN") {
+            let (Some(&start), Some(&len)) = (
+                starts.get(usize::from(c.instance)),
+                lengths.get(usize::from(c.instance)),
+            ) else {
+                continue;
+            };
+            let b = chunk_bytes(data, c)?;
+            let n = u32_at(b, 0).unwrap_or(0) as usize;
+            for i in 0..n.min(1 << 12) {
+                let Some(cp) = u32_at(b, 12 + 4 * i).map(|v| v as usize) else {
+                    break;
+                };
+                if cp < len && text.get(start + cp) == Some(&0x23) {
+                    fmts[start + cp].field = true;
+                }
+            }
+        }
+    }
     let mut stories = Vec::new();
     let mut start = 0;
-    for len in lengths {
+    for &len in &lengths {
         // story_lengths guarantees start + len <= text.len().
         let end = start + len;
         stories.push(paragraphs(
