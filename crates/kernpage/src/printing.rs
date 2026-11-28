@@ -659,6 +659,39 @@ pub(crate) mod win {
         (w, h, rw, rh)
     }
 
+    /// The two-sided field of a DEVMODE the driver produced.
+    fn duplex_of(dm: &[u8]) -> i16 {
+        // SAFETY: `dm` is a whole DEVMODE from the driver; dmDuplex is in its fixed part.
+        unsafe { std::ptr::read_unaligned(std::ptr::addr_of!((*dm.as_ptr().cast::<DEVMODEW>()).dmDuplex)) }
+    }
+
+    /// The settings for one orientation and two-sided mode, merged by the driver
+    /// (DocumentProperties with DM_IN_BUFFER) so it copies them into its own private part; many
+    /// drivers ignore public DEVMODE fields that were only written, not merged.
+    fn merged(printer: &str, base: &[u8], landscape: bool, duplex: Duplex) -> Vec<u8> {
+        let wanted = adjust(base, landscape, duplex);
+        devmode(printer, Some(&wanted), landscape, false).unwrap_or(wanted)
+    }
+
+    /// Whether the driver really keeps an automatic two-sided setting. Some drivers say they can
+    /// print both sides (DC_DUPLEX) but reset the field to one-sided when the settings are merged
+    /// (seen with a Brother inkjet's spooler queues, while its network queue keeps it).
+    fn driver_keeps_duplex(printer: &str, base: &[u8]) -> bool {
+        [(Duplex::LongEdge, DMDUP_VERTICAL), (Duplex::ShortEdge, DMDUP_HORIZONTAL)]
+            .into_iter()
+            .all(|(d, want)| duplex_of(&merged(printer, base, true, d)) == want as i16)
+    }
+
+    /// Hand check against a real driver (prints nothing): set KERNPAGE_TEST_PRINTER to a printer
+    /// name and run with --ignored --nocapture.
+    #[test]
+    #[ignore]
+    fn report_whether_a_real_driver_keeps_two_sided_printing() {
+        let Ok(printer) = std::env::var("KERNPAGE_TEST_PRINTER") else { return };
+        let base = devmode(&printer, None, true, false).expect("printer settings");
+        println!("{printer}: keeps two-sided = {}", driver_keeps_duplex(&printer, &base));
+    }
+
     /// A copy of the DEVMODE `dm` with the wanted orientation and two-sided mode.
     fn adjust(dm: &[u8], landscape: bool, duplex: Duplex) -> Vec<u8> {
         let mut buf = vec![0u64; dm.len().div_ceil(8)];
@@ -687,7 +720,9 @@ pub(crate) mod win {
         let dm_ptr: *const DEVMODEW = base.as_ref().map_or(null(), |d| d.as_ptr().cast());
         // SAFETY: DeviceCapabilitiesW only reads the DEVMODE; with a null output it returns 1
         // when the printer can print on both sides.
-        let duplex = unsafe { DeviceCapabilitiesW(name.as_ptr(), null(), DC_DUPLEX, null_mut(), dm_ptr) } == 1;
+        let says_duplex = unsafe { DeviceCapabilitiesW(name.as_ptr(), null(), DC_DUPLEX, null_mut(), dm_ptr) } == 1;
+        // Offer automatic two-sided printing only if the driver also keeps the setting.
+        let duplex = says_duplex && base.as_deref().is_some_and(|b| driver_keeps_duplex(printer, b));
         let driver = wide("WINSPOOL");
         // SAFETY: an information context only reads the printer's settings; deleted below.
         let ic = unsafe { CreateICW(driver.as_ptr(), name.as_ptr(), null(), dm_ptr) };
@@ -764,9 +799,29 @@ pub(crate) mod win {
         let page_count = doc.PageCount().map_err(err("The PDF has no pages"))?;
         let base = devmode(&job.printer, job.devmode.as_deref(), job.landscape, false)
             .ok_or_else(|| format!("KernPage cannot reach the printer \"{}\".", job.printer))?;
-        let mode = |landscape: bool| adjust(&base, landscape, job.duplex);
+        // The changed orientation and two-sided fields are handed back to the driver
+        // (DocumentProperties with DM_IN_BUFFER) so it merges them into its own private settings;
+        // many drivers ignore public DEVMODE fields that were only written, not merged, and then
+        // print one-sided.
+        let mode = |landscape: bool| merged(&job.printer, &base, landscape, job.duplex);
         let mut landscape = job.landscape;
         let mut current = mode(landscape);
+        // Never print a two-sided job one-sided without saying so.
+        let wanted_duplex = match job.duplex {
+            Duplex::LongEdge => Some(DMDUP_VERTICAL as i16),
+            Duplex::ShortEdge => Some(DMDUP_HORIZONTAL as i16),
+            Duplex::OneSided | Duplex::Manual => None,
+        };
+        if let Some(want) = wanted_duplex {
+            if duplex_of(&current) != want {
+                return Err(format!(
+                    "The printer \"{}\" did not accept printing on both sides.\n\n\
+                     Nothing was printed. Choose \"Manually Print on Both Sides\" to print the \
+                     fronts first and then the backs.",
+                    job.printer
+                ));
+            }
+        }
         let printer = wide(&job.printer);
         let driver = wide("WINSPOOL");
         // SAFETY: `current` is a DEVMODE the driver produced; the DC is owned by `Dc`.
