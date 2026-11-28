@@ -593,7 +593,8 @@ fn opening_and_saving_a_pub_without_master_changes_asks_nothing() {
     ui.key(CTRL, Key::M);
     ui.key(CTRL, Key::M);
     assert!(!ui.can_undo());
-    let plan = ui.app().source.as_ref().unwrap().plan(ui.doc());
+    let doc = ui.doc().clone();
+    let plan = ui.app().source.as_ref().unwrap().plan(&doc);
     assert!(plan.unsupported.is_empty() && plan.is_empty(), "{:?}", plan.unsupported);
 }
 
