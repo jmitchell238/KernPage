@@ -575,6 +575,8 @@ pub struct App {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, opts: Options) -> App {
+        #[cfg(windows)]
+        crate::caption::install(cc, opts.window_size.unwrap_or((1280.0, 800.0)));
         crate::demo::set(opts.demo);
         let appearance = opts.appearance_override().unwrap_or_else(|| {
             if opts.screenshot.is_some() || opts.demo {
@@ -2917,14 +2919,21 @@ It is not a PNG or JPEG picture it can read."));
 
     fn top_bar(&mut self, ui: &mut Ui) {
         let has_doc = self.editor.is_some();
+        let mut bar_layout = crate::caption::Layout {
+            ppp: ui.ctx().pixels_per_point(),
+            bar_h: crate::caption::BAR_H,
+            ..Default::default()
+        };
         egui::Panel::top("top")
             .frame(egui::Frame::new().fill(crate::theme::window_bg()))
             .show(ui, |ui| {
                 ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
                 // Quick-access toolbar and title.
                 ui.horizontal(|ui| {
+                    let row_top = ui.cursor().top();
+                    let row_left = ui.cursor().left();
                     ui.add_space(6.0);
-                    ui.set_height(26.0);
+                    ui.set_height(crate::caption::BAR_H);
                     if crate::widgets::Btn::small(Icon::Save, "")
                         .enabled(self.can_save())
                         .tip(self.save_tip())
@@ -2973,6 +2982,11 @@ It is not a PNG or JPEG picture it can read."));
                             }
                         }
                     }
+                    // Quick-access buttons are widgets; the title and the empty space are caption.
+                    bar_layout.interactive.push(egui::Rect::from_min_max(
+                        egui::pos2(row_left, row_top),
+                        egui::pos2(ui.cursor().left(), row_top + crate::caption::BAR_H),
+                    ));
                     let title = self.title.clone();
                     let rect = ui.available_rect_before_wrap();
                     let box_w = 300.0_f32.min((ui.clip_rect().width() - 400.0).max(120.0));
@@ -2995,6 +3009,16 @@ It is not a PNG or JPEG picture it can read."));
                         );
                     }
                     self.search_box(ui, search_rect);
+                    bar_layout.interactive.push(search_rect);
+                    // The window's minimise / maximise / close buttons close the row.
+                    let bar = egui::Rect::from_min_max(
+                        egui::pos2(row_left, row_top),
+                        egui::pos2(ui.max_rect().right(), row_top + crate::caption::BAR_H),
+                    );
+                    let [mn, mx, cl] = crate::caption::show_buttons(ui, bar);
+                    bar_layout.minimize = mn;
+                    bar_layout.maximize = mx;
+                    bar_layout.close = cl;
                 });
                 // Tab strip. The File screen replaces the tab row and the ribbon until it is left.
                 if !self.backstage {
@@ -3262,6 +3286,7 @@ It is not a PNG or JPEG picture it can read."));
                     );
                 }
             });
+        crate::caption::publish(bar_layout);
     }
 }
 

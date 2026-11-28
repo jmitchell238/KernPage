@@ -725,7 +725,7 @@ fn the_split_arrows_offer_bring_to_front_and_send_to_back() {
     {
         // The Home tab's small Arrange buttons carry the same names, so look only below the ribbon.
         use egui_kittest::kittest::Queryable;
-        let in_menu = |l: &str| ui.h.query_all_by_label(l).any(|n| n.rect().top() > 110.0);
+        let in_menu = |l: &str| ui.h.query_all_by_label(l).any(|n| n.rect().top() > 116.0);
         assert!(!in_menu("Send Backward"), "only its own two choices");
         assert!(in_menu("Bring Forward"));
     }
@@ -898,7 +898,7 @@ fn columns_button(ui: &TestUi) -> Seen {
     let hits: Vec<Seen> = ui
         .ribbon_buttons()
         .into_iter()
-        .filter(|b| b.label.is_empty() && b.tip.is_empty() && b.enabled && b.rect.min.y > 54.0 && b.rect.min.y < 100.0)
+        .filter(|b| b.label.is_empty() && b.tip.is_empty() && b.enabled && b.rect.min.y > 60.0 && b.rect.min.y < 106.0)
         .collect();
     assert_eq!(hits.len(), 1, "exactly one enabled unnamed button: {hits:?}");
     hits.into_iter().next().unwrap()
@@ -927,7 +927,7 @@ fn the_columns_button_is_greyed_for_a_shape_that_is_not_a_text_box() {
     let enabled_unnamed = ui
         .ribbon_buttons()
         .into_iter()
-        .filter(|b| b.label.is_empty() && b.tip.is_empty() && b.enabled && b.rect.min.y > 54.0 && b.rect.min.y < 100.0)
+        .filter(|b| b.label.is_empty() && b.tip.is_empty() && b.enabled && b.rect.min.y > 60.0 && b.rect.min.y < 106.0)
         .count();
     assert_eq!(enabled_unnamed, 0, "no unnamed button is live, columns included");
 }
@@ -990,7 +990,7 @@ fn every_coming_soon_control_on_home_is_disabled_and_does_nothing() {
     let unnamed: Vec<Seen> = ui
         .ribbon_buttons()
         .into_iter()
-        .filter(|b| b.label.is_empty() && b.tip.is_empty() && b.rect.min.y > 54.0 && b.rect.min.y < 130.0)
+        .filter(|b| b.label.is_empty() && b.tip.is_empty() && b.rect.min.y > 60.0 && b.rect.min.y < 136.0)
         .collect();
     let off: Vec<&Seen> = unnamed.iter().filter(|b| !b.enabled).collect();
     assert_eq!(off.len(), 4, "four greyed icon-only controls: {off:?}");

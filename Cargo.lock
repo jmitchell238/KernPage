@@ -1655,6 +1655,7 @@ dependencies = [
  "png",
  "pub-format",
  "pub2pdf",
+ "raw-window-handle",
  "rfd",
  "windows",
  "windows-sys 0.61.2",

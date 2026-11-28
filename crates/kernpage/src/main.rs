@@ -5,6 +5,7 @@ mod app;
 mod autorecover;
 mod backstage;
 mod canvas;
+mod caption;
 mod ctx_ribbon;
 mod demo;
 mod feedback;
