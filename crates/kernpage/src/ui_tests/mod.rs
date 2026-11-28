@@ -7,6 +7,7 @@
 mod backstage;
 mod demo;
 mod canvas_mouse;
+mod caption;
 mod ribbon_contextual;
 mod ribbon_other;
 mod autorecover;
