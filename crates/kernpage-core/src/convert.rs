@@ -326,7 +326,7 @@ pub fn from_pub_flowed(name: &str, doc: &pf::Document, breaks: &[Vec<StoryPos>])
     link_groups(&mut out, doc);
     out.sections = doc.sections.clone();
     // Master shapes (spec 4T): converted like page shapes, with ids of their own.
-    for m in &doc.masters {
+    for (mi, m) in doc.masters.iter().enumerate() {
         let shapes = m
             .shapes
             .iter()
@@ -337,7 +337,8 @@ pub fn from_pub_flowed(name: &str, doc: &pf::Document, breaks: &[Vec<StoryPos>])
             })
             .collect();
         out.masters.push(MasterPage {
-            uid: new_master_uid(),
+            // Opened masters are numbered by position (two opens of one file agree), like pages.
+            uid: mi as u64 + 1,
             id: m.letter.chars().next().unwrap_or('\0'),
             name: m.name.clone(),
             description: String::new(),
