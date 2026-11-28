@@ -270,6 +270,8 @@ pub struct Options {
     pub scale: Option<f32>,
     /// Debug: draw this ribbon group collapsed with its popup open.
     pub open_group: Option<String>,
+    /// Screenshot option `--print-layout one|copies|pages|booklet`: the File > Print layout.
+    pub print_layout: Option<String>,
     /// Screenshot options: `--theme light|dark|system`, `--accent teal|blue|purple|graphite|orange`.
     pub theme: Option<String>,
     pub accent: Option<String>,
@@ -706,6 +708,16 @@ impl App {
             app.section = Section::parse(page);
             // `options-appearance` opens the Appearance category.
             app.options_cat = usize::from(page.to_lowercase().contains("appearance"));
+        }
+        if let Some(name) = opts.print_layout.as_deref() {
+            use kernpage_core::imposition::PrintLayout;
+            app.print.layout = match name {
+                "one" => Some(PrintLayout::OnePerSheet),
+                "copies" => Some(PrintLayout::CopiesPerSheet),
+                "pages" => Some(PrintLayout::PagesPerSheet),
+                "booklet" => Some(PrintLayout::Booklet),
+                _ => None,
+            };
         }
         if let Some((shape_ix, cell)) = opts.edit_cell {
             let id = app

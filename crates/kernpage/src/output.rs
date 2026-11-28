@@ -15,6 +15,7 @@ use crate::icons::{self, Icon};
 use crate::nav::paint_thumb;
 use crate::backstage::{green_link, page_title, section_title, selected_row};
 use crate::printing::{self, PageScope, PrintJob, PrinterList, Shared};
+use kernpage_core::imposition::{self, PrintLayout, SheetSide};
 use eframe::egui::{self, Color32, Sense, Stroke, StrokeKind, Ui, Vec2};
 use std::path::{Path, PathBuf};
 
@@ -26,6 +27,8 @@ pub struct PrintState {
     pub scope: PageScope,
     pub range: String,
     pub collate: bool,
+    /// The chosen print layout; `None` until the user picks one (the default for the page size).
+    pub layout: Option<PrintLayout>,
     /// The printer's own settings from Printer Properties, and the printer they belong to.
     pub devmode: Option<(String, Vec<u8>)>,
     pub running: Option<Shared>,
@@ -40,6 +43,7 @@ impl Default for PrintState {
             scope: PageScope::All,
             range: String::new(),
             collate: true,
+            layout: None,
             devmode: None,
             running: None,
         }
@@ -188,6 +192,41 @@ impl App {
         }
     }
 
+    /// The publication's page size in points, or `None` without a document.
+    fn print_page_points(&self) -> Option<(f64, f64)> {
+        let p = self.editor.as_ref()?.doc().pages.first()?;
+        Some((p.width_emu as f64 / 12_700.0, p.height_emu as f64 / 12_700.0))
+    }
+
+    /// The layout in force: the user's choice if it still suits the page size, else the default.
+    pub fn print_layout(&self) -> PrintLayout {
+        let Some(page) = self.print_page_points() else {
+            return PrintLayout::OnePerSheet;
+        };
+        self.print
+            .layout
+            .filter(|l| imposition::available_layouts(page, imposition::LETTER).contains(l))
+            .unwrap_or_else(|| imposition::default_layout(page, imposition::LETTER))
+    }
+
+    /// Every sheet side the current settings would print (what the preview steps through).
+    pub fn print_sides(&self) -> Vec<SheetSide> {
+        let Some(page) = self.print_page_points() else {
+            return Vec::new();
+        };
+        let total = self.editor.as_ref().map_or(0, |e| e.doc().pages.len());
+        let pages = self.print_pages().unwrap_or_else(|_| (0..total).collect());
+        imposition::impose(&imposition::Job {
+            layout: self.print_layout(),
+            paper: imposition::LETTER,
+            page,
+            spacing: imposition::default_spacing(page, imposition::LETTER),
+            pages: &pages,
+            copies: self.print.copies.clamp(1, 999),
+            collate: self.print.collate,
+        })
+    }
+
     /// Click on Print: build the PDF and hand the job to a worker thread.
     pub fn start_print(&mut self, ctx: &egui::Context) {
         if self.print.running.is_some() {
@@ -252,7 +291,14 @@ impl App {
         };
         let pages = ed.doc().pages.len();
         let size = ed.doc().pages.first().map(|p| (p.width_emu, p.height_emu));
-        self.print_sheet = self.print_sheet.min(pages.saturating_sub(1));
+        let sides = self.print_sides();
+        self.print_sheet = self.print_sheet.min(sides.len().saturating_sub(1));
+        let layout = self.print_layout();
+        let layout_choices = self
+            .print_page_points()
+            .map(|pg| imposition::available_layouts(pg, imposition::LETTER))
+            .unwrap_or_default();
+        let mut chosen = layout;
         if self.print.printers.is_none() {
             let list = printing::list_printers();
             if self.print.printer.is_none() {
@@ -315,6 +361,15 @@ impl App {
                             );
                         }
                     }
+                    if layout != PrintLayout::OnePerSheet {
+                        ui.label(
+                            egui::RichText::new(
+                                "Printing this layout comes in the next update; the preview shows how it will look.",
+                            )
+                            .color(crate::theme::disabled())
+                            .size(12.0),
+                        );
+                    }
                     ui.add_space(10.0);
                     section_title(ui, "Printer");
                     if names.is_empty() {
@@ -366,6 +421,14 @@ impl App {
                             ui.selectable_value(&mut self.print.collate, true, "Collated");
                             ui.selectable_value(&mut self.print.collate, false, "Uncollated");
                         });
+                    egui::ComboBox::from_id_salt("print_layout")
+                        .width(290.0)
+                        .selected_text(layout.label())
+                        .show_ui(ui, |ui| {
+                            for l in &layout_choices {
+                                ui.selectable_value(&mut chosen, *l, l.label());
+                            }
+                        });
                     let landscape = printing::is_landscape(size);
                     ui.label(
                         egui::RichText::new(if landscape {
@@ -390,43 +453,13 @@ impl App {
             });
             ui.add_space(14.0);
             ui.vertical(|ui| {
-                let Some(ed) = self.editor.as_ref() else {
-                    return;
-                };
-                let Some(page) = ed.doc().pages.get(self.print_sheet) else {
-                    return;
-                };
-                let avail = ui.available_size();
-                let max_h = (avail.y - 90.0).clamp(200.0, 620.0);
-                let max_w = (avail.x - 60.0).clamp(200.0, 560.0);
-                let aspect = page.height_emu as f32 / page.width_emu.max(1) as f32;
-                let (mut w, mut h) = (max_w, max_w * aspect);
-                if h > max_h {
-                    h = max_h;
-                    w = h / aspect;
-                }
-                let (outer, _) = ui.allocate_exact_size(Vec2::new(max_w, 22.0), Sense::hover());
-                let p = ui.painter();
-                let mid = outer.center();
-                let line = Stroke::new(1.0, crate::theme::frame());
-                p.text(mid, egui::Align2::CENTER_CENTER, format!("{}\"", inches(page.width_emu)), egui::FontId::proportional(13.0), crate::theme::disabled());
-                p.line_segment([egui::Pos2::new(outer.min.x, mid.y), egui::Pos2::new(mid.x - 26.0, mid.y)], line);
-                p.line_segment([egui::Pos2::new(mid.x + 26.0, mid.y), egui::Pos2::new(outer.max.x, mid.y)], line);
-                let (rect, _) = ui.allocate_exact_size(Vec2::new(w, h), Sense::hover());
-                paint_thumb(ui, rect, ed.doc(), self.print_sheet, &self.fonts, &mut self.pics);
-                ui.painter().rect_stroke(rect, 0.0, Stroke::new(1.0, crate::theme::text()), StrokeKind::Outside);
-                ui.add_space(10.0);
-                ui.horizontal(|ui| {
-                    if nav_arrow(ui, 2, self.print_sheet > 0) {
-                        self.print_sheet -= 1;
-                    }
-                    ui.label(egui::RichText::new(format!("{}  of {pages}", self.print_sheet + 1)).color(crate::theme::text()));
-                    if nav_arrow(ui, 1, self.print_sheet + 1 < pages) {
-                        self.print_sheet += 1;
-                    }
-                });
+                self.print_preview(ui, &sides);
             });
         });
+        if chosen != layout {
+            self.print.layout = Some(chosen);
+            self.print_sheet = 0;
+        }
         if props {
             if let Some(p) = self.print.printer.clone() {
                 let landscape = printing::is_landscape(size);
@@ -443,6 +476,66 @@ impl App {
             let ctx = ui.ctx().clone();
             self.start_print(&ctx);
         }
+    }
+
+    /// The right half of the Print page: one sheet side drawn as white paper with its pages,
+    /// and the Sheet n of N stepper under it.
+    fn print_preview(&mut self, ui: &mut Ui, sides: &[SheetSide]) {
+        let Some(ed) = self.editor.as_ref() else { return };
+        let Some(side) = sides.get(self.print_sheet) else { return };
+        let ppp = ui.ctx().pixels_per_point();
+        let snap = |v: f32| (v * ppp).round() / ppp;
+        let avail = ui.available_size();
+        let max_h = (avail.y - 90.0).clamp(200.0, 620.0);
+        let max_w = (avail.x - 60.0).clamp(200.0, 560.0);
+        let (pw, ph) = (side.paper.0 as f32, side.paper.1 as f32);
+        let scale = (max_w / pw).min(max_h / ph);
+        let (w, h) = (snap(pw * scale), snap(ph * scale));
+        // Width ruler: the sheet's width in inches.
+        let (outer, _) = ui.allocate_exact_size(Vec2::new(max_w, 22.0), Sense::hover());
+        let mid = outer.center();
+        let line = Stroke::new(1.0 / ppp, crate::theme::frame());
+        let p = ui.painter();
+        p.text(mid, egui::Align2::CENTER_CENTER, format!("{}\"", inches((pw * 12_700.0) as i64)), egui::FontId::proportional(13.0), crate::theme::disabled());
+        p.line_segment([egui::Pos2::new(outer.min.x, mid.y), egui::Pos2::new(mid.x - 26.0, mid.y)], line);
+        p.line_segment([egui::Pos2::new(mid.x + 26.0, mid.y), egui::Pos2::new(outer.max.x, mid.y)], line);
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(w, h), Sense::hover());
+        let rect = egui::Rect::from_min_size(egui::Pos2::new(snap(rect.min.x), snap(rect.min.y)), Vec2::new(w, h));
+        #[cfg(test)]
+        crate::backstage::seen("printsheet".to_owned(), rect, true, false);
+        ui.painter().rect_filled(rect, 0.0, Color32::WHITE);
+        let page_edge = Stroke::new(1.0 / ppp, Color32::from_gray(185));
+        for pl in &side.placements {
+            let Some(index) = pl.page else { continue };
+            let r = egui::Rect::from_min_max(
+                egui::Pos2::new(snap(rect.min.x + pl.rect.x as f32 * scale), snap(rect.min.y + pl.rect.y as f32 * scale)),
+                egui::Pos2::new(
+                    snap(rect.min.x + (pl.rect.x + pl.rect.w) as f32 * scale),
+                    snap(rect.min.y + (pl.rect.y + pl.rect.h) as f32 * scale),
+                ),
+            );
+            #[cfg(test)]
+            crate::backstage::seen(format!("printpage:{}", index + 1), r, true, false);
+            paint_thumb(ui, r, ed.doc(), index, &self.fonts, &mut self.pics);
+            ui.painter().rect_stroke(r, 0.0, page_edge, StrokeKind::Inside);
+        }
+        ui.painter().rect_stroke(rect, 0.0, Stroke::new(1.0 / ppp, Color32::from_gray(90)), StrokeKind::Inside);
+        ui.add_space(10.0);
+        let booklet = self.print_layout() == PrintLayout::Booklet;
+        let text = if booklet {
+            format!("Sheet {}, {}", side.sheet + 1, if side.back { "back" } else { "front" })
+        } else {
+            format!("Sheet {} of {}", self.print_sheet + 1, sides.len())
+        };
+        ui.horizontal(|ui| {
+            if nav_arrow(ui, 2, self.print_sheet > 0) {
+                self.print_sheet -= 1;
+            }
+            ui.label(egui::RichText::new(text).color(crate::theme::text()));
+            if nav_arrow(ui, 1, self.print_sheet + 1 < sides.len()) {
+                self.print_sheet += 1;
+            }
+        });
     }
 
     /// File > Export: the export types and the Create a PDF page.

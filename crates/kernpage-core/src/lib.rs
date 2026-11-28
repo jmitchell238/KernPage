@@ -6,6 +6,7 @@ pub mod command;
 pub mod convert;
 pub mod export;
 pub mod geometry;
+pub mod imposition;
 pub mod model;
 pub mod native;
 pub mod pagesetup;
@@ -26,6 +27,7 @@ pub use command::{
 pub use convert::{from_pub, from_pub_flowed};
 pub use export::{export_pdf, to_pub};
 pub use geometry::{Handle, Rect};
+pub use imposition::{PrintLayout, SheetSide};
 pub use model::*;
 pub use save::{
     write_atomic, FormatChange, FrameChange, LookChange, NewPicture, NewShape, NewTextBox,
