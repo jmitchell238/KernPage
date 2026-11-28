@@ -391,6 +391,20 @@ fn printer_properties_now(printer: &str, current: Option<&[u8]>, landscape: bool
 pub fn is_landscape<T: PartialOrd>(size: Option<(T, T)>) -> bool {
     size.is_some_and(|(w, h)| w > h)
 }
+
+/// Copy a `got_w` x `got_h` BGRA image into an exact `width` x `height` one: extra pixels are
+/// dropped, missing ones are white. Used when the PDF renderer comes back a pixel or two off.
+pub fn fit_exact(px: &[u8], got_w: u32, got_h: u32, width: u32, height: u32) -> Vec<u8> {
+    let mut out = vec![255u8; width as usize * height as usize * 4];
+    let (cw, ch) = (got_w.min(width) as usize, got_h.min(height) as usize);
+    for row in 0..ch {
+        let src = row * got_w as usize * 4;
+        let dst = row * width as usize * 4;
+        out[dst..dst + cw * 4].copy_from_slice(&px[src..src + cw * 4]);
+    }
+    out
+}
+
 #[cfg(windows)]
 #[cfg_attr(test, allow(dead_code))]
 pub(crate) mod win {
@@ -407,6 +421,8 @@ pub(crate) mod win {
 
     /// Rows drawn and sent at a time.
     const STRIP_ROWS: u32 = 768;
+    /// How many pixels the renderer may be off in each direction before it is an error.
+    const SIZE_SLACK: u32 = 2;
 
     fn wide(s: &str) -> Vec<u16> {
         s.encode_utf16().chain(std::iter::once(0)).collect()
@@ -566,6 +582,13 @@ pub(crate) mod win {
                 let (px, got_w, got_h) = decode_png_bgra(&png_bytes)?;
                 if (got_w, got_h) == (width, rows) {
                     bgra = px;
+                    break;
+                }
+                // The renderer rounds the strip size its own way and can land a pixel off however
+                // it is asked (seen: 3300x491 for 3300x492). A difference that small is invisible
+                // at printer resolution: trim the extra or fill the gap with white.
+                if got_w.abs_diff(width) <= SIZE_SLACK && got_h.abs_diff(rows) <= SIZE_SLACK && got_w > 0 && got_h > 0 {
+                    bgra = super::fit_exact(&px, got_w, got_h, width, rows);
                     break;
                 }
                 if attempt == 2 || got_w == 0 || got_h == 0 {
@@ -826,6 +849,18 @@ pub(crate) mod win {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_strip_one_row_short_is_filled_with_white_and_one_too_wide_is_trimmed() {
+        // 2x1 image (red, green) asked for as 2x2: the missing row is white.
+        let px = [0, 0, 255, 255, 0, 255, 0, 255];
+        let out = fit_exact(&px, 2, 1, 2, 2);
+        assert_eq!(&out[..8], &px);
+        assert!(out[8..].iter().all(|&b| b == 255));
+        // 3x1 asked for as 2x1: the extra column is dropped.
+        let wide = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3];
+        assert_eq!(fit_exact(&wide, 3, 1, 2, 1), vec![1, 1, 1, 1, 2, 2, 2, 2]);
+    }
 
     fn job(pages: &[usize], copies: u32, collate: bool) -> PrintJob {
         PrintJob {
