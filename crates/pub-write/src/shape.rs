@@ -113,8 +113,7 @@ pub fn add_shape(
     }
     let doc = pub_format::read_bytes(input)?;
     let page = doc
-        .pages
-        .get(page_index)
+        .surface(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?;
     let emu = |v: f64| (v * EMU_PER_POINT).round();
     let (cx, cy) = (

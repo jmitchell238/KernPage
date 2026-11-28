@@ -337,7 +337,16 @@ pub fn delete_page(input: &[u8], index: usize) -> Result<Vec<u8>> {
         return fail("the only page of a document cannot be deleted");
     }
     let page = cx.page_objs[index];
-    let cts = &mut cx.cts;
+    let gone = remove_object_tree(&mut cx.cts, cx.root, page)?;
+    let escher = strip_escher(&streams.escher, &gone)?;
+    let contents = cx.cts.finish()?;
+    install(input, &contents, &escher)
+}
+
+/// Remove the object `page` (a page or a master) and every descendant from Contents, with
+/// their registry records, their entry in the child list of `root` and their index slots.
+/// Returns the removed object numbers (for the Escher step, [`strip_escher`]).
+pub(crate) fn remove_object_tree(cts: &mut Cts, root: usize, page: u32) -> Result<HashSet<u32>> {
     // The page and every descendant by index parent.
     let mut gone: HashSet<u32> = HashSet::from([page]);
     loop {
@@ -392,9 +401,9 @@ pub fn delete_page(input: &[u8], index: usize) -> Result<Vec<u8>> {
         Ok(rec_int(b, at, 1)?.is_some_and(|s| stories.contains(&s)))
     })?;
     // Page list of object 256: item 2 (and its count item 1); item 35 stays.
-    let mut ids = cts.child_ids(cx.root)?;
+    let mut ids = cts.child_ids(root)?;
     ids.retain(|&x| x != page);
-    cts.set_child_ids(cx.root, &ids)?;
+    cts.set_child_ids(root, &ids)?;
     // Remove the objects' blocks, highest offset first, and empty their slots.
     let mut blocks = Vec::new();
     for &g in &gone {
@@ -425,12 +434,17 @@ pub fn delete_page(input: &[u8], index: usize) -> Result<Vec<u8>> {
         cts.entries.pop();
     }
 
-    // Escher: remove the containers, fix the counters; lastspid and FIDCL stay.
-    let mut esc = EscherDoc::parse(&streams.escher)?;
+    Ok(gone)
+}
+
+/// Remove the Escher containers of the objects in `gone`, fix the counters and lower the
+/// picture store's reference counts; lastspid and FIDCL stay.
+pub(crate) fn strip_escher(escher: &[u8], gone: &HashSet<u32>) -> Result<Vec<u8>> {
+    let mut esc = EscherDoc::parse(escher)?;
     let mut pibs = Vec::new();
     let mut per: Vec<(u16, u32)> = Vec::new();
     for (_, d) in esc.drawings.iter_mut() {
-        let n = strip(d, &gone, &mut pibs);
+        let n = strip(d, gone, &mut pibs);
         if n > 0 {
             let dgid = d.find(0xF008).map_or(0, |r| r.vi >> 4);
             drawing_counters(d, -(n as i32), None)?;
@@ -443,6 +457,6 @@ pub fn delete_page(input: &[u8], index: usize) -> Result<Vec<u8>> {
     if !pibs.is_empty() {
         lower_crefs(&mut esc.head, &mut 0, &pibs);
     }
-    let contents = cx.cts.finish()?;
-    install(input, &contents, &esc.to_bytes())
+    Ok(esc.to_bytes())
 }
+

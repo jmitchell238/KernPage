@@ -326,7 +326,7 @@ pub fn from_pub_flowed(name: &str, doc: &pf::Document, breaks: &[Vec<StoryPos>])
     link_groups(&mut out, doc);
     out.sections = doc.sections.clone();
     // Master shapes (spec 4T): converted like page shapes, with ids of their own.
-    for m in &doc.masters {
+    for (mi, m) in doc.masters.iter().enumerate() {
         let shapes = m
             .shapes
             .iter()
@@ -337,10 +337,21 @@ pub fn from_pub_flowed(name: &str, doc: &pf::Document, breaks: &[Vec<StoryPos>])
             })
             .collect();
         out.masters.push(MasterPage {
+            // Opened masters are numbered by position (two opens of one file agree), like pages.
+            uid: mi as u64 + 1,
+            id: m.letter.chars().next().unwrap_or('\0'),
             name: m.name.clone(),
+            description: String::new(),
+            two_page: false,
+            margins_emu: margins,
             shapes,
+            left_shapes: Vec::new(),
         });
     }
+    for (mm, sm) in out.masters.iter_mut().zip(&doc.masters) {
+        link_shapes(&mut mm.shapes, &sm.shapes);
+    }
+    out.repair_masters();
     out
 }
 
@@ -348,19 +359,23 @@ pub fn from_pub_flowed(name: &str, doc: &pf::Document, breaks: &[Vec<StoryPos>])
 /// their children at them. Both lists have the same page and shape order.
 fn link_groups(out: &mut Document, src: &pf::Document) {
     for (mp, sp) in out.pages.iter_mut().zip(&src.pages) {
-        let id_of: std::collections::HashMap<u32, ShapeId> = sp
-            .shapes
-            .iter()
-            .zip(&mp.shapes)
-            .map(|(s, m)| (s.object_number, m.id))
-            .collect();
-        for (s, m) in sp.shapes.iter().zip(mp.shapes.iter_mut()) {
-            m.group = s.group.and_then(|g| id_of.get(&g).copied());
-            if sp.shapes.iter().any(|c| c.group == Some(s.object_number)) {
-                m.kind = ShapeKind::Group;
-                m.fill = None;
-                m.line = None;
-            }
+        link_shapes(&mut mp.shapes, &sp.shapes);
+    }
+}
+
+/// [`link_groups`] for the shapes of one page or master.
+fn link_shapes(mshapes: &mut [Shape], sshapes: &[pf::Shape]) {
+    let id_of: std::collections::HashMap<u32, ShapeId> = sshapes
+        .iter()
+        .zip(mshapes.iter())
+        .map(|(s, m)| (s.object_number, m.id))
+        .collect();
+    for (s, m) in sshapes.iter().zip(mshapes.iter_mut()) {
+        m.group = s.group.and_then(|g| id_of.get(&g).copied());
+        if sshapes.iter().any(|c| c.group == Some(s.object_number)) {
+            m.kind = ShapeKind::Group;
+            m.fill = None;
+            m.line = None;
         }
     }
 }

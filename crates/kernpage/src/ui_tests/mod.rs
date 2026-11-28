@@ -15,6 +15,7 @@ mod documents;
 mod linked_frames;
 mod linked_text;
 mod logo;
+mod master_edit;
 mod masters;
 mod idle;
 mod lists;

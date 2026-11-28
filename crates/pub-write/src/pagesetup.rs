@@ -21,7 +21,6 @@ use std::collections::HashSet;
 
 const KIND_PAGE: u64 = 67;
 const KIND_DOCUMENT: u64 = 68;
-const KIND_GUIDES: u64 = 76;
 const KIND_SETUP: u64 = 138;
 const KIND_GROUP: u16 = 48;
 
@@ -47,7 +46,7 @@ fn fail<T>(m: impl Into<String>) -> Result<T> {
 
 // ------------------------------------------------------------------ item encoding
 
-fn enc_block(items: &[Item]) -> Result<Vec<u8>> {
+pub(crate) fn enc_block(items: &[Item]) -> Result<Vec<u8>> {
     let mut body = Vec::new();
     for it in items {
         body.extend_from_slice(&header(it.id, it.class));
@@ -78,7 +77,7 @@ fn enc_block(items: &[Item]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn int(id: u16, v: i64) -> Result<Item> {
+pub(crate) fn int(id: u16, v: i64) -> Result<Item> {
     let v = u32::try_from(v).map_err(|_| WriteError::OutOfRange(v))?;
     Ok(Item {
         id,
@@ -87,7 +86,7 @@ fn int(id: u16, v: i64) -> Result<Item> {
     })
 }
 
-fn flag(id: u16) -> Item {
+pub(crate) fn flag(id: u16) -> Item {
     Item {
         id,
         class: 1,
@@ -95,13 +94,13 @@ fn flag(id: u16) -> Item {
     }
 }
 
-fn utf16z(s: &str) -> Vec<u8> {
+pub(crate) fn utf16z(s: &str) -> Vec<u8> {
     let mut v: Vec<u8> = s.encode_utf16().flat_map(u16::to_le_bytes).collect();
     v.extend_from_slice(&[0, 0]);
     v
 }
 
-fn put_item(items: &mut Vec<Item>, new: Item) {
+pub(crate) fn put_item(items: &mut Vec<Item>, new: Item) {
     match items.iter_mut().find(|i| i.id == new.id) {
         Some(old) => *old = new,
         None => {
@@ -123,7 +122,7 @@ fn set_pair(items: &mut [Item], id: u16, a: (u16, i64), b: (u16, i64)) -> Result
 
 /// Decode object `slot`, let `f` change the items, write the object back. Refuses a block
 /// that does not re-encode to itself.
-fn edit_object(
+pub(crate) fn edit_object(
     cts: &mut Cts,
     slot: usize,
     f: impl FnOnce(&mut Vec<Item>) -> Result<()>,
@@ -172,7 +171,7 @@ fn set_in_record(cts: &mut Cts, slot: usize, item: u16, vals: &[(u16, i64)]) -> 
 // ------------------------------------------------------------------- the guides
 
 /// The four margin guides of spec 4Q.6 from absolute positions (EMU from the top-left).
-fn guide_list(left: i64, right: i64, top: i64, bottom: i64) -> Result<Item> {
+pub(crate) fn guide_list(left: i64, right: i64, top: i64, bottom: i64) -> Result<Item> {
     let rec = |pos: i64, flags: [u16; 2]| -> Result<Item> {
         let mut v = Vec::new();
         if pos != 0 {
@@ -198,7 +197,7 @@ fn guide_list(left: i64, right: i64, top: i64, bottom: i64) -> Result<Item> {
 }
 
 /// The four guide positions of object 289's item list (a missing item 1 is position 0).
-fn guide_positions(items: &[Item]) -> Result<[i64; 4]> {
+pub(crate) fn guide_positions(items: &[Item]) -> Result<[i64; 4]> {
     let Some(Value::List(els)) = items.iter().find(|i| i.id == 2).map(|i| &i.value) else {
         return fail("the layout guides object has no guide list");
     };
@@ -222,16 +221,6 @@ fn guide_positions(items: &[Item]) -> Result<[i64; 4]> {
     Ok(out)
 }
 
-fn guides_slot(cts: &Cts) -> Result<usize> {
-    let all: Vec<usize> = (0..cts.entries.len())
-        .filter(|&i| cts.kind(i) == Some(KIND_GUIDES))
-        .collect();
-    match all.as_slice() {
-        [one] => Ok(*one),
-        [] => fail("the file has no layout guides object"),
-        _ => fail("two-page (facing) master pages are not supported"),
-    }
-}
 
 /// Set the page margins (spec 4Q.6), in EMU. Only the layout-guides object of the master
 /// page changes: left, right, top, bottom guide records at their absolute positions; a
@@ -259,12 +248,13 @@ pub fn set_margins(
     }
     let streams = Streams::from_cfb(input)?;
     let mut cts = Cts::parse(&streams.contents)?;
-    let slot = guides_slot(&cts)?;
-    edit_object(&mut cts, slot, |items| {
-        guide_positions(items)?;
-        put_item(items, guide_list(l, w - r, t, h - b)?);
-        Ok(())
-    })?;
+    for slot in super::masters::guide_slots(&cts)? {
+        edit_object(&mut cts, slot, |items| {
+            guide_positions(items)?;
+            put_item(items, guide_list(l, w - r, t, h - b)?);
+            Ok(())
+        })?;
+    }
     // A "Current"-form page-setup record mirrors the margins (items 6..9 of its first
     // item-18 element: top, left, bottom, right; seen in `page-a4-landscape-margins-2pages`).
     // The preset form does not (margin-only samples left it alone).
@@ -497,7 +487,7 @@ pub fn set_page_size(input: &[u8], width_emu: u32, height_emu: u32) -> Result<Ve
     let doc_slot = cts
         .slot_of_kind(KIND_DOCUMENT)
         .ok_or_else(|| WriteError::PageSetup("the file has no document object".into()))?;
-    let gslot = guides_slot(&cts)?;
+    let gslots = super::masters::guide_slots(&cts)?;
     let scratch = scratch_slot(&cts, doc_slot)?;
 
     // ---- which shapes stay, which move (from the reader's view of the old geometry)
@@ -567,16 +557,20 @@ pub fn set_page_size(input: &[u8], width_emu: u32, height_emu: u32) -> Result<Ve
         }
     }
     let mut margins4 = [0i64; 4];
-    edit_object(&mut cts, gslot, |items| {
-        let p = guide_positions(items)?;
-        margins4 = [p[2], p[0], oh - p[3], ow - p[1]];
-        let (rp, bp) = (w - (ow - p[1]), h - (oh - p[3]));
-        if rp < p[0] || bp < p[2] {
-            return fail("the margins do not fit the new page size");
-        }
-        put_item(items, guide_list(p[0], rp, p[2], bp)?);
-        set_pair(items, 3, (1, w), (2, h))
-    })?;
+    for (k, &gslot) in gslots.iter().enumerate() {
+        edit_object(&mut cts, gslot, |items| {
+            let p = guide_positions(items)?;
+            if k == 0 {
+                margins4 = [p[2], p[0], oh - p[3], ow - p[1]];
+            }
+            let (rp, bp) = (w - (ow - p[1]), h - (oh - p[3]));
+            if rp < p[0] || bp < p[2] {
+                return fail("the margins do not fit the new page size");
+            }
+            put_item(items, guide_list(p[0], rp, p[2], bp)?);
+            set_pair(items, 3, (1, w), (2, h))
+        })?;
+    }
     if let Some(setup) = cts.slot_of_kind(KIND_SETUP) {
         edit_object(&mut cts, setup, |items| to_current_form(items, w, h, margins4))?;
     }

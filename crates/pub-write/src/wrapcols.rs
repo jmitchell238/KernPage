@@ -67,10 +67,8 @@ pub fn set_shape_wrap(
     }
     let doc = pub_format::read_bytes(input)?;
     let shape = doc
-        .pages
-        .get(page_index)
+        .surface_shapes(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?
-        .shapes
         .get(shape_index)
         .ok_or(WriteError::NoSuchShape {
             page: page_index,
@@ -130,10 +128,8 @@ pub fn set_text_columns(
     }
     let doc = pub_format::read_bytes(input)?;
     let obj = doc
-        .pages
-        .get(page_index)
+        .surface_shapes(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?
-        .shapes
         .get(shape_index)
         .ok_or(WriteError::NoSuchShape {
             page: page_index,

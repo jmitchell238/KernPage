@@ -450,14 +450,39 @@ pub(crate) fn set_story_runs(
     // STRS: only the one length changes.
     let mut new_strs = strs_data;
     put_u32(&mut new_strs, 12 + 4 * story_index, (new_chars) as u32);
-    let edit = DirEdit {
-        fields: fields.map(|f| FieldEdit {
-            start: (s - TEXT_OFFSET) / 2,
-            old_len: (e - s) / 2,
-            cps: f.to_vec(),
-        }),
-        ..DirEdit::default()
+    // The story's own field table (cps count from the story's start, so other stories'
+    // tables do not change).
+    let inst = u16::try_from(story_index).map_err(|_| bad("story index too large"))?;
+    let old_tokn = find(&dir, b"TOKN", inst);
+    let old_units: Vec<u16> = old_text[s - TEXT_OFFSET..e - TEXT_OFFSET]
+        .chunks_exact(2)
+        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .collect();
+    let old_cps = match old_tokn {
+        Some(c) => tokn_parse(data(q, c)?)?.0,
+        None => Vec::new(),
     };
+    let cps: Option<Vec<usize>> = match fields {
+        Some(f) => Some(f.to_vec()),
+        None if old_units != units && !old_cps.is_empty() => {
+            Some(carry_fields(&old_units, &units, &old_cps))
+        }
+        None => None,
+    };
+    let mut edit = DirEdit::default();
+    if let Some(mut cps) = cps {
+        cps.retain(|&m| units.get(m) == Some(&0x23));
+        cps.sort_unstable();
+        cps.dedup();
+        match (cps.is_empty(), old_tokn) {
+            (true, None) => {}
+            (true, Some(_)) => edit.tokn.set.push((inst, None)),
+            (false, old) => {
+                let old = old.map(|c| data(q, c)).transpose()?;
+                edit.tokn.set.push((inst, Some(tokn_payload(&cps, new_chars, old)?)));
+            }
+        }
+    }
     rebuild_with(
         q,
         &dir,
@@ -478,6 +503,14 @@ const FIELD_ONLY_ITEMS: [u16; 2] = [0x200, 0x222];
 
 fn has_field_marks(rec: &[u8]) -> bool {
     split_items(rec).is_ok_and(|it| it.iter().any(|i| i.id == FIELD_ONLY_ITEMS[0]))
+}
+
+/// The record with the two field-only items added (items 0x200 = 5 and 0x222 = -1).
+fn with_field_marks(rec: &[u8]) -> Result<Vec<u8>> {
+    let mut items = split_items(rec)?;
+    put_item(&mut items, FIELD_ONLY_ITEMS[0], vec![0x00, 0x12, 0x05, 0x00]);
+    put_item(&mut items, FIELD_ONLY_ITEMS[1], vec![0x22, 0x22, 0xFF, 0xFF, 0xFF, 0xFF]);
+    Ok(join_items(&items))
 }
 
 /// The record without the field-only items (what Publisher gives text next to a field).
@@ -511,8 +544,14 @@ fn isolate_field_runs(
         .find(|r| has_field_marks(r))
         .or_else(|| recs.char_records.iter().find(|r| has_field_marks(r)))
         .cloned();
-    let Some(field_rec) = field_rec else {
-        return Ok(runs);
+    let field_rec = match field_rec {
+        Some(r) => r,
+        // The file has no field yet: the first field's character takes its own record plus
+        // the two marks (spec 4T.3).
+        None => match fields.iter().find_map(|&c| per.get(c)) {
+            Some(own) => with_field_marks(own)?,
+            None => return Ok(runs),
+        },
     };
     let old_cr = recs
         .text
@@ -1291,18 +1330,19 @@ struct DirEdit {
     tcd: TcdEdit,
     /// Chunks (any instance) that are left out.
     drop: Vec<[u8; 4]>,
-    /// The exact page-number fields of the edited story (spec 4T.3), when the caller knows
-    /// them; otherwise the `TOKN` table follows the text by [`adjust_tokn`]'s diff rule.
-    fields: Option<FieldEdit>,
+    /// Changes to the `TOKN` field tables (spec 4T.3).
+    tokn: TokEdit,
 }
 
-/// The page-number fields of one edited story: `start` and `old_len` are the story's
-/// position and length (in text units) before the edit, `cps` the units of its fields
-/// inside the story after it.
-struct FieldEdit {
-    start: usize,
-    old_len: usize,
-    cps: Vec<usize>,
+/// Changes to the `TOKN` chunks: there is one per story that has page-number fields, its
+/// instance the story's index in `STRS`, so they follow the stories when one is removed,
+/// copied or edited.
+#[derive(Default)]
+struct TokEdit {
+    /// The story whose chunk goes; the chunks of later stories move down by one.
+    remove: Option<u16>,
+    /// Then, by final instance: the chunk's new bytes (added when absent), or `None` = gone.
+    set: Vec<(u16, Option<Vec<u8>>)>,
 }
 
 #[derive(Default)]
@@ -1391,6 +1431,14 @@ fn rebuild_with(
                 entry[6..8].copy_from_slice(&instance.to_le_bytes());
             }
         }
+        if let (b"TOKN", Some(k)) = (&c.tag, edit.tokn.remove) {
+            if c.instance == k {
+                dropped = true;
+            } else if c.instance > k {
+                instance -= 1;
+                entry[6..8].copy_from_slice(&instance.to_le_bytes());
+            }
+        }
         let fdp = match &c.tag {
             b"FDPP" => Some(&ppacked),
             b"FDPC" => Some(&cpacked),
@@ -1405,15 +1453,10 @@ fn rebuild_with(
             _ if repl.is_some() => repl,
             (_, Some(packed)) => packed.get(rank(c)).map(|p| p.to_vec()),
             (b"TEXT", _) => Some(new_text_bytes.clone()),
-            (b"TOKN", _) if c.instance == 0 => {
-                let old_text = find(dir, b"TEXT", 0).map(|t| data(q, t)).transpose()?;
-                adjust_tokn(
-                    old_text.unwrap_or_default(),
-                    &new_text_bytes,
-                    data(q, c)?,
-                    edit.fields.as_ref(),
-                )?
-            }
+            (b"TOKN", _) => match edit.tokn.set.iter().find(|(i, _)| *i == instance) {
+                Some((_, p)) => p.clone(),
+                None => Some(data(q, c)?.to_vec()),
+            },
             (b"STRS", _) if c.instance == 0 => Some(new_strs.clone()),
             (b"FONT", _) if c.instance == 0 && new_font.is_some() => new_font.clone(),
             (b"PL  ", _) if c.instance == 0 && new_pl.is_some() => new_pl.clone(),
@@ -1427,6 +1470,7 @@ fn rebuild_with(
             old_offset: c.offset,
             old_len: c.len,
             payload,
+            trailer: Vec::new(),
         });
         if tcd_anchor == Some(i) {
             if let TcdEdit::Add { instance, ends } = &edit.tcd {
@@ -1450,6 +1494,7 @@ fn rebuild_with(
                     old_offset: c.offset + c.len,
                     old_len: 0,
                     payload: Some(p),
+                    trailer: Vec::new(),
                 });
             }
         }
@@ -1465,10 +1510,52 @@ fn rebuild_with(
                         old_offset: c.offset,
                         old_len: c.len,
                         payload: Some(page.to_vec()),
+                        trailer: Vec::new(),
                     });
                 }
             }
         }
+    }
+
+    // New `TOKN` chunks go in instance order between `FONT` and `STRS` (spec 4T.3).
+    let mut added: Vec<&(u16, Option<Vec<u8>>)> = edit.tokn.set.iter().collect();
+    added.sort_by_key(|(i, _)| *i);
+    for (inst, payload) in added {
+        let Some(payload) = payload else { continue };
+        if items
+            .iter()
+            .any(|it| &it.tag == b"TOKN" && it.instance == *inst && it.payload.is_some())
+        {
+            continue;
+        }
+        let anchor = items
+            .iter()
+            .rposition(|it| &it.tag == b"TOKN" && it.instance < *inst && it.payload.is_some())
+            .or_else(|| items.iter().rposition(|it| &it.tag == b"FONT" && it.payload.is_some()))
+            .ok_or_else(|| bad("no FONT chunk to place a TOKN chunk after"))?;
+        let mut e = [0u8; 24];
+        e[0] = 0x18;
+        e[2..6].copy_from_slice(b"TOKN");
+        e[6..8].copy_from_slice(&inst.to_le_bytes());
+        e[8] = 1;
+        e[12..16].copy_from_slice(b"PLC ");
+        // (a chunk read from the file has its 20-byte gap behind it; a new one carries it)
+        let a = &items[anchor];
+        let at = a.old_offset
+            + a.old_len
+            + if &a.tag == b"TOKN" && a.trailer.is_empty() { TOKN_GAP } else { 0 };
+        items.insert(
+            anchor + 1,
+            Item {
+                entry: e,
+                tag: *b"TOKN",
+                instance: *inst,
+                old_offset: at,
+                old_len: 0,
+                payload: Some(payload.clone()),
+                trailer: tokn_trailer(&items),
+            },
+        );
     }
 
     // Layout: chunks in their old order, back to back (old gaps kept), FDP pages aligned.
@@ -1498,14 +1585,15 @@ fn rebuild_with(
         let is_fdp = &it.tag == b"FDPP" || &it.tag == b"FDPC";
         let start = match &it.payload {
             None => {
-                prev_old_end = it.old_offset + it.old_len;
+                // (a `TOKN` chunk takes the 20 bytes behind it along)
+                prev_old_end = it.old_offset + it.old_len + if &it.tag == b"TOKN" { TOKN_GAP } else { 0 };
                 continue;
             }
             Some(_) if is_fdp => align(cursor),
             Some(_) => cursor + it.old_offset.saturating_sub(prev_old_end),
         };
         new_off[i] = start;
-        cursor = start + it.payload.as_ref().map_or(0, Vec::len);
+        cursor = start + it.payload.as_ref().map_or(0, Vec::len) + it.trailer.len();
         prev_old_end = it.old_offset + it.old_len;
     }
     let new_btep = bte(
@@ -1606,6 +1694,12 @@ fn rebuild_with(
                 out.resize(align(end), 0);
             }
             out[new_off[i]..end].copy_from_slice(payload);
+            if !it.trailer.is_empty() {
+                if end + it.trailer.len() > out.len() {
+                    out.resize(align(end + it.trailer.len()), 0);
+                }
+                out[end..end + it.trailer.len()].copy_from_slice(&it.trailer);
+            }
         }
     }
     out[0x0C..0x0E].copy_from_slice(&(live.len() as u16).to_le_bytes());
@@ -1619,86 +1713,112 @@ fn rebuild_with(
     Ok(out)
 }
 
-/// The `TOKN` field table (spec 4T.3) for a changed `TEXT` chunk. Each field cp is a position in
-/// the whole text. With `exact` (the fields of the edited story as the caller knows them)
-/// cps before the story stay, cps after it move with the length change and the story's
-/// own are replaced. Without it the old and new text are compared by their common prefix and
-/// suffix (the rule the editor uses to carry a field through one edit): a field in the
-/// prefix stays, one in the suffix moves with it, one in the changed middle is gone. The
-/// last cp is the text length. `None` = no field left, the chunk is dropped (as in a story
-/// without fields). The number of fields may only change to zero (the layout behind the cps
-/// of more than one field is not known).
-fn adjust_tokn(
-    old_text: &[u8],
-    new_text: &[u8],
-    tokn: &[u8],
-    exact: Option<&FieldEdit>,
-) -> Result<Option<Vec<u8>>> {
-    if old_text == new_text && exact.is_none() {
-        return Ok(Some(tokn.to_vec()));
+/// Constant words of a `TOKN` header after the field count (spec 4T.3).
+const TOKN_HEADER: [u32; 2] = [0x0C, 0x0001_FFFF];
+/// The 20 bytes ([`TOKN_GAP`]) Publisher leaves behind each `TOKN` chunk (not counted in its length): eight
+/// zeros, a stamp, four zeros and the 4-byte time stamp of the `FONT` chunk (bytes 16 to 20
+/// of it). The stamp's value (`0e ca` and two changing bytes) is not understood ?.
+const TOKN_GAP: usize = 20;
+
+fn tokn_trailer(items: &[Item]) -> Vec<u8> {
+    let font = items
+        .iter()
+        .find(|it| &it.tag == b"FONT" && it.payload.is_some())
+        .and_then(|it| it.payload.as_ref())
+        .and_then(|p| p.get(16..20))
+        .map(<[u8]>::to_vec)
+        .unwrap_or_else(|| vec![0; 4]);
+    let mut t = vec![0u8; 8];
+    t.extend_from_slice(&[0x0E, 0xCA, 0xA6, 0xB1]);
+    t.extend_from_slice(&[0; 4]);
+    t.extend_from_slice(&font);
+    t
+}
+
+/// The property block of the first field (page-number type, current page) and of the first
+/// field's second table, as Publisher writes them; every further field has an empty block
+/// (just its length, 4) in each of the two tables.
+const TOKN_FIRST_BLOCK: [u8; 22] = [
+    0x16, 0, 0, 0, 0x00, 0x22, 0, 0, 0, 0, 0x01, 0x22, 1, 0, 0, 0, 0x02, 0x22, 0xFB, 0xFF, 0xFF, 0xFF,
+];
+const TOKN_SECOND_BLOCK: [u8; 10] = [0x0A, 0, 0, 0, 0x00, 0x22, 0xFF, 0xFF, 0xFF, 0xFF];
+
+/// The `TOKN` table of a story with page-number fields at `cps` (units from the story's
+/// start; `end` = the story's length): count, two constants, the cps and the end, then two
+/// tables of one property block per field (spec 4T.3, checked for 1, 2 and 3 fields).
+fn tokn_build(cps: &[usize], end: usize) -> Vec<u8> {
+    let mut out = (cps.len() as u32).to_le_bytes().to_vec();
+    for w in TOKN_HEADER {
+        out.extend_from_slice(&w.to_le_bytes());
     }
-    let units = |b: &[u8]| -> Vec<u16> {
-        b.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect()
-    };
-    let (old, new) = (units(old_text), units(new_text));
-    let n = u32_at(tokn, 0)? as usize;
-    if tokn.len() < 12 + 4 * (n + 1) {
+    for &c in cps.iter().chain(std::iter::once(&end)) {
+        out.extend_from_slice(&(c as u32).to_le_bytes());
+    }
+    for first in [&TOKN_FIRST_BLOCK[..], &TOKN_SECOND_BLOCK[..]] {
+        out.extend_from_slice(first);
+        for _ in 1..cps.len() {
+            out.extend_from_slice(&4u32.to_le_bytes());
+        }
+    }
+    out
+}
+
+/// The field cps and the end cp of a `TOKN` chunk.
+fn tokn_parse(b: &[u8]) -> Result<(Vec<usize>, usize)> {
+    let n = u32_at(b, 0)? as usize;
+    if b.len() < 12 + 4 * (n + 1) {
         return Err(bad("TOKN is shorter than its cps"));
     }
+    let cps = (0..n)
+        .map(|i| u32_at(b, 12 + 4 * i).map(|v| v as usize))
+        .collect::<Result<Vec<_>>>()?;
+    Ok((cps, u32_at(b, 12 + 4 * n)? as usize))
+}
+
+/// The `TOKN` chunk bytes for a story whose fields are now `cps`. The layout Publisher
+/// writes is rebuilt; a table with another layout is only patched in its cps (same count).
+fn tokn_payload(cps: &[usize], end: usize, old: Option<&[u8]>) -> Result<Vec<u8>> {
+    let canon = tokn_build(cps, end);
+    let Some(old) = old else { return Ok(canon) };
+    let (old_cps, old_end) = tokn_parse(old)?;
+    if tokn_build(&old_cps, old_end) == old {
+        return Ok(canon);
+    }
+    if old_cps.len() != cps.len() {
+        return Err(bad("the page-number field table has a layout that is not known"));
+    }
+    let mut out = old.to_vec();
+    for (i, c) in cps.iter().enumerate() {
+        put_u32(&mut out, 12 + 4 * i, *c as u32);
+    }
+    put_u32(&mut out, 12 + 4 * cps.len(), end as u32);
+    Ok(out)
+}
+
+/// Where the fields of a story go after its text changed from `old` to `new` when the caller
+/// does not say: the common prefix and suffix of the two texts decide (the rule the editor
+/// uses to carry a field through one edit): a field in the prefix stays, one in the suffix
+/// moves with it, one in the changed middle is gone.
+fn carry_fields(old: &[u16], new: &[u16], old_cps: &[usize]) -> Vec<usize> {
+    let prefix = old.iter().zip(new).take_while(|(a, b)| a == b).count();
+    let room = old.len().min(new.len()) - prefix;
+    let suffix = old
+        .iter()
+        .rev()
+        .zip(new.iter().rev())
+        .take(room)
+        .take_while(|(a, b)| a == b)
+        .count();
     let delta = new.len() as i64 - old.len() as i64;
-    let old_cps: Vec<usize> = (0..n)
-        .map(|i| u32_at(tokn, 12 + 4 * i).map(|v| v as usize))
-        .collect::<Result<_>>()?;
-    let mut cps: Vec<usize> = Vec::new();
-    match exact {
-        Some(e) => {
-            let after = e.start + e.old_len;
-            for &cp in &old_cps {
-                if cp < e.start {
-                    cps.push(cp);
-                } else if cp >= after {
-                    cps.push(usize::try_from(cp as i64 + delta).map_err(|_| bad("TOKN cp"))?);
-                }
-            }
-            cps.extend(e.cps.iter().map(|c| e.start + c));
-            cps.sort_unstable();
-        }
-        None => {
-            let prefix = old.iter().zip(&new).take_while(|(a, b)| a == b).count();
-            let room = old.len().min(new.len()) - prefix;
-            let suffix = old
-                .iter()
-                .rev()
-                .zip(new.iter().rev())
-                .take(room)
-                .take_while(|(a, b)| a == b)
-                .count();
-            for &cp in &old_cps {
-                if cp < prefix {
-                    cps.push(cp);
-                } else if cp >= old.len() - suffix {
-                    cps.extend(usize::try_from(cp as i64 + delta).ok());
-                }
-            }
+    let mut out = Vec::new();
+    for &cp in old_cps {
+        if cp < prefix {
+            out.push(cp);
+        } else if cp >= old.len() - suffix {
+            out.extend(usize::try_from(cp as i64 + delta).ok());
         }
     }
-    cps.retain(|&m| new.get(m) == Some(&0x23));
-    if cps.is_empty() {
-        return Ok(None);
-    }
-    if cps.len() != n {
-        return Err(bad(
-            "an edit changes the number of page-number fields of a file that has some",
-        ));
-    }
-    let mut out = tokn.to_vec();
-    for (i, cp) in cps.iter().enumerate() {
-        put_u32(&mut out, 12 + 4 * i, *cp as u32);
-    }
-    let end = u32_at(tokn, 12 + 4 * n)? as i64;
-    let end = if end == old.len() as i64 { new.len() as i64 } else { end + delta };
-    put_u32(&mut out, 12 + 4 * n, end.max(0) as u32);
-    Ok(Some(out))
+    out
 }
 
 struct Item {
@@ -1710,6 +1830,9 @@ struct Item {
     old_len: usize,
     /// `None` = dropped (formatting shrank by a page).
     payload: Option<Vec<u8>>,
+    /// Reserved bytes behind the payload that the directory does not count (a new `TOKN`
+    /// chunk has 20, spec 4T.3).
+    trailer: Vec<u8>,
 }
 
 /// The `MCLD` header: (record-id high-water mark, record ids), one id per story. A fresh file
@@ -2256,7 +2379,7 @@ fn add_story_impl(
                 None => TcdEdit::None,
             },
             drop: Vec::new(),
-            fields: None,
+            tokn: TokEdit::default(),
         },
     )?;
     Ok((out, story))
@@ -2335,11 +2458,18 @@ pub(crate) fn duplicate_stories(q: &[u8], src: &[usize]) -> Result<(Vec<u8>, Vec
     let mut new_mcld = mcld.to_vec();
     let mut mcld_tail = Vec::new();
 
+    // A copy of a story with page-number fields has the same table (its cps count from the
+    // story's start).
+    let mut tokn_copies: Vec<(u16, Option<Vec<u8>>)> = Vec::new();
     let mut numbers = Vec::with_capacity(src.len());
     let mut cur = old_end;
     for (k, &i) in src.iter().enumerate() {
         let s = TEXT_OFFSET + 2 * lens[..i].iter().sum::<usize>();
         let e = s + 2 * lens[i];
+        if let Some(t) = find(&dir, b"TOKN", u16::try_from(i).map_err(|_| bad("story index too large"))?) {
+            let inst = u16::try_from(count + k).map_err(|_| bad("too many stories"))?;
+            tokn_copies.push((inst, Some(data(q, t)?.to_vec())));
+        }
         let (start, end, frames) = recs[i];
         if frames != 1 {
             return Err(bad(format!("story {i} has {frames} frames (linked text boxes)")));
@@ -2402,7 +2532,13 @@ pub(crate) fn duplicate_stories(q: &[u8], src: &[usize]) -> Result<(Vec<u8>, Vec
         None,
         None,
         &[(*b"SYID", syid), (*b"MCLD", new_mcld)],
-        &DirEdit::default(),
+        &DirEdit {
+            tokn: TokEdit {
+                remove: None,
+                set: tokn_copies,
+            },
+            ..DirEdit::default()
+        },
     )?;
     Ok((out, numbers))
 }
@@ -2530,7 +2666,10 @@ pub(crate) fn remove_story(q: &[u8], story_number: u32) -> Result<(Vec<u8>, usiz
             } else {
                 Vec::new()
             },
-            fields: None,
+            tokn: TokEdit {
+                remove: Some(u16::try_from(idx).map_err(|_| bad("story index too large"))?),
+                set: Vec::new(),
+            },
         },
     )?;
     Ok((out, count - 1))
@@ -2602,5 +2741,52 @@ mod duplicate_tests {
             }
             assert_eq!(mcld2[pos + MCLD_FLAG_AT], 10, "copy {i}");
         }
+    }
+}
+
+#[cfg(test)]
+mod tokn_story_tests {
+    use super::*;
+
+    fn tokn_instances(q: &[u8]) -> Vec<(u16, u32)> {
+        let dir = read_directory(q).unwrap();
+        dir.chunks
+            .iter()
+            .filter(|c| &c.tag == b"TOKN")
+            .map(|c| (c.instance, u32_at(data(q, c).unwrap(), 12).unwrap()))
+            .collect()
+    }
+
+    /// Stories 0 ("first", no field), 1 ("#"), 2 ("x #") on top of the blank publication.
+    fn three_stories() -> Vec<u8> {
+        let blank = std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples/blank.pub"),
+        )
+        .unwrap();
+        let mut b = crate::add_text_box(&blank, 0, 72.0, 100.0, 216.0, 36.0, "first").unwrap();
+        for (y, text, f) in [(200.0, "#", 0usize), (300.0, "x #", 2)] {
+            b = crate::add_text_box(&b, 0, 72.0, y, 216.0, 36.0, text).unwrap();
+            let n = pub_format::read_bytes(&b).unwrap().stories.len() - 1;
+            b = crate::set_story_text_with_fields(&b, n, text, &[f]).unwrap();
+        }
+        b
+    }
+
+    #[test]
+    fn tables_follow_their_story_when_a_story_is_removed_or_copied() {
+        let b = three_stories();
+        let q = pub_format::Streams::from_cfb(&b).unwrap().quill;
+        assert_eq!(tokn_instances(&q), [(1, 0), (2, 2)]);
+        // Removing story 1 moves story 2's table to instance 1.
+        let numbers = pub_format::read_bytes(&b).unwrap().story_numbers();
+        let (out, left) = remove_story(&q, numbers[1]).unwrap();
+        assert_eq!(left, 2);
+        assert_eq!(tokn_instances(&out), [(1, 2)]);
+        // Removing story 0 moves both down.
+        let (out, _) = remove_story(&q, numbers[0]).unwrap();
+        assert_eq!(tokn_instances(&out), [(0, 0), (1, 2)]);
+        // Copying stories 2 and 1 appends copies with the same tables.
+        let (out, _) = duplicate_stories(&q, &[2, 1]).unwrap();
+        assert_eq!(tokn_instances(&out), [(1, 0), (2, 2), (3, 2), (4, 0)]);
     }
 }

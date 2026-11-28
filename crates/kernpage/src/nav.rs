@@ -9,7 +9,7 @@ use crate::widgets::{ACCENT_COLOR};
 use eframe::egui::{self, Color32, Sense, Stroke, StrokeKind, Ui, Vec2};
 use kernpage_core::geometry::emu_to_px;
 
-const THUMB_W: f32 = 104.0;
+pub(crate) const THUMB_W: f32 = 104.0;
 
 /// Test seam: the thumbnails and the close button drawn in the last frame.
 #[cfg(test)]
@@ -35,7 +35,7 @@ pub mod probe {
     pub fn get() -> Pane {
         PANE.with(|p| p.borrow().clone())
     }
-    pub(super) fn with(f: impl FnOnce(&mut Pane)) {
+    pub(crate) fn with(f: impl FnOnce(&mut Pane)) {
         PANE.with(|p| f(&mut p.borrow_mut()));
     }
 }
@@ -47,6 +47,7 @@ enum PageAct {
     Delete,
     Up,
     Down,
+    Master(crate::masters::PaneMasterChoice),
 }
 
 impl App {
@@ -56,6 +57,8 @@ impl App {
         let mut add_page = false;
         // (page, action) chosen from a thumbnail's right-click menu.
         let mut act: Option<(usize, PageAct)> = None;
+        let in_master_view = self.master_view.is_some();
+        let mut master_act: Option<crate::masters::MasterAct> = None;
         egui::Panel::left("page_nav")
             .exact_size(THUMB_W + 34.0)
             .frame(
@@ -65,7 +68,8 @@ impl App {
             )
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Pages").color(crate::theme::text()).size(14.5).strong());
+                    let title = if in_master_view { "Master Pages" } else { "Pages" };
+                    ui.label(egui::RichText::new(title).color(crate::theme::text()).size(14.5).strong());
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         let (r, resp) = ui.allocate_exact_size(Vec2::splat(16.0), Sense::click());
                         icons::paint(
@@ -93,6 +97,16 @@ impl App {
                 egui::ScrollArea::vertical()
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
+                        if in_master_view {
+                            master_act = crate::masters::master_list(
+                                ui,
+                                doc,
+                                self.page,
+                                &self.fonts,
+                                &mut self.pics,
+                            );
+                            return;
+                        }
                         // Room for the selection highlight (drawn 5 px outside the thumbnail)
                         // so the first page's top edge is not clipped by the scroll area.
                         ui.add_space(6.0);
@@ -103,29 +117,9 @@ impl App {
                             let current = i == self.page;
                             #[cfg(test)]
                             probe::with(|p| p.thumbs.push((i, rect, current)));
-                            let p = ui.painter();
-                            let r = 6.0;
-                            if current {
-                                p.rect_filled(rect.expand(5.0), r, crate::theme::accent_tint());
-                            } else if resp.hovered() {
-                                p.rect_filled(rect.expand(5.0), r, crate::theme::hover_bg());
-                            }
-                            p.add(
-                                egui::Shadow {
-                                    offset: [0, 2],
-                                    blur: 8,
-                                    spread: 0,
-                                    color: crate::theme::shadow(),
-                                }
-                                .as_shape(rect, egui::CornerRadius::same(3)),
-                            );
+                            thumb_label(ui, rect, &resp, current);
                             paint_thumb(ui, rect, doc, i, &self.fonts, &mut self.pics);
-                            let border = if current {
-                                Stroke::new(2.0, crate::theme::accent())
-                            } else {
-                                Stroke::new(1.0, crate::theme::line())
-                            };
-                            p.rect_stroke(rect, 2.0, border, StrokeKind::Outside);
+                            thumb_border(ui, rect, current);
                             ui.label(
                                 {
                                     let t = egui::RichText::new(format!("{}", i + 1))
@@ -156,6 +150,28 @@ impl App {
                                 if ui.add_enabled(n > 1, egui::Button::new("Delete Page")).clicked() {
                                     act = Some((i, PageAct::Delete));
                                 }
+                                ui.menu_button("Master Pages", |ui| {
+                                    let (items, ignore) = crate::masters::menu_items_of(doc, i);
+                                    for (m, (label, current)) in items.iter().enumerate() {
+                                        if ui.add(egui::Button::new(label).selected(*current)).clicked() {
+                                            act = Some((i, PageAct::Master(crate::masters::PaneMasterChoice::Use(m))));
+                                            ui.close();
+                                        }
+                                    }
+                                    if ui.add(egui::Button::new("None").selected(ignore)).clicked() {
+                                        act = Some((i, PageAct::Master(crate::masters::PaneMasterChoice::None)));
+                                        ui.close();
+                                    }
+                                    ui.separator();
+                                    if ui.button("Edit Master Pages").clicked() {
+                                        act = Some((i, PageAct::Master(crate::masters::PaneMasterChoice::Edit)));
+                                        ui.close();
+                                    }
+                                    if ui.button("Apply Master Page...").clicked() {
+                                        act = Some((i, PageAct::Master(crate::masters::PaneMasterChoice::Dialog)));
+                                        ui.close();
+                                    }
+                                });
                                 ui.separator();
                                 if ui.add_enabled(i > 0, egui::Button::new("Move Page Up")).clicked() {
                                     act = Some((i, PageAct::Up));
@@ -183,7 +199,11 @@ impl App {
                 PageAct::Delete => self.delete_page_at(i),
                 PageAct::Up => self.move_page_by(i, -1),
                 PageAct::Down => self.move_page_by(i, 1),
+                PageAct::Master(choice) => self.pane_master_choice(i, choice),
             }
+        }
+        if let Some(a) = master_act {
+            self.run_master_act(a);
         }
         if add_page {
             let last = self.page_count().saturating_sub(1);
@@ -195,9 +215,44 @@ impl App {
     }
 }
 
+/// The highlight behind the current thumbnail (or under the pointer) and its shadow.
+pub(crate) fn thumb_label(ui: &Ui, rect: egui::Rect, resp: &egui::Response, current: bool) {
+    let p = ui.painter();
+    let r = 6.0;
+    if current {
+        p.rect_filled(rect.expand(5.0), r, crate::theme::accent_tint());
+    } else if resp.hovered() {
+        p.rect_filled(rect.expand(5.0), r, crate::theme::hover_bg());
+    }
+    p.add(
+        egui::Shadow {
+            offset: [0, 2],
+            blur: 8,
+            spread: 0,
+            color: crate::theme::shadow(),
+        }
+        .as_shape(rect, egui::CornerRadius::same(3)),
+    );
+}
+
+/// The outline of a thumbnail: accent and 2 px for the current one.
+pub(crate) fn thumb_border(ui: &Ui, rect: egui::Rect, current: bool) {
+    let border = if current {
+        Stroke::new(2.0, crate::theme::accent())
+    } else {
+        Stroke::new(1.0, crate::theme::line())
+    };
+    ui.painter().rect_stroke(rect, 2.0, border, StrokeKind::Outside);
+}
+
 /// The "+ Add page" card at the end of the thumbnail list: a dashed rounded outline, a plus
 /// and a label. Returns true when it was clicked.
 fn add_page_card(ui: &mut Ui) -> bool {
+    add_card(ui, "Add page", "Insert a blank page at the end")
+}
+
+/// A dashed "+" card with `label`; true when clicked.
+pub(crate) fn add_card(ui: &mut Ui, label: &str, tip: &str) -> bool {
     let (rect, resp) = ui.allocate_exact_size(Vec2::new(THUMB_W, 48.0), Sense::click());
     let hot = resp.hovered();
     let col = if hot { crate::theme::accent() } else { crate::theme::disabled() };
@@ -230,14 +285,14 @@ fn add_page_card(ui: &mut Ui) -> bool {
     p.text(
         egui::pos2(rect.center().x, rect.max.y - 12.0),
         egui::Align2::CENTER_CENTER,
-        "Add page",
+        label,
         egui::FontId::proportional(12.0),
         if hot { crate::theme::accent_text() } else { crate::theme::text() },
     );
     #[cfg(test)]
     probe::with(|p| p.add_card = Some(rect));
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Add page"));
-    resp.on_hover_text("Insert a blank page at the end").clicked()
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+    resp.on_hover_text(tip).clicked()
 }
 
 /// Paint a miniature of `page` (white paper and its shapes) into `rect`.
@@ -249,10 +304,15 @@ pub fn paint_thumb(
     fonts: &FontMgr,
     pics: &mut PictureCache,
 ) {
-    let Some(page) = doc.pages.get(index) else {
+    let Some(page) = doc.surface(index) else {
         return;
     };
-    let number = doc.page_number_text(index);
+    // A master shows its page-number fields as `#`.
+    let number = if kernpage_core::master_surface_parts(index).is_some() {
+        "#".to_owned()
+    } else {
+        doc.page_number_text(index)
+    };
     let p = ui.painter();
     p.rect_filled(rect, 0.0, Color32::WHITE);
     let zoom = f64::from(rect.width()) / emu_to_px(page.width_emu, 1.0);

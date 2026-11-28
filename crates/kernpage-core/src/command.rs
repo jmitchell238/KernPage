@@ -293,9 +293,113 @@ pub enum Command {
         height_emu: i64,
         margins: Margins,
     },
+    /// Master Page view > Add Master Page (`copy_of` = `None`) or Duplicate (`copy_of` = the
+    /// master to copy, shapes included). The new master goes last and gets the next free id
+    /// letter unless `id` is given; its name is `Master Page <id>` (a copy: `Copy of <name>`).
+    /// A document without masters first gets master A. The new master's index is the last.
+    AddMaster {
+        copy_of: Option<usize>,
+        id: Option<char>,
+        description: String,
+        two_page: bool,
+    },
+    /// Rename Master Page: the id letter, name and description (at most 40 characters).
+    SetMasterInfo {
+        master: usize,
+        id: char,
+        name: String,
+        description: String,
+    },
+    /// Delete a master. The last one is refused; pages that used it use the first remaining
+    /// master (spec 4T, research 2026-11-28).
+    DeleteMaster {
+        master: usize,
+    },
+    /// Two-Page Master on or off. Turning it off drops the left half.
+    SetTwoPageMaster {
+        master: usize,
+        two_page: bool,
+    },
+    /// Apply Master Page: the pages (0-based) use `master`; `None` makes them ignore their
+    /// master (Page Design > Master Pages > None).
+    ApplyMaster {
+        pages: Vec<usize>,
+        master: Option<usize>,
+    },
+    /// Make sure the document has a master: a document made in the editor has none until
+    /// the Master Page view is first opened. Gives master A to every page without one.
+    EnsureMaster,
 }
 
 impl Command {
+    /// The page a shape command works on; `None` for the commands that do not have one.
+    fn target_page(&self) -> Option<usize> {
+        match self {
+            Command::AlignShapes { page, .. }
+            | Command::MoveShapes { page, .. }
+            | Command::SetRect { page, .. }
+            | Command::AddShape { page, .. }
+            | Command::PasteShapes { page, .. }
+            | Command::DeleteShapes { page, .. }
+            | Command::ChangePicture { page, .. }
+            | Command::InsertTable { page, .. }
+            | Command::InsertTableRows { page, .. }
+            | Command::InsertTableColumns { page, .. }
+            | Command::DeleteTableRows { page, .. }
+            | Command::DeleteTableColumns { page, .. }
+            | Command::SetText { page, .. }
+            | Command::SetCellText { page, .. }
+            | Command::SetTextFormat { page, .. }
+            | Command::FormatRuns { page, .. }
+            | Command::FormatParagraphs { page, .. }
+            | Command::SpacingParagraphs { page, .. }
+            | Command::ListParagraphs { page, .. }
+            | Command::StyleShapes { page, .. }
+            | Command::BringForward { page, .. }
+            | Command::SendBackward { page, .. }
+            | Command::BringToFront { page, .. }
+            | Command::SendToBack { page, .. }
+            | Command::ZOrderShapes { page, .. }
+            | Command::Group { page, .. }
+            | Command::Ungroup { page, .. } => Some(*page),
+            _ => None,
+        }
+    }
+
+    /// The same command on another page (only for commands that have a [`target_page`]).
+    fn retarget(&mut self, to: usize) {
+        match self {
+            Command::AlignShapes { page, .. }
+            | Command::MoveShapes { page, .. }
+            | Command::SetRect { page, .. }
+            | Command::AddShape { page, .. }
+            | Command::PasteShapes { page, .. }
+            | Command::DeleteShapes { page, .. }
+            | Command::ChangePicture { page, .. }
+            | Command::InsertTable { page, .. }
+            | Command::InsertTableRows { page, .. }
+            | Command::InsertTableColumns { page, .. }
+            | Command::DeleteTableRows { page, .. }
+            | Command::DeleteTableColumns { page, .. }
+            | Command::SetText { page, .. }
+            | Command::SetCellText { page, .. }
+            | Command::SetTextFormat { page, .. }
+            | Command::FormatRuns { page, .. }
+            | Command::FormatParagraphs { page, .. }
+            | Command::SpacingParagraphs { page, .. }
+            | Command::ListParagraphs { page, .. }
+            | Command::StyleShapes { page, .. }
+            | Command::BringForward { page, .. }
+            | Command::SendBackward { page, .. }
+            | Command::BringToFront { page, .. }
+            | Command::SendToBack { page, .. }
+            | Command::ZOrderShapes { page, .. }
+            | Command::Group { page, .. }
+            | Command::Ungroup { page, .. } => *page = to,
+            _ => {}
+        }
+    }
+
     /// Short name for the Undo/Redo tooltips.
     pub fn label(&self) -> &'static str {
         match self {
@@ -353,6 +457,13 @@ impl Command {
             Command::SetPageSize { .. } => "Page Size",
             Command::SetMargins { .. } => "Margins",
             Command::SetPageSetup { .. } => "Page Setup",
+            Command::AddMaster { copy_of: None, .. } => "Add Master Page",
+            Command::AddMaster { .. } => "Duplicate Master Page",
+            Command::SetMasterInfo { .. } => "Rename Master Page",
+            Command::DeleteMaster { .. } => "Delete Master Page",
+            Command::SetTwoPageMaster { .. } => "Two-Page Master",
+            Command::ApplyMaster { .. } => "Apply Master Page",
+            Command::EnsureMaster => "Master Page",
         }
     }
 }
@@ -384,6 +495,15 @@ pub enum CommandError {
     BadPageSize,
     /// Margins that are negative or leave no room on the page.
     BadMargins,
+    NoSuchMaster(usize),
+    /// "You cannot delete the default master page." (Publisher's message.)
+    CannotDeleteLastMaster,
+    /// The id letter is already used by another master.
+    MasterIdInUse(char),
+    /// An id must be one visible character.
+    BadMasterId(char),
+    /// Every id letter is in use.
+    NoMasterIdLeft,
 }
 
 impl fmt::Display for CommandError {
@@ -416,6 +536,17 @@ impl fmt::Display for CommandError {
             CommandError::NotAGroup(id) => write!(f, "object {id} is not a group"),
             CommandError::BadPageSize => write!(f, "a page must be between 1 and 49 inches"),
             CommandError::BadMargins => write!(f, "the margins do not fit on the page"),
+            CommandError::NoSuchMaster(m) => write!(f, "there is no master page {}", m + 1),
+            CommandError::CannotDeleteLastMaster => {
+                write!(f, "you cannot delete the default master page")
+            }
+            CommandError::MasterIdInUse(c) => {
+                write!(f, "another master page already has the ID {c}")
+            }
+            CommandError::BadMasterId(c) => {
+                write!(f, "{c:?} cannot be a master page ID (use one letter or digit)")
+            }
+            CommandError::NoMasterIdLeft => write!(f, "there is no free master page ID left"),
             CommandError::CannotDeleteLastPage => {
                 write!(f, "a publication needs at least one page")
             }
@@ -491,9 +622,30 @@ enum Patch {
         from: Vec<Section>,
         to: Vec<Section>,
     },
+    /// The whole master list before and after (add, duplicate, rename, delete, two-page).
+    SetMasters {
+        from: Vec<MasterPage>,
+        to: Vec<MasterPage>,
+    },
+    /// Which master each page uses and whether it ignores it, before and after.
+    SetPageMasters {
+        from: Vec<(Option<usize>, bool)>,
+        to: Vec<(Option<usize>, bool)>,
+    },
 }
 
 impl Patch {
+    /// The same shape patch on another page (pseudo page index of a master).
+    fn retarget(&mut self, to: usize) {
+        match self {
+            Patch::Replace { page, .. }
+            | Patch::Insert { page, .. }
+            | Patch::Remove { page, .. }
+            | Patch::Reorder { page, .. } => *page = to,
+            _ => {}
+        }
+    }
+
     fn inverse(&self) -> Patch {
         match self.clone() {
             Patch::Replace { page, from, to } => Patch::Replace {
@@ -516,25 +668,42 @@ impl Patch {
             Patch::InsertStory { index, story } => Patch::RemoveStory { index, story },
             Patch::RemoveStory { index, story } => Patch::InsertStory { index, story },
             Patch::SetSections { from, to } => Patch::SetSections { from: to, to: from },
+            Patch::SetMasters { from, to } => Patch::SetMasters { from: to, to: from },
+            Patch::SetPageMasters { from, to } => Patch::SetPageMasters { from: to, to: from },
         }
     }
 
     fn apply(&self, doc: &mut Document) {
         match self {
             Patch::Replace { page, from, to } => {
-                if let Some(s) = doc.pages[*page].shapes.iter_mut().find(|s| s.id == from.id) {
+                if let Some(s) = doc
+                    .shapes_mut(*page)
+                    .and_then(|v| v.iter_mut().find(|s| s.id == from.id))
+                {
                     *s = to.clone();
                 }
             }
             Patch::Insert { page, index, shape } => {
-                doc.pages[*page].shapes.insert(*index, shape.clone());
+                if let Some(v) = doc.shapes_mut(*page) {
+                    v.insert(*index, shape.clone());
+                }
             }
             Patch::Remove { page, index, .. } => {
-                doc.pages[*page].shapes.remove(*index);
+                if let Some(v) = doc.shapes_mut(*page) {
+                    v.remove(*index);
+                }
             }
             Patch::Reorder { page, from, to } => {
-                let s = doc.pages[*page].shapes.remove(*from);
-                doc.pages[*page].shapes.insert(*to, s);
+                if let Some(v) = doc.shapes_mut(*page) {
+                    let s = v.remove(*from);
+                    v.insert(*to, s);
+                }
+            }
+            Patch::SetMasters { to, .. } => doc.masters = to.clone(),
+            Patch::SetPageMasters { to, .. } => {
+                for (p, (m, ignore)) in doc.pages.iter_mut().zip(to) {
+                    (p.master, p.ignore_master) = (*m, *ignore);
+                }
             }
             Patch::InsertPage { index, page } => doc.pages.insert(*index, page.clone()),
             Patch::RemovePage { index, .. } => {
@@ -739,6 +908,70 @@ impl Editor {
         }
     }
 
+    /// The master each page uses and whether it ignores it.
+    fn page_masters(&self) -> Vec<(Option<usize>, bool)> {
+        self.doc.pages.iter().map(|p| (p.master, p.ignore_master)).collect()
+    }
+
+    /// Add a `SetPageMasters` patch when `to` differs from what the pages have.
+    fn push_page_masters(&self, patches: &mut Vec<Patch>, to: Vec<(Option<usize>, bool)>) {
+        let from = self.page_masters();
+        if from != to {
+            patches.push(Patch::SetPageMasters { from, to });
+        }
+    }
+
+    /// A document with no master gets master A (margins of the first page), used by every
+    /// page that had none.
+    fn ensure_master(
+        &self,
+        masters: &mut Vec<MasterPage>,
+        pages: &mut [(Option<usize>, bool)],
+    ) {
+        if masters.is_empty() {
+            let margins = self
+                .doc
+                .pages
+                .first()
+                .map_or(Margins::all(DEFAULT_MARGIN_EMU), |p| p.margins_emu);
+            masters.push(MasterPage::new('A', margins));
+            for p in pages.iter_mut().filter(|p| p.0.is_none()) {
+                p.0 = Some(0);
+            }
+        }
+    }
+
+    /// The masters after the page size changed to `width` x `height` (their shapes keep their
+    /// place from the page centre, like those of pages) and, when given, new margins.
+    fn masters_resized(
+        &self,
+        width: i64,
+        height: i64,
+        margins: Option<Margins>,
+    ) -> Vec<MasterPage> {
+        let (ow, oh) = self.doc.pages.first().map_or((width, height), |p| (p.width_emu, p.height_emu));
+        let (dx, dy) = (width / 2 - ow / 2, height / 2 - oh / 2);
+        let mut out = self.doc.masters.clone();
+        for m in &mut out {
+            if let Some(mg) = margins {
+                m.margins_emu = mg;
+            }
+            for s in m.shapes.iter_mut().chain(m.left_shapes.iter_mut()) {
+                s.rect = s.rect.translated(dx, dy);
+            }
+        }
+        out
+    }
+
+    fn push_masters(&self, patches: &mut Vec<Patch>, to: Vec<MasterPage>) {
+        if to != self.doc.masters {
+            patches.push(Patch::SetMasters {
+                from: self.doc.masters.clone(),
+                to,
+            });
+        }
+    }
+
     fn check_page(&self, page: usize) -> Result<(), CommandError> {
         if page < self.doc.pages.len() {
             Ok(())
@@ -810,7 +1043,31 @@ impl Editor {
         self.live = false;
     }
 
-    fn run(&mut self, cmd: Command) -> Result<Vec<ShapeId>, CommandError> {
+    fn run(&mut self, mut cmd: Command) -> Result<Vec<ShapeId>, CommandError> {
+        let Some(surface) = cmd.target_page().filter(|p| master_surface_parts(*p).is_some()) else {
+            return self.run_inner(cmd);
+        };
+        // A shape command on a master: it runs on a stand-in page that holds the master half's
+        // shapes (so every shape command works unchanged), and the patches it made are then
+        // pointed at the master and applied to the real document.
+        let scratch = self.doc.surface(surface).ok_or(CommandError::NoSuchPage(surface))?.into_owned();
+        let real = std::mem::replace(&mut self.doc.pages, vec![scratch]);
+        cmd.retarget(0);
+        let depth = self.undo.len();
+        let result = self.run_inner(cmd);
+        self.doc.pages = real;
+        if result.is_ok() && self.undo.len() > depth {
+            let mut edit = self.undo.pop().expect("just pushed");
+            for p in &mut edit.patches {
+                p.retarget(surface);
+                p.apply(&mut self.doc);
+            }
+            self.undo.push(edit);
+        }
+        result
+    }
+
+    fn run_inner(&mut self, cmd: Command) -> Result<Vec<ShapeId>, CommandError> {
         let label = cmd.label();
         let mut created = Vec::new();
         let mut patches: Vec<Patch> = Vec::new();
@@ -1434,12 +1691,21 @@ impl Editor {
             Command::InsertPage { after } => {
                 self.check_page(after)?;
                 let src = &self.doc.pages[after];
+                // A page added later uses the first master (Publisher gives it master A, even
+                // next to a page that uses another one).
+                let (master, ignore_master) = if self.doc.masters.is_empty() {
+                    (src.master, src.ignore_master)
+                } else {
+                    (Some(0), false)
+                };
                 patches.push(Patch::InsertPage {
                     index: after + 1,
                     page: Page {
                         id: new_page_id(),
                         shapes: Vec::new(),
                         duplicate_of: None,
+                        master,
+                        ignore_master,
                         ..src.clone()
                     },
                 });
@@ -1526,6 +1792,7 @@ impl Editor {
                 if !ok.contains(&width_emu) || !ok.contains(&height_emu) {
                     return Err(CommandError::BadPageSize);
                 }
+                let masters = self.masters_resized(width_emu, height_emu, None);
                 let mut to = self.doc.pages.clone();
                 for p in &mut to {
                     // The centre is where `W / 2` lands in whole EMU, as a saved file reads it.
@@ -1543,6 +1810,7 @@ impl Editor {
                         to,
                     });
                 }
+                self.push_masters(&mut patches, masters);
             }
             Command::SetMargins { margins } => {
                 let m = margins.to_array();
@@ -1564,6 +1832,11 @@ impl Editor {
                         to,
                     });
                 }
+                let mut masters = self.doc.masters.clone();
+                for m in &mut masters {
+                    m.margins_emu = margins;
+                }
+                self.push_masters(&mut patches, masters);
             }
             Command::SetPageSetup {
                 width_emu,
@@ -1580,6 +1853,7 @@ impl Editor {
                 {
                     return Err(CommandError::BadMargins);
                 }
+                let masters = self.masters_resized(width_emu, height_emu, Some(margins));
                 let mut to = self.doc.pages.clone();
                 for p in &mut to {
                     let dx = width_emu / 2 - p.width_emu / 2;
@@ -1596,6 +1870,162 @@ impl Editor {
                         from: self.doc.pages.clone(),
                         to,
                     });
+                }
+                self.push_masters(&mut patches, masters);
+            }
+            Command::AddMaster {
+                copy_of,
+                id,
+                description,
+                two_page,
+            } => {
+                let mut masters = self.doc.masters.clone();
+                let mut pages = self.page_masters();
+                if masters.is_empty() {
+                    self.ensure_master(&mut masters, &mut pages);
+                }
+                if let Some(c) = copy_of {
+                    if c >= masters.len() {
+                        return Err(CommandError::NoSuchMaster(c));
+                    }
+                }
+                let id = match id {
+                    Some(c) if c.is_control() || c.is_whitespace() => {
+                        return Err(CommandError::BadMasterId(c))
+                    }
+                    Some(c) if masters.iter().any(|m| m.id == c) => {
+                        return Err(CommandError::MasterIdInUse(c))
+                    }
+                    Some(c) => c,
+                    None => next_master_id(&masters).ok_or(CommandError::NoMasterIdLeft)?,
+                };
+                let margins = self
+                    .doc
+                    .pages
+                    .first()
+                    .map_or(Margins::all(DEFAULT_MARGIN_EMU), |p| p.margins_emu);
+                let mut new = MasterPage::new(id, margins);
+                if let Some(c) = copy_of {
+                    let src = &masters[c];
+                    new.name = format!("Copy of {}", src.name);
+                    new.margins_emu = src.margins_emu;
+                    let mut map: Vec<(ShapeId, ShapeId)> = Vec::new();
+                    let mut copy_shapes = |shapes: &[Shape], doc: &mut Document| -> Vec<Shape> {
+                        let start = map.len();
+                        for s in shapes {
+                            map.push((s.id, doc.alloc_id()));
+                        }
+                        let mut out: Vec<Shape> = shapes.to_vec();
+                        for s in &mut out {
+                            s.id = map[start..].iter().find(|m| m.0 == s.id).map_or(s.id, |m| m.1);
+                            s.group = s
+                                .group
+                                .and_then(|g| map[start..].iter().find(|m| m.0 == g).map(|m| m.1));
+                        }
+                        out
+                    };
+                    new.shapes = copy_shapes(&src.shapes, &mut self.doc);
+                    if two_page {
+                        new.left_shapes = copy_shapes(&src.left_shapes, &mut self.doc);
+                    }
+                }
+                new.two_page = two_page;
+                new.description = description.trim().chars().take(MasterPage::MAX_DESCRIPTION).collect();
+                masters.push(new);
+                patches.push(Patch::SetMasters {
+                    from: self.doc.masters.clone(),
+                    to: masters,
+                });
+                self.push_page_masters(&mut patches, pages);
+            }
+            Command::SetMasterInfo {
+                master,
+                id,
+                name,
+                description,
+            } => {
+                let mut masters = self.doc.masters.clone();
+                let m = masters.get_mut(master).ok_or(CommandError::NoSuchMaster(master))?;
+                if id.is_control() || id.is_whitespace() {
+                    return Err(CommandError::BadMasterId(id));
+                }
+                if self.doc.masters.iter().enumerate().any(|(i, x)| i != master && x.id == id) {
+                    return Err(CommandError::MasterIdInUse(id));
+                }
+                m.id = id;
+                let name = name.trim();
+                m.name = if name.is_empty() { MasterPage::default_name(id) } else { name.to_owned() };
+                m.description = description.trim().chars().take(MasterPage::MAX_DESCRIPTION).collect();
+                if masters != self.doc.masters {
+                    patches.push(Patch::SetMasters {
+                        from: self.doc.masters.clone(),
+                        to: masters,
+                    });
+                }
+            }
+            Command::DeleteMaster { master } => {
+                if master >= self.doc.masters.len() {
+                    return Err(CommandError::NoSuchMaster(master));
+                }
+                if self.doc.masters.len() == 1 {
+                    return Err(CommandError::CannotDeleteLastMaster);
+                }
+                let mut masters = self.doc.masters.clone();
+                masters.remove(master);
+                let mut pages = self.page_masters();
+                for (m, _) in &mut pages {
+                    *m = match *m {
+                        Some(x) if x == master => Some(0),
+                        Some(x) if x > master => Some(x - 1),
+                        other => other,
+                    };
+                }
+                patches.push(Patch::SetMasters {
+                    from: self.doc.masters.clone(),
+                    to: masters,
+                });
+                self.push_page_masters(&mut patches, pages);
+            }
+            Command::SetTwoPageMaster { master, two_page } => {
+                let mut masters = self.doc.masters.clone();
+                let m = masters.get_mut(master).ok_or(CommandError::NoSuchMaster(master))?;
+                m.two_page = two_page;
+                if !two_page {
+                    m.left_shapes.clear();
+                }
+                if masters != self.doc.masters {
+                    patches.push(Patch::SetMasters {
+                        from: self.doc.masters.clone(),
+                        to: masters,
+                    });
+                }
+            }
+            Command::ApplyMaster { pages: targets, master } => {
+                if let Some(m) = master {
+                    if m >= self.doc.masters.len() {
+                        return Err(CommandError::NoSuchMaster(m));
+                    }
+                }
+                let mut pages = self.page_masters();
+                for t in targets {
+                    let slot = pages.get_mut(t).ok_or(CommandError::NoSuchPage(t))?;
+                    *slot = match master {
+                        Some(m) => (Some(m), false),
+                        None => (slot.0, true),
+                    };
+                }
+                self.push_page_masters(&mut patches, pages);
+            }
+            Command::EnsureMaster => {
+                if self.doc.masters.is_empty() {
+                    let mut masters = Vec::new();
+                    let mut pages = self.page_masters();
+                    self.ensure_master(&mut masters, &mut pages);
+                    patches.push(Patch::SetMasters {
+                        from: Vec::new(),
+                        to: masters,
+                    });
+                    self.push_page_masters(&mut patches, pages);
                 }
             }
         }
@@ -1665,7 +2095,9 @@ impl Editor {
                     | Patch::MovePage { .. }
                     | Patch::InsertStory { .. }
                     | Patch::RemoveStory { .. }
-                    | Patch::SetSections { .. } => false,
+                    | Patch::SetSections { .. }
+                    | Patch::SetMasters { .. }
+                    | Patch::SetPageMasters { .. } => false,
                     // Only a command (SetStoryText) gets here; a re-flow's own patch is
                     // never passed back in.
                     Patch::SetStory { to, .. } => to.id == story.id,

@@ -183,6 +183,8 @@ pub struct NewTextBox {
     pub text: String,
     /// The formatted paragraphs, written after the plain text is added.
     pub paragraphs: Vec<Paragraph>,
+    /// Text offsets (UTF-16 units) of the page-number fields in `text` (spec 4T.3).
+    pub fields: Vec<usize>,
     /// Text columns (1 = none) and the gap between them, EMU (spec 4I); written after the box is added.
     pub columns: u32,
     pub column_gap_emu: i64,
@@ -348,6 +350,30 @@ pub struct PageSetupChange {
     pub margins: Option<Margins>,
 }
 
+/// A master of the file renamed (spec 4T.9). `index` is its place in the final master list.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MasterRename {
+    pub index: usize,
+    pub letter: char,
+    pub name: String,
+}
+
+/// A master added since the file was opened; added after the last master, in this order.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NewMaster {
+    pub letter: char,
+    pub name: String,
+}
+
+/// The master a page should use and whether it ignores it (spec 4T.2, 4T.9). `master` is an
+/// index into the final master list.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PageMasterChange {
+    pub page: PageId,
+    pub master: Option<usize>,
+    pub ignore: bool,
+}
+
 /// What a save would do.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SavePlan {
@@ -398,6 +424,13 @@ pub struct SavePlan {
     pub table_rebuilds: Vec<TableRebuild>,
     /// New tables, in creation order; applied last, interleaved with the other new objects.
     pub new_tables: Vec<NewTableObject>,
+    /// Masters deleted (indexes in the opened file, highest first), renamed (final index),
+    /// and added; applied after the page operations, in this order. Then every page's master
+    /// is set (`page_masters`, on the final page list) and the new objects are written.
+    pub deleted_masters: Vec<usize>,
+    pub renamed_masters: Vec<MasterRename>,
+    pub new_masters: Vec<NewMaster>,
+    pub page_masters: Vec<PageMasterChange>,
     /// A new page size and/or new margins. Applied after everything else: every other step
     /// is planned in the page's OLD size (the plan is made on the document shifted back by
     /// [`SaveSource::rebased`]), because the writer converts positions with the file's
@@ -435,6 +468,10 @@ impl SavePlan {
             && self.new_tables.is_empty()
             && self.page_setup.is_none()
             && self.sections.is_empty()
+            && self.deleted_masters.is_empty()
+            && self.renamed_masters.is_empty()
+            && self.new_masters.is_empty()
+            && self.page_masters.is_empty()
             && self.unsupported.is_empty()
     }
 }
@@ -450,16 +487,6 @@ pub struct SaveSource {
     tables: HashMap<ShapeId, usize>,
     /// The document save counter was already raised for this opened file (spec 4M).
     counter_bumped: bool,
-}
-
-/// Why a copy of a text box with a page-number field cannot be saved: its field would need
-/// its own entry in the file's field table, whose layout for several fields is not known.
-const FIELD_COPY: &str = "page-number fields in duplicated or new text boxes";
-
-/// Whether a text box holds a page-number field.
-fn has_field(s: &Shape) -> bool {
-    matches!(&s.kind, ShapeKind::TextBox { paragraphs }
-        if paragraphs.iter().flat_map(|p| &p.runs).any(|r| r.field.is_some()))
 }
 
 /// Map the editor's sections onto the records of the file's sections: the editor's list is
@@ -697,6 +724,15 @@ impl SaveSource {
     ) -> SaveSource {
         let mut links = HashMap::new();
         let streams = pub_format::Streams::from_cfb(&bytes).ok();
+        let rotated = |ss: &pf::Shape| {
+            ss.group.is_some()
+                && streams
+                    .as_ref()
+                    .and_then(|st| pf::shape_slots(st, ss.object_number).ok().flatten())
+                    .and_then(|sl| sl.child)
+                    // Not a known child anchor: do not risk moving it.
+                    .is_none_or(|c| c.group_rotation != 0.0)
+        };
         for (pi, (sp, mp)) in source.pages.iter().zip(&model.pages).enumerate() {
             for (si, (ss, ms)) in sp.shapes.iter().zip(&mp.shapes).enumerate() {
                 links.insert(
@@ -704,13 +740,20 @@ impl SaveSource {
                     Link {
                         page: pi,
                         shape: si,
-                        group_rotated: ss.group.is_some()
-                            && streams
-                                .as_ref()
-                                .and_then(|st| pf::shape_slots(st, ss.object_number).ok().flatten())
-                                .and_then(|sl| sl.child)
-                                // Not a known child anchor: do not risk moving it.
-                                .is_none_or(|c| c.group_rotation != 0.0),
+                        group_rotated: rotated(ss),
+                    },
+                );
+            }
+        }
+        // The shapes of the masters are addressed by their master surface index.
+        for (mi, (sm, mm)) in source.masters.iter().zip(&model.masters).enumerate() {
+            for (si, (ss, ms)) in sm.shapes.iter().zip(&mm.shapes).enumerate() {
+                links.insert(
+                    ms.id,
+                    Link {
+                        page: master_surface(mi, false),
+                        shape: si,
+                        group_rotated: rotated(ss),
                     },
                 );
             }
@@ -799,6 +842,33 @@ impl SaveSource {
                 }
             }
         }
+        // The text boxes of the masters, one story each (a chain across master shapes is
+        // not followed: its frames get no unit, so editing their text is reported).
+        let chained: std::collections::HashSet<(usize, usize)> = source
+            .surface_chains()
+            .iter()
+            .filter(|c| c.len() > 1)
+            .flatten()
+            .map(|r| (r.page, r.shape))
+            .collect();
+        for (mi, (sm, mm)) in source.masters.iter().zip(&model.masters).enumerate() {
+            for (si, (ss, ms)) in sm.shapes.iter().zip(&mm.shapes).enumerate() {
+                if ss.table.is_some() || chained.contains(&(master_surface(mi, false), si)) {
+                    continue;
+                }
+                let Some(story_index) = ss.story.and_then(|n| numbers.iter().position(|&x| x == n))
+                else {
+                    continue;
+                };
+                units.push(Unit {
+                    story_index,
+                    frames: vec![ms.id],
+                    mid_para: vec![false],
+                    tail: Vec::new(),
+                    tail_mid: false,
+                });
+            }
+        }
         // Only text boxes carry editable text.
         units.retain(|u| {
             u.frames
@@ -806,8 +876,10 @@ impl SaveSource {
                 .all(|id| model_shape(model, *id).is_some_and(Shape::is_text_box))
         });
         let mut tables = HashMap::new();
-        for (sp, mp) in source.pages.iter().zip(&model.pages) {
-            for (ss, ms) in sp.shapes.iter().zip(&mp.shapes) {
+        let page_shapes = source.pages.iter().zip(&model.pages).map(|(sp, mp)| (&sp.shapes, &mp.shapes));
+        let master_shapes = source.masters.iter().zip(&model.masters).map(|(sm, mm)| (&sm.shapes, &mm.shapes));
+        for (sp, mp) in page_shapes.chain(master_shapes) {
+            for (ss, ms) in sp.iter().zip(mp.iter()) {
                 if let (Some(number), true) = (ss.story, ss.table.is_some()) {
                     if let Some(i) = numbers.iter().position(|&n| n == number) {
                         tables.insert(ms.id, i);
@@ -846,6 +918,10 @@ impl SaveSource {
         let mut model = crate::convert::from_pub_flowed(&doc.name, &source, &breaks);
         for (page, editor_page) in model.pages.iter_mut().zip(&doc.pages) {
             page.id = editor_page.id;
+        }
+        // The blank's master A is the editor's first master.
+        for (m, editor_master) in model.masters.iter_mut().zip(&doc.masters) {
+            m.uid = editor_master.uid;
         }
         Ok(SaveSource::new(bytes, &source, &model, &breaks))
     }
@@ -1011,9 +1087,6 @@ impl SaveSource {
         if self.page_blocks_duplicate(sp) {
             return Err(Some("duplicated pages with groups, tables or linked text boxes"));
         }
-        if sp.shapes.iter().any(has_field) {
-            return Err(Some(FIELD_COPY));
-        }
         let same_objects = sp.shapes.len() == bp.shapes.len()
             && sp.shapes.iter().zip(&bp.shapes).all(|(a, b)| {
                 a.id == b.id
@@ -1053,10 +1126,6 @@ impl SaveSource {
             .iter()
             .filter(|s| !is_group(s) && !in_page(&s.id, bp))
         {
-            if has_field(ns) {
-                unsupported.add(FIELD_COPY);
-                continue;
-            }
             let pt = EMU_PER_POINT as f64;
             let seq = plan.new_text_boxes.len()
                 + plan.new_shapes.len()
@@ -1080,6 +1149,7 @@ impl SaveSource {
                             .collect::<Vec<_>>()
                             .join("\r"),
                         paragraphs: paragraphs.clone(),
+                        fields: field_offsets(paragraphs),
                         columns: ns.columns,
                         column_gap_emu: ns.column_gap_emu,
                     });
@@ -1135,6 +1205,16 @@ impl SaveSource {
             return std::borrow::Cow::Borrowed(doc);
         }
         let mut d = doc.clone();
+        // The masters follow the first page's size change (they keep one size).
+        let (mdx, mdy) = doc.pages.first().map_or((0, 0), |p| {
+            (b.width_emu / 2 - p.width_emu / 2, b.height_emu / 2 - p.height_emu / 2)
+        });
+        for m in &mut d.masters {
+            m.margins_emu = b.margins_emu;
+            for s in m.shapes.iter_mut().chain(m.left_shapes.iter_mut()) {
+                s.rect = s.rect.translated(mdx, mdy);
+            }
+        }
         for p in &mut d.pages {
             let dx = b.width_emu / 2 - p.width_emu / 2;
             let dy = b.height_emu / 2 - p.height_emu / 2;
@@ -1253,99 +1333,9 @@ impl SaveSource {
             if bp.width_emu != cp.width_emu || bp.height_emu != cp.height_emu {
                 unsupported.add("page size changes");
             }
-            let in_page = |id: &ShapeId, p: &Page| p.shapes.iter().any(|s| s.id == *id);
-            let is_group = |s: &Shape| matches!(s.kind, ShapeKind::Group);
-            // Group shapes are derived from their members: they take no part in the
-            // object and stacking-order comparisons below.
-            let deleted: Vec<&Shape> = bp
-                .shapes
-                .iter()
-                .filter(|s| !is_group(s) && !in_page(&s.id, cp))
-                .collect();
-            if !deleted.is_empty() {
-                let objects = object_numbers(&self.original);
-                for s in deleted {
-                    match self.picture_deletion(s, objects.as_deref()) {
-                        Some(d) => plan.deleted_pictures.push(d),
-                        None => match self.table_deletion(s, objects.as_deref()) {
-                            Some(d) => plan.deleted_tables.push(d),
-                            // Reported with the chain changes below.
-                            None if self.unit_of(s.id).is_some_and(|u| u.frames.len() > 1) => {}
-                            None => unsupported.add("deleted objects"),
-                        },
-                    }
-                }
-            }
-            self.plan_new_objects(bp, cp, cp_index, &mut plan, &mut unsupported);
-            // With the same groups on both sides the file's own order (groups included)
-            // is permuted; `set_shape_order` keeps a group's members inside it.
-            let gids = |p: &Page| -> Vec<ShapeId> {
-                let mut v: Vec<ShapeId> = p
-                    .shapes
-                    .iter()
-                    .filter(|s| is_group(s))
-                    .map(|s| s.id)
-                    .collect();
-                v.sort_unstable();
-                v
-            };
-            let same_groups = gids(bp) == gids(cp)
-                && bp
-                    .shapes
-                    .iter()
-                    .all(|b| cp.shape(b.id).is_none_or(|c| c.group == b.group));
-            let ids_of = |p: &Page| -> Vec<ShapeId> {
-                p.shapes
-                    .iter()
-                    .filter(|s| same_groups || !is_group(s))
-                    .map(|s| s.id)
-                    .collect()
-            };
-            let order_of = |a: &Page, b: &Page| -> Vec<ShapeId> {
-                a.shapes
-                    .iter()
-                    .filter(|s| same_groups || !is_group(s))
-                    .map(|s| s.id)
-                    .filter(|id| in_page(id, b))
-                    .collect()
-            };
-            let same_shapes =
-                ids_of(bp).len() == ids_of(cp).len() && ids_of(bp).iter().all(|id| in_page(id, cp));
-            if order_of(bp, cp) != order_of(cp, bp) && !same_shapes {
-                unsupported.add("changes to the stacking order of objects");
-            } else if same_shapes && ids_of(bp) != ids_of(cp) {
-                let order: Option<Vec<usize>> = cp
-                    .shapes
-                    .iter()
-                    .map(|s| self.links.get(&s.id).map(|l| l.shape))
-                    .collect();
-                match order {
-                    Some(_) if !same_groups => {
-                        unsupported.add("changes to the stacking order of grouped objects");
-                    }
-                    Some(order) => plan.orders.push(OrderChange {
-                        page: bp_index,
-                        ids: ids_of(cp),
-                        order,
-                    }),
-                    None => unsupported.add("changes to the stacking order of objects"),
-                }
-            }
-            self.plan_groups(bp_index, bp, cp, &mut plan, &mut unsupported);
-            for cs in &cp.shapes {
-                let Some(bs) = bp.shapes.iter().find(|s| s.id == cs.id) else {
-                    continue;
-                };
-                if bs == cs || matches!(cs.kind, ShapeKind::Group) {
-                    continue;
-                }
-                let Some(link) = self.links.get(&cs.id) else {
-                    unsupported.add("changes to objects added after opening");
-                    continue;
-                };
-                self.diff_shape(bs, cs, link, &mut plan, &mut unsupported, &mut text_units);
-            }
+            self.plan_surface(bp, cp, bp_index, cp_index, &mut plan, &mut unsupported, &mut text_units);
         }
+        self.plan_master_surfaces(doc, &mut plan, &mut unsupported, &mut text_units);
         // Chains: the file's links (items 39/40 of each frame) cannot be rewritten yet, so a
         // chain that lost a frame (deleted, or on a deleted page) or changed in any other
         // way is reported, never silently written differently.
@@ -1385,21 +1375,7 @@ impl SaveSource {
                 });
             }
             if !same_text {
-                // A field lost from a file with several fields cannot be written (the
-                // writer refuses): find out now.
-                let had_field = before.iter().flat_map(|p| &p.runs).any(|r| r.field.is_some());
                 let fields = field_offsets(&after);
-                if had_field
-                    && pub_write::set_story_text_with_fields(
-                        &self.original,
-                        unit.story_index,
-                        &after_text,
-                        &fields,
-                    )
-                    .is_err()
-                {
-                    unsupported.add("removing a page-number field when the file has several");
-                }
                 plan.stories.push(StoryChange {
                     story_index: unit.story_index,
                     text: after_text,
@@ -1420,6 +1396,217 @@ impl SaveSource {
         plan
     }
 
+    /// The comparison of one page or master with its baseline: deleted objects, new objects,
+    /// stacking order, groups and changed shapes. `bp_index` is the surface in the opened
+    /// file, `cp_index` its place in the final document (they differ after page operations).
+    #[allow(clippy::too_many_arguments)]
+    fn plan_surface(
+        &self,
+        bp: &Page,
+        cp: &Page,
+        bp_index: usize,
+        cp_index: usize,
+        plan: &mut SavePlan,
+        unsupported: &mut Unsupported,
+        text_units: &mut Vec<usize>,
+    ) {
+        let in_page = |id: &ShapeId, p: &Page| p.shapes.iter().any(|s| s.id == *id);
+        let is_group = |s: &Shape| matches!(s.kind, ShapeKind::Group);
+        // Group shapes are derived from their members: they take no part in the
+        // object and stacking-order comparisons below.
+        let deleted: Vec<&Shape> = bp
+            .shapes
+            .iter()
+            .filter(|s| !is_group(s) && !in_page(&s.id, cp))
+            .collect();
+        if !deleted.is_empty() {
+            let objects = object_numbers(&self.original);
+            for s in deleted {
+                match self.picture_deletion(s, objects.as_ref()) {
+                    Some(d) => plan.deleted_pictures.push(d),
+                    None => match self.table_deletion(s, objects.as_ref()) {
+                        Some(d) => plan.deleted_tables.push(d),
+                        // Reported with the chain changes below.
+                        None if self.unit_of(s.id).is_some_and(|u| u.frames.len() > 1) => {}
+                        None => unsupported.add("deleted objects"),
+                    },
+                }
+            }
+        }
+        self.plan_new_objects(bp, cp, cp_index, plan, unsupported);
+        // With the same groups on both sides the file's own order (groups included)
+        // is permuted; `set_shape_order` keeps a group's members inside it.
+        let gids = |p: &Page| -> Vec<ShapeId> {
+            let mut v: Vec<ShapeId> = p
+                .shapes
+                .iter()
+                .filter(|s| is_group(s))
+                .map(|s| s.id)
+                .collect();
+            v.sort_unstable();
+            v
+        };
+        let same_groups = gids(bp) == gids(cp)
+            && bp
+                .shapes
+                .iter()
+                .all(|b| cp.shape(b.id).is_none_or(|c| c.group == b.group));
+        let ids_of = |p: &Page| -> Vec<ShapeId> {
+            p.shapes
+                .iter()
+                .filter(|s| same_groups || !is_group(s))
+                .map(|s| s.id)
+                .collect()
+        };
+        let order_of = |a: &Page, b: &Page| -> Vec<ShapeId> {
+            a.shapes
+                .iter()
+                .filter(|s| same_groups || !is_group(s))
+                .map(|s| s.id)
+                .filter(|id| in_page(id, b))
+                .collect()
+        };
+        let same_shapes =
+            ids_of(bp).len() == ids_of(cp).len() && ids_of(bp).iter().all(|id| in_page(id, cp));
+        if order_of(bp, cp) != order_of(cp, bp) && !same_shapes {
+            unsupported.add("changes to the stacking order of objects");
+        } else if same_shapes && ids_of(bp) != ids_of(cp) {
+            let order: Option<Vec<usize>> = cp
+                .shapes
+                .iter()
+                .map(|s| self.links.get(&s.id).map(|l| l.shape))
+                .collect();
+            match order {
+                Some(_) if !same_groups => {
+                    unsupported.add("changes to the stacking order of grouped objects");
+                }
+                Some(order) => plan.orders.push(OrderChange {
+                    page: bp_index,
+                    ids: ids_of(cp),
+                    order,
+                }),
+                None => unsupported.add("changes to the stacking order of objects"),
+            }
+        }
+        self.plan_groups(bp_index, bp, cp, plan, unsupported);
+        for cs in &cp.shapes {
+            let Some(bs) = bp.shapes.iter().find(|s| s.id == cs.id) else {
+                continue;
+            };
+            if bs == cs || matches!(cs.kind, ShapeKind::Group) {
+                continue;
+            }
+            let Some(link) = self.links.get(&cs.id) else {
+                unsupported.add("changes to objects added after opening");
+                continue;
+            };
+            self.diff_shape(bs, cs, link, plan, unsupported, text_units);
+        }
+    }
+
+    /// Master page changes (spec 4T.8 to 4T.12): masters added, deleted and renamed, the
+    /// shapes on every master, the master each page uses and whether it ignores it. Masters
+    /// are matched with the file's by [`MasterPage::uid`]; the master list is the file's
+    /// surviving masters in their order, then the new ones. Two-page masters and a margin
+    /// that differs between masters are reported. A master's description has no place in
+    /// the file (research 2026-11-28) and is not written, which is not reported either.
+    /// A document whose masters were never touched (none in the editor model) has no changes.
+    fn plan_master_surfaces(
+        &self,
+        doc: &Document,
+        plan: &mut SavePlan,
+        unsupported: &mut Unsupported,
+        text_units: &mut Vec<usize>,
+    ) {
+        let base = &self.baseline;
+        if doc.masters.is_empty() {
+            return;
+        }
+        if base.masters.is_empty() {
+            unsupported.add("adding master pages to a file that has none");
+            return;
+        }
+        let survivors: Vec<(usize, usize)> = base
+            .masters
+            .iter()
+            .enumerate()
+            .filter_map(|(bi, b)| doc.masters.iter().position(|d| d.uid == b.uid).map(|ci| (bi, ci)))
+            .collect();
+        if survivors.iter().enumerate().any(|(k, &(_, ci))| ci != k) {
+            unsupported.add("reordering master pages");
+            return;
+        }
+        if doc.masters.iter().any(|m| m.two_page || !m.left_shapes.is_empty())
+            || base.masters.iter().any(|m| m.two_page)
+        {
+            unsupported.add("two-page master pages");
+            return;
+        }
+        let margins = doc.pages.first().map(|p| p.margins_emu);
+        if margins.is_some_and(|m| doc.masters.iter().any(|d| d.margins_emu != m)) {
+            unsupported.add("margins that differ between master pages");
+        }
+        for bi in (0..base.masters.len()).rev() {
+            if !survivors.iter().any(|s| s.0 == bi) {
+                plan.deleted_masters.push(bi);
+            }
+        }
+        for &(bi, ci) in &survivors {
+            let (b, d) = (&base.masters[bi], &doc.masters[ci]);
+            if b.id != d.id || b.name != d.name {
+                plan.renamed_masters.push(MasterRename {
+                    index: ci,
+                    letter: d.id,
+                    name: d.name.clone(),
+                });
+            }
+            let (Some(bp), Some(cp)) = (
+                base.surface(master_surface(bi, false)),
+                doc.surface(master_surface(ci, false)),
+            ) else {
+                continue;
+            };
+            self.plan_surface(
+                &bp,
+                &cp,
+                master_surface(bi, false),
+                master_surface(ci, false),
+                plan,
+                unsupported,
+                text_units,
+            );
+        }
+        for ci in survivors.len()..doc.masters.len() {
+            let d = &doc.masters[ci];
+            plan.new_masters.push(NewMaster {
+                letter: d.id,
+                name: d.name.clone(),
+            });
+            let Some(cp) = doc.surface(master_surface(ci, false)) else {
+                continue;
+            };
+            let empty = Page {
+                shapes: Vec::new(),
+                ..cp.clone().into_owned()
+            };
+            self.plan_new_objects(&empty, &cp, master_surface(ci, false), plan, unsupported);
+        }
+        // Which master each page uses, and whether it ignores it.
+        for p in &doc.pages {
+            let changed = match base.pages.iter().find(|b| b.id == p.id) {
+                None => true,
+                Some(b) => b.master != p.master || b.ignore_master != p.ignore_master,
+            };
+            if changed {
+                plan.page_masters.push(PageMasterChange {
+                    page: p.id,
+                    master: p.master,
+                    ignore: p.ignore_master,
+                });
+            }
+        }
+    }
+
     /// Publisher's default outline colour: scheme colour 0 of the source file (spec 4N).
     fn default_line_color(&self) -> Rgb {
         pf::read_bytes(&self.original)
@@ -1436,7 +1623,7 @@ impl SaveSource {
     fn picture_deletion(
         &self,
         s: &Shape,
-        objects: Option<&[Vec<u32>]>,
+        objects: Option<&ObjectNumbers>,
     ) -> Option<PictureDeletion> {
         if !matches!(s.kind, ShapeKind::Picture { .. }) || s.group.is_some() {
             return None;
@@ -1454,7 +1641,7 @@ impl SaveSource {
 
     /// The deletion of a table of the file that sits directly on its page, when the writer
     /// can remove it.
-    fn table_deletion(&self, s: &Shape, objects: Option<&[Vec<u32>]>) -> Option<TableDeletion> {
+    fn table_deletion(&self, s: &Shape, objects: Option<&ObjectNumbers>) -> Option<TableDeletion> {
         if !matches!(s.kind, ShapeKind::Table { .. }) || s.group.is_some() {
             return None;
         }
@@ -1955,6 +2142,7 @@ impl SaveSource {
                 .iter()
                 .find(|p| p.shape(f.id).is_some())
                 .unwrap_or(&doc.pages[f.page.min(doc.pages.len() - 1)]);
+            // (a master has the size of the pages)
             let (pw, ph) = (page.width_emu, page.height_emu);
             let to_i32 =
                 |v: i64| i32::try_from(v).map_err(|_| pub_write::WriteError::OutOfRange(v));
@@ -2052,6 +2240,38 @@ impl SaveSource {
         if !plan.sections.is_empty() {
             bytes = pub_write::set_sections(&bytes, &plan.sections)?;
         }
+        // Master pages (spec 4T.8, 4T.9): deleted, renamed, added; then the master every page
+        // uses (read back from the file as it is now, so only real differences are written).
+        for &index in &plan.deleted_masters {
+            bytes = pub_write::delete_master(&bytes, index)?;
+        }
+        for r in &plan.renamed_masters {
+            bytes = pub_write::rename_master(&bytes, r.index, r.letter, &r.name)?;
+        }
+        for m in &plan.new_masters {
+            bytes = pub_write::add_master(&bytes, 0, m.letter, &m.name)?;
+        }
+        if !plan.page_masters.is_empty() {
+            let file = pf::read_bytes(&bytes).map_err(|e| SaveError::Verify(e.to_string()))?;
+            let mut changes = Vec::new();
+            for c in &plan.page_masters {
+                let Some(ix) = doc.pages.iter().position(|p| p.id == c.page) else {
+                    continue;
+                };
+                let Some(fp) = file.pages.get(ix) else { continue };
+                let master = c.master.filter(|m| *m < file.masters.len() && fp.master != Some(*m));
+                if master.is_some() || fp.ignore_master != c.ignore {
+                    changes.push(pub_write::PageMaster {
+                        page: ix,
+                        master,
+                        ignore: c.ignore,
+                    });
+                }
+            }
+            if !changes.is_empty() {
+                bytes = pub_write::set_page_masters(&bytes, &changes)?;
+            }
+        }
         // New text boxes and shapes go LAST: every step above addresses stories and shapes by their
         // index in the original file, and adding a box appends a story and a shape, which
         // would otherwise shift those indices. Creation order is kept.
@@ -2112,29 +2332,38 @@ impl SaveSource {
                 // The new box is the last shape of its page.
                 let doc = pf::read_bytes(&bytes).map_err(|e| SaveError::Verify(e.to_string()))?;
                 let shape = doc
-                    .pages
-                    .get(b.page_index)
-                    .and_then(|p| p.shapes.len().checked_sub(1))
+                    .surface_shapes(b.page_index)
+                    .and_then(|p| p.len().checked_sub(1))
                     .ok_or_else(|| SaveError::Verify("the new text box is missing".into()))?;
                 let gap = u32::try_from(b.column_gap_emu).unwrap_or(0);
                 bytes = pub_write::set_text_columns(&bytes, b.page_index, shape, b.columns, gap)?;
             }
-            if b.paragraphs.iter().any(|p| !is_plain_para(p)) {
+            if !b.fields.is_empty() || b.paragraphs.iter().any(|p| !is_plain_para(p)) {
                 // The new box is the last shape of its page; read its story back.
                 let doc = pf::read_bytes(&bytes).map_err(|e| SaveError::Verify(e.to_string()))?;
                 let numbers = doc.story_numbers();
                 let story_index = doc
-                    .pages
-                    .get(b.page_index)
-                    .and_then(|p| p.shapes.last())
+                    .surface_shapes(b.page_index)
+                    .and_then(|p| p.last())
                     .and_then(|s| s.story)
                     .and_then(|n| numbers.iter().position(|&x| x == n))
                     .ok_or_else(|| SaveError::Verify("the new text box has no story".into()))?;
-                let flags = vec![true; b.paragraphs.len()];
-                let (chars, paras, lists) = format_spans(&[], &b.paragraphs, &flags);
-                bytes = pub_write::set_story_format(&bytes, story_index, &chars, &paras)?;
-                if !lists.is_empty() {
-                    bytes = pub_write::set_story_lists(&bytes, story_index, &lists)?;
+                if !b.fields.is_empty() {
+                    // The field characters get their own runs and the story its field table.
+                    bytes = pub_write::set_story_text_with_fields(
+                        &bytes,
+                        story_index,
+                        &b.text,
+                        &b.fields,
+                    )?;
+                }
+                if b.paragraphs.iter().any(|p| !is_plain_para(p)) {
+                    let flags = vec![true; b.paragraphs.len()];
+                    let (chars, paras, lists) = format_spans(&[], &b.paragraphs, &flags);
+                    bytes = pub_write::set_story_format(&bytes, story_index, &chars, &paras)?;
+                    if !lists.is_empty() {
+                        bytes = pub_write::set_story_lists(&bytes, story_index, &lists)?;
+                    }
                 }
             }
         }
@@ -2193,21 +2422,17 @@ impl SaveSource {
 
     /// Re-point the links at the saved file's shape order and bring the baseline's groups
     /// up to date. Must run before `original` is replaced.
-    fn mark_groups_saved(&mut self, new_bytes: &[u8], doc: &Document, plan: &SavePlan) {
+    fn mark_groups_saved(&mut self, new_bytes: &[u8], doc: &Document, plan: &SavePlan, mm: &[Option<usize>]) {
         let (Some(old), Some(new)) = (object_numbers(&self.original), object_numbers(new_bytes))
         else {
             return;
         };
         // Page operations of the same save move pages: `new` is indexed by final page.
         let pm = page_map(self.baseline.pages.len(), &plan.page_ops);
-        let fin = |page: usize| pm.get(page).copied().flatten();
-        // The editor page that a page of the opened file is.
-        let doc_ix: Vec<Option<usize>> = self
-            .baseline
-            .pages
-            .iter()
-            .map(|b| doc.pages.iter().position(|d| d.id == b.id))
-            .collect();
+        let fin = |page: usize| match pf::master_surface_index(page) {
+            Some(m) => mm.get(m).copied().flatten().map(|f| master_surface(f, false)),
+            None => pm.get(page).copied().flatten(),
+        };
         let mut keep = HashMap::new();
         // Replaced tables have new object numbers.
         let renamed: HashMap<u32, u32> = plan
@@ -2242,9 +2467,7 @@ impl SaveSource {
                         let l = keep.get(m)?;
                         new_doc
                             .as_ref()?
-                            .pages
-                            .get(fin(l.page)?)?
-                            .shapes
+                            .surface_shapes(fin(l.page)?)?
                             .get(l.shape)?
                             .group
                     });
@@ -2260,20 +2483,16 @@ impl SaveSource {
                             },
                         );
                     }
-                    if let (Some(gs), Some(bp)) = (
-                        doc_ix[*page]
-                            .and_then(|i| doc.pages.get(i))
-                            .and_then(|p| p.shape(*group)),
-                        self.baseline.pages.get_mut(*page),
-                    ) {
-                        bp.shapes.push(gs.clone());
-                        for s in bp.shapes.iter_mut().filter(|s| members.contains(&s.id)) {
+                    let dp = self.doc_surface(doc, *page).map(std::borrow::Cow::into_owned);
+                    let group_shape = dp.as_ref().and_then(|p| p.shape(*group)).cloned();
+                    if let (Some(gs), Some(bs)) = (group_shape, self.baseline.shapes_mut(*page)) {
+                        bs.push(gs);
+                        for s in bs.iter_mut().filter(|s| members.contains(&s.id)) {
                             s.group = Some(*group);
                         }
                         // Keep the baseline in the document's stacking order.
-                        if let Some(dp) = doc_ix[*page].and_then(|i| doc.pages.get(i)) {
-                            bp.shapes
-                                .sort_by_key(|s| dp.shapes.iter().position(|x| x.id == s.id));
+                        if let Some(dp) = &dp {
+                            bs.sort_by_key(|s| dp.shapes.iter().position(|x| x.id == s.id));
                         }
                     }
                 }
@@ -2284,9 +2503,9 @@ impl SaveSource {
                     ..
                 } => {
                     keep.remove(group);
-                    if let Some(bp) = self.baseline.pages.get_mut(*page) {
-                        bp.shapes.retain(|s| s.id != *group);
-                        for s in bp.shapes.iter_mut().filter(|s| members.contains(&s.id)) {
+                    if let Some(bs) = self.baseline.shapes_mut(*page) {
+                        bs.retain(|s| s.id != *group);
+                        for s in bs.iter_mut().filter(|s| members.contains(&s.id)) {
                             s.group = None;
                         }
                     }
@@ -2294,6 +2513,36 @@ impl SaveSource {
             }
         }
         self.links = keep;
+    }
+
+    /// The editor's page or master that the opened file's surface `index` is.
+    fn doc_surface<'a>(&self, doc: &'a Document, index: usize) -> Option<std::borrow::Cow<'a, Page>> {
+        match pf::master_surface_index(index) {
+            None => {
+                let id = self.baseline.pages.get(index)?.id;
+                doc.pages.iter().find(|p| p.id == id).map(std::borrow::Cow::Borrowed)
+            }
+            Some(m) => {
+                let uid = self.baseline.masters.get(m)?.uid;
+                let ci = doc.masters.iter().position(|d| d.uid == uid)?;
+                doc.surface(master_surface(ci, false))
+            }
+        }
+    }
+
+    /// Where each master of the opened file ends up after the plan's master deletions.
+    fn master_map(&self, plan: &SavePlan) -> Vec<Option<usize>> {
+        let mut next = 0;
+        (0..self.baseline.masters.len())
+            .map(|bi| {
+                if plan.deleted_masters.contains(&bi) {
+                    None
+                } else {
+                    next += 1;
+                    Some(next - 1)
+                }
+            })
+            .collect()
     }
 
     /// Give the boxes just added a text unit, read back from the saved file, so later
@@ -2326,9 +2575,8 @@ impl SaveSource {
                 continue;
             };
             let Some(number) = new
-                .pages
-                .get(l.page)
-                .and_then(|p| p.shapes.get(l.shape))
+                .surface_shapes(l.page)
+                .and_then(|p| p.get(l.shape))
                 .and_then(|s| s.story)
             else {
                 continue;
@@ -2365,10 +2613,7 @@ impl SaveSource {
         pages.sort_unstable();
         pages.dedup();
         for pi in pages {
-            let Some(bp) = self.baseline.pages.get(pi) else {
-                continue;
-            };
-            let Some(dp) = doc.pages.iter().find(|p| p.id == bp.id) else {
+            let (Some(bp), Some(dp)) = (self.baseline.surface(pi), self.doc_surface(doc, pi)) else {
                 continue;
             };
             let group = |s: &Shape| matches!(s.kind, ShapeKind::Group);
@@ -2413,7 +2658,7 @@ impl SaveSource {
         let numbers = new.story_numbers();
         let mut tables = HashMap::new();
         for (id, l) in &self.links {
-            let Some(s) = new.pages.get(l.page).and_then(|p| p.shapes.get(l.shape)) else {
+            let Some(s) = new.surface_shapes(l.page).and_then(|p| p.get(l.shape)) else {
                 continue;
             };
             if s.table.is_none() {
@@ -2433,14 +2678,15 @@ impl SaveSource {
         let rebased = self.rebased(doc);
         let eff = self.without_blocked_duplicates(&rebased).0;
         let doc = &*eff;
-        for d in &plan.deleted_pictures {
-            for p in &mut self.baseline.pages {
-                p.shapes.retain(|s| s.id != d.id);
-            }
-        }
-        for d in &plan.deleted_tables {
-            for p in &mut self.baseline.pages {
-                p.shapes.retain(|s| s.id != d.id);
+        let mm = self.master_map(plan);
+        let deleted = plan
+            .deleted_pictures
+            .iter()
+            .map(|d| d.id)
+            .chain(plan.deleted_tables.iter().map(|d| d.id));
+        for d in deleted {
+            for shapes in self.baseline.shape_lists_mut() {
+                shapes.retain(|s| s.id != d);
             }
         }
         // (see `mark_groups_saved` for the group steps; it also re-points the links
@@ -2454,7 +2700,7 @@ impl SaveSource {
             || !plan.table_rebuilds.is_empty()
             || resized
         {
-            self.mark_groups_saved(&bytes, doc, plan);
+            self.mark_groups_saved(&bytes, doc, plan, &mm);
         }
         if !plan.sections.is_empty() {
             self.baseline.sections = doc.sections.clone();
@@ -2480,19 +2726,63 @@ impl SaveSource {
                 }
             }
         }
-        if !plan.page_ops.is_empty() {
+        let masters_changed = !plan.deleted_masters.is_empty()
+            || !plan.renamed_masters.is_empty()
+            || !plan.new_masters.is_empty();
+        if !plan.page_ops.is_empty() || masters_changed {
+            // Where a surface of the opened file is now: pages by the page operations, masters
+            // by the master deletions.
+            let fin = |page: usize| match pf::master_surface_index(page) {
+                Some(m) => mm.get(m).copied().flatten().map(|f| master_surface(f, false)),
+                None => pm.get(page).copied().flatten(),
+            };
             let gone: Vec<ShapeId> = self
                 .links
                 .iter()
-                .filter(|(_, l)| pm.get(l.page).copied().flatten().is_none())
+                .filter(|(_, l)| fin(l.page).is_none())
                 .map(|(id, _)| *id)
                 .collect();
             self.links.retain(|id, _| !gone.contains(id));
             for l in self.links.values_mut() {
-                l.page = pm[l.page].unwrap_or(l.page);
+                l.page = fin(l.page).unwrap_or(l.page);
             }
             self.units.retain(|u| !u.frames.iter().any(|f| gone.contains(f)));
             self.tables.retain(|id, _| !gone.contains(id));
+        }
+        if masters_changed {
+            let old = std::mem::take(&mut self.baseline.masters);
+            let mut now: Vec<MasterPage> = old
+                .into_iter()
+                .enumerate()
+                .filter(|(bi, _)| mm.get(*bi).copied().flatten().is_some())
+                .map(|(_, m)| m)
+                .collect();
+            for r in &plan.renamed_masters {
+                if let Some(m) = now.get_mut(r.index) {
+                    m.id = r.letter;
+                    m.name = r.name.clone();
+                }
+            }
+            for _ in &plan.new_masters {
+                let Some(d) = doc.masters.get(now.len()) else { break };
+                now.push(MasterPage {
+                    shapes: Vec::new(),
+                    left_shapes: Vec::new(),
+                    ..d.clone()
+                });
+            }
+            self.baseline.masters = now;
+        }
+        // The master of each page and whether it is ignored are in the file now.
+        for c in &plan.page_masters {
+            if let (Some(bp), Some(dp)) = (
+                self.baseline.pages.iter_mut().find(|b| b.id == c.page),
+                doc.pages.iter().find(|p| p.id == c.page),
+            ) {
+                (bp.master, bp.ignore_master) = (dp.master, dp.ignore_master);
+            }
+        }
+        if !plan.page_ops.is_empty() {
             let old = std::mem::take(&mut self.baseline.pages);
             self.baseline.pages = doc
                 .pages
@@ -2547,11 +2837,11 @@ impl SaveSource {
                     .and_then(|c| c.get(page_index))
                     .map_or(0, Vec::len);
                 for (k, id) in ids.iter().enumerate() {
-                    if let (Some(shape), Some(bp)) = (
+                    if let (Some(shape), Some(bs)) = (
                         find_shape(doc, *id).cloned(),
-                        self.baseline.pages.get_mut(page_index),
+                        self.baseline.shapes_mut(page_index),
                     ) {
-                        bp.shapes.push(shape);
+                        bs.push(shape);
                     }
                     if total >= ids.len() {
                         self.links.insert(
@@ -2620,23 +2910,25 @@ impl SaveSource {
             let Some(cur) = find_shape(doc, r.id) else {
                 continue;
             };
-            for p in &mut self.baseline.pages {
-                if let Some(i) = p.shapes.iter().position(|s| s.id == r.id) {
+            for shapes in self.baseline.shape_lists_mut() {
+                if let Some(i) = shapes.iter().position(|s| s.id == r.id) {
                     if r.order_restored {
-                        p.shapes[i] = cur.clone();
+                        shapes[i] = cur.clone();
                     } else {
-                        p.shapes.remove(i);
-                        p.shapes.push(cur.clone());
+                        shapes.remove(i);
+                        shapes.push(cur.clone());
                     }
                     break;
                 }
             }
         }
         for o in &plan.orders {
-            let fp = pm.get(o.page).copied().flatten().unwrap_or(o.page);
-            if let Some(page) = self.baseline.pages.get_mut(fp) {
-                page.shapes
-                    .sort_by_key(|s| o.ids.iter().position(|i| *i == s.id));
+            let fp = match pf::master_surface_index(o.page) {
+                Some(m) => mm.get(m).copied().flatten().map_or(o.page, |f| master_surface(f, false)),
+                None => pm.get(o.page).copied().flatten().unwrap_or(o.page),
+            };
+            if let Some(shapes) = self.baseline.shapes_mut(fp) {
+                shapes.sort_by_key(|s| o.ids.iter().position(|i| *i == s.id));
             }
             // The file now lists this page's shapes in the new order.
             for (pos, id) in o.ids.iter().enumerate() {
@@ -2648,6 +2940,11 @@ impl SaveSource {
         // Everything above was recorded at the file's old page size; now bring the baseline
         // to the new size and margins.
         if let Some(ps) = &plan.page_setup {
+            let (ow, oh) = self
+                .baseline
+                .pages
+                .first()
+                .map_or((0, 0), |p| (p.width_emu, p.height_emu));
             for bp in &mut self.baseline.pages {
                 if let Some((w, h)) = ps.size {
                     let (dx, dy) = (w / 2 - bp.width_emu / 2, h / 2 - bp.height_emu / 2);
@@ -2658,6 +2955,18 @@ impl SaveSource {
                 }
                 if let Some(m) = ps.margins {
                     bp.margins_emu = m;
+                }
+            }
+            // The masters keep their shapes at the same place from the page centre too.
+            for m in &mut self.baseline.masters {
+                if let Some((w, h)) = ps.size {
+                    let (dx, dy) = (w / 2 - ow / 2, h / 2 - oh / 2);
+                    for s in m.shapes.iter_mut().chain(m.left_shapes.iter_mut()) {
+                        s.rect = s.rect.translated(dx, dy);
+                    }
+                }
+                if let Some(mg) = ps.margins {
+                    m.margins_emu = mg;
                 }
             }
         }
@@ -2845,6 +3154,7 @@ fn write_table_format(
         .pages
         .iter()
         .flat_map(|p| &p.shapes)
+        .chain(doc.masters.iter().flat_map(|m| &m.shapes))
         .find(|s| s.object_number == object && s.table.is_some())
         .and_then(|s| s.story)
         .and_then(|n| numbers.iter().position(|&x| x == n))
@@ -2938,15 +3248,36 @@ fn plan_has_deleted(bp: &Page, cp: &Page, now: &[ShapeId]) -> bool {
         .any(|b| cp.shape(b.id).is_none() && !now.contains(&b.id))
 }
 
-/// Object numbers of every page's shapes, in file order.
-fn object_numbers(bytes: &[u8]) -> Option<Vec<Vec<u32>>> {
+/// Object numbers of the shapes of every page and every master, in file order, addressed
+/// like the shape links: a page index, or a master surface index.
+struct ObjectNumbers {
+    pages: Vec<Vec<u32>>,
+    masters: Vec<Vec<u32>>,
+}
+
+impl ObjectNumbers {
+    fn get(&self, surface: usize) -> Option<&Vec<u32>> {
+        match pf::master_surface_index(surface) {
+            None => self.pages.get(surface),
+            Some(m) => self.masters.get(m),
+        }
+    }
+}
+
+impl std::ops::Index<usize> for ObjectNumbers {
+    type Output = Vec<u32>;
+    fn index(&self, surface: usize) -> &Vec<u32> {
+        self.get(surface).expect("a page or master of the file")
+    }
+}
+
+fn object_numbers(bytes: &[u8]) -> Option<ObjectNumbers> {
     let doc = pf::read_bytes(bytes).ok()?;
-    Some(
-        doc.pages
-            .iter()
-            .map(|p| p.shapes.iter().map(|s| s.object_number).collect())
-            .collect(),
-    )
+    let numbers = |shapes: &[pf::Shape]| shapes.iter().map(|s| s.object_number).collect();
+    Some(ObjectNumbers {
+        pages: doc.pages.iter().map(|p| numbers(&p.shapes)).collect(),
+        masters: doc.masters.iter().map(|m| numbers(&m.shapes)).collect(),
+    })
 }
 
 fn model_shape(doc: &Document, id: ShapeId) -> Option<&Shape> {
@@ -2954,13 +3285,21 @@ fn model_shape(doc: &Document, id: ShapeId) -> Option<&Shape> {
 }
 
 fn find_shape(doc: &Document, id: ShapeId) -> Option<&Shape> {
-    doc.pages.iter().find_map(|p| p.shape(id))
+    doc.pages
+        .iter()
+        .find_map(|p| p.shape(id))
+        .or_else(|| doc.masters.iter().flat_map(|m| m.all_shapes()).find(|s| s.id == id))
 }
 
 fn baseline_shape_mut(doc: &mut Document, id: ShapeId) -> Option<&mut Shape> {
     doc.pages
         .iter_mut()
         .flat_map(|p| p.shapes.iter_mut())
+        .chain(
+            doc.masters
+                .iter_mut()
+                .flat_map(|m| m.left_shapes.iter_mut().chain(m.shapes.iter_mut())),
+        )
         .find(|s| s.id == id)
 }
 

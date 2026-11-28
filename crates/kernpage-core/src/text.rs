@@ -13,6 +13,59 @@ pub fn paragraphs_to_text(paragraphs: &[Paragraph]) -> String {
         .join("\n")
 }
 
+/// The paragraphs with a one-character field run (`#`) inserted at `offset` (a character
+/// offset in the editable text: paragraphs joined by one `\n`; past the end it goes to the
+/// end). The field takes the formatting of the character before it, and the run it lands
+/// in is split.
+pub fn insert_field(paragraphs: &[Paragraph], offset: usize, field: crate::model::Field) -> Vec<Paragraph> {
+    let mut out = paragraphs.to_vec();
+    if out.is_empty() {
+        out.push(Paragraph::plain(""));
+    }
+    let last = out.len() - 1;
+    let mut at = offset;
+    for (pi, p) in out.iter_mut().enumerate() {
+        let len = p.text().chars().count();
+        if at > len && pi != last {
+            at -= len + 1;
+            continue;
+        }
+        let at = at.min(len);
+        let mut runs: Vec<Run> = Vec::new();
+        let mut done = false;
+        let mut acc = 0;
+        for r in &p.runs {
+            let n = r.text.chars().count();
+            if !done && at >= acc && at <= acc + n {
+                let k = at - acc;
+                let head: String = r.text.chars().take(k).collect();
+                let tail: String = r.text.chars().skip(k).collect();
+                if k > 0 {
+                    runs.push(r.with_text(&head));
+                }
+                let mut f = r.with_text("#");
+                f.field = Some(field);
+                runs.push(f);
+                if k < n {
+                    runs.push(r.with_text(&tail));
+                }
+                done = true;
+            } else {
+                runs.push(r.clone());
+            }
+            acc += n;
+        }
+        if !done {
+            let mut f = Run::plain("#");
+            f.field = Some(field);
+            runs.push(f);
+        }
+        p.runs = runs;
+        break;
+    }
+    out
+}
+
 /// A run's formatting without its text.
 fn style_of(r: &Run) -> Run {
     r.with_text("")

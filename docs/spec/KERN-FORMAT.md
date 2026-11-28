@@ -1,7 +1,7 @@
 # The KernPage file format (.kern)
 
 `.kern` is KernPage's own document format. It is open: anyone may read or write it. This page
-describes version 1.0. The reference implementation is `crates/kernpage-core/src/native.rs`.
+describes version 1.1 (1.0 plus the master page fields below). The reference implementation is `crates/kernpage-core/src/native.rs`.
 
 ## What a .kern file is
 
@@ -34,7 +34,7 @@ Other entries may appear in later versions. A reader ignores entries it does not
 ```
 
 - `format` is always `KERN`.
-- `format_version` is `major.minor`. This page describes `1.0`.
+- `format_version` is `major.minor`. This page describes `1.1`. A file with no master pages is written as `1.0`; a file with master pages is written as `1.1` and lists the optional feature `master-pages` (its `minimum_reader_version` stays `1.0`).
 - `minimum_reader_version` is the oldest reader version that may open the file.
 - `document_id` is a random 128-bit value (32 hex digits, or a UUID) made when a document is first
   saved. It stays the same across later saves of the same document.
@@ -63,7 +63,7 @@ The document is one JSON object. The top-level fields are:
   top), the index of its master page, and whether it ignores the master.
 - `default_line`: the default line colour, as `[red, green, blue]`.
 - `stories`: linked text box chains.
-- `masters`: master pages (shapes drawn behind the pages that use them).
+- `masters`: master pages (shapes drawn behind the pages that use them). Each has `id` (one character: `A`, `B`, ...; a file without it gets letters in order), `name` (e.g. `Master Page A`), `description` (at most 40 characters), `two_page` (true: `left_shapes` is the left half and `shapes` the right half; the right half is drawn on pages 1, 3, ... and the left half on pages 2, 4, ...), `margins_emu` (left, right, top, bottom) and `shapes`. A page's `master` is the index into this list and `ignore_master` hides it on that page. These fields are new in 1.1 and a missing one takes a default.
 - `sections`: page-number sections.
 - `next_id`: the next unused shape number.
 

@@ -424,29 +424,47 @@ impl Document {
     /// returned in the order their first box appears. A standalone box is a chain of one
     /// (spec 4G).
     pub fn chains(&self) -> Vec<Vec<ShapeRef>> {
-        let mut groups: Vec<(u32, Vec<(u32, ShapeRef)>)> = Vec::new();
-        for (pi, page) in self.pages.iter().enumerate() {
-            for (si, shape) in page.shapes.iter().enumerate() {
-                let Some(story) = shape.chain_story else {
-                    continue;
-                };
-                let r = ShapeRef {
-                    page: pi,
-                    shape: si,
-                };
-                match groups.iter_mut().find(|(n, _)| *n == story) {
-                    Some((_, v)) => v.push((shape.chain_pos, r)),
-                    None => groups.push((story, vec![(shape.chain_pos, r)])),
-                }
-            }
+        chains_of(self.pages.iter().enumerate().map(|(i, p)| (i, &p.shapes[..])))
+    }
+
+    /// Like [`chains`](Self::chains), with the text boxes of the master pages after those of
+    /// the document pages (their `ShapeRef::page` is the master's [`master_surface`]).
+    pub fn surface_chains(&self) -> Vec<Vec<ShapeRef>> {
+        chains_of(
+            self.pages
+                .iter()
+                .enumerate()
+                .map(|(i, p)| (i, &p.shapes[..]))
+                .chain(
+                    self.masters
+                        .iter()
+                        .enumerate()
+                        .map(|(i, m)| (master_surface(i), &m.shapes[..])),
+                ),
+        )
+    }
+
+    /// A document page, or a master page (a [`master_surface`] index) as a page. Masters
+    /// are copied.
+    pub fn surface(&self, index: usize) -> Option<std::borrow::Cow<'_, Page>> {
+        let Some(mi) = master_surface_index(index) else {
+            return self.pages.get(index).map(std::borrow::Cow::Borrowed);
+        };
+        let m = self.masters.get(mi)?;
+        Some(std::borrow::Cow::Owned(Page {
+            object_number: m.object_number,
+            shapes: m.shapes.clone(),
+            master: None,
+            ignore_master: false,
+        }))
+    }
+
+    /// The shapes of a page or master (see [`surface`](Self::surface)), without copying.
+    pub fn surface_shapes(&self, index: usize) -> Option<&[Shape]> {
+        match master_surface_index(index) {
+            None => self.pages.get(index).map(|p| &p.shapes[..]),
+            Some(mi) => self.masters.get(mi).map(|m| &m.shapes[..]),
         }
-        groups
-            .into_iter()
-            .map(|(_, mut v)| {
-                v.sort_by_key(|(pos, _)| *pos); // stable
-                v.into_iter().map(|(_, r)| r).collect()
-            })
-            .collect()
     }
 }
 
@@ -1192,6 +1210,47 @@ fn margins(c: &contents::Contents, w: u32, h: u32) -> Option<[u32; 4]> {
         }
         Some([pos[0], w.checked_sub(pos[1])?, pos[2], h.checked_sub(pos[3])?])
     })
+}
+
+/// Page index that stands for master `master` in the writer's and the editor's shape
+/// addressing (the same numbers as the editor's `master_surface` for a right or only half).
+pub const MASTER_SURFACE_BASE: usize = 1 << 30;
+
+/// The surface index of master `master` (an index into [`Document::masters`]).
+pub fn master_surface(master: usize) -> usize {
+    MASTER_SURFACE_BASE + master * 2
+}
+
+/// The master a surface index stands for; `None` for a document page (or a left half).
+pub fn master_surface_index(surface: usize) -> Option<usize> {
+    let n = surface.checked_sub(MASTER_SURFACE_BASE)?;
+    (n % 2 == 0).then_some(n / 2)
+}
+
+fn chains_of<'a>(surfaces: impl Iterator<Item = (usize, &'a [Shape])>) -> Vec<Vec<ShapeRef>> {
+    let mut groups: Vec<(u32, Vec<(u32, ShapeRef)>)> = Vec::new();
+    for (pi, shapes) in surfaces {
+        for (si, shape) in shapes.iter().enumerate() {
+            let Some(story) = shape.chain_story else {
+                continue;
+            };
+            let r = ShapeRef {
+                page: pi,
+                shape: si,
+            };
+            match groups.iter_mut().find(|(n, _)| *n == story) {
+                Some((_, v)) => v.push((shape.chain_pos, r)),
+                None => groups.push((story, vec![(shape.chain_pos, r)])),
+            }
+        }
+    }
+    groups
+        .into_iter()
+        .map(|(_, mut v)| {
+            v.sort_by_key(|(pos, _)| *pos); // stable
+            v.into_iter().map(|(_, r)| r).collect()
+        })
+        .collect()
 }
 
 enum Target {

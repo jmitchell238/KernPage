@@ -6,6 +6,7 @@ mod blank;
 mod counter;
 mod duplicate;
 mod group;
+mod masters;
 mod md4;
 mod pagesetup;
 mod pages;
@@ -21,6 +22,9 @@ mod wrapcols;
 pub use blank::{new_publication, new_publication_with, NewPublication, Options as BlankOptions};
 pub use counter::bump_save_counter;
 pub use duplicate::duplicate_page;
+pub use masters::{
+    add_master, delete_master, rename_master, set_master_margins, set_page_masters, PageMaster,
+};
 pub use pages::{add_page, delete_page, move_page};
 pub use sections::set_sections;
 pub use pagesetup::{set_margins, set_page_size};
@@ -83,6 +87,8 @@ pub enum WriteError {
     Picture(String),
     #[error("cannot change the page setup: {0}")]
     PageSetup(String),
+    #[error("cannot change the master pages: {0}")]
+    Master(String),
     #[error("cannot create the publication: {0}")]
     Blank(String),
     #[error("cannot duplicate the page: {0}")]
@@ -152,8 +158,7 @@ pub fn set_shape_frame(
 ) -> Result<Vec<u8>> {
     let doc = pub_format::read_bytes(input)?;
     let page = doc
-        .pages
-        .get(page_index)
+        .surface(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?;
     let shape = page
         .shapes
@@ -271,7 +276,12 @@ fn bounding_box(s: &pub_format::Shape) -> [f64; 4] {
 /// are left alone.
 fn refit_group(bytes: Vec<u8>, group: u32) -> Result<Vec<u8>> {
     let doc = pub_format::read_bytes(&bytes)?;
-    let shapes: Vec<&pub_format::Shape> = doc.pages.iter().flat_map(|p| &p.shapes).collect();
+    let shapes: Vec<&pub_format::Shape> = doc
+        .pages
+        .iter()
+        .flat_map(|p| &p.shapes)
+        .chain(doc.masters.iter().flat_map(|m| &m.shapes))
+        .collect();
     let Some(g) = shapes.iter().find(|s| s.object_number == group) else {
         return Ok(bytes);
     };
@@ -378,7 +388,9 @@ fn mcld_item_slots<const N: usize>(
     shape: usize,
     ids: [u16; N],
 ) -> Result<Option<[(usize, usize); N]>> {
-    let s = &doc.pages[page].shapes[shape];
+    let Some(s) = doc.surface_shapes(page).and_then(|p| p.get(shape)) else {
+        return Ok(None);
+    };
     let Some(story) = s.story else {
         return Ok(None);
     };
@@ -390,7 +402,7 @@ fn mcld_item_slots<const N: usize>(
         return Ok(None);
     };
     let Some(chain) = doc
-        .chains()
+        .surface_chains()
         .into_iter()
         .find(|c| c.iter().any(|r| r.page == page && r.shape == shape))
     else {
@@ -524,6 +536,7 @@ fn table_of_story(input: &[u8], story_index: usize) -> Result<Option<(usize, usi
         doc.pages
             .iter()
             .flat_map(|p| &p.shapes)
+            .chain(doc.masters.iter().flat_map(|m| &m.shapes))
             .find(|s| s.story == Some(n) && s.table.is_some())
             .and_then(|s| s.table.as_ref())
     };
@@ -798,10 +811,8 @@ pub fn set_story_text_keep_formatting(
 
 /// [`set_story_text_keep_formatting`] for a story that holds page-number fields (spec 4T.3):
 /// `fields` are the text offsets (UTF-16 units, paragraph breaks count one) of the fields
-/// the story has after the edit, so the file's `TOKN` table follows exactly: cps of other
-/// stories move with the length change, the story's own become `fields`, and a story left
-/// with no field at all loses its `TOKN` entry. The number of fields in the file may only
-/// change to none.
+/// the story has after the edit, so the story's `TOKN` table (created when it had none)
+/// follows exactly, and a story left with no field at all loses its `TOKN` entry. Any number of fields per story is written.
 pub fn set_story_text_with_fields(
     input: &[u8],
     story_index: usize,
@@ -1062,8 +1073,7 @@ pub fn set_shape_order(input: &[u8], page_index: usize, order: &[usize]) -> Resu
     use std::collections::HashMap;
     let doc = pub_format::read_bytes(input)?;
     let page = doc
-        .pages
-        .get(page_index)
+        .surface(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?;
     let n = page.shapes.len();
     let mut seen = vec![false; n];

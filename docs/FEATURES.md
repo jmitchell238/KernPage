@@ -206,11 +206,11 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | PG-NAME | Page name | Page name | 🔬 | 🔬 | ⬜ | 🔬 | pw-5qk |
 | PG-SPREAD | Facing pages and reader spreads | Facing pages and reader spreads | 🔬 | 🔬 | ⬜ | 🔬 | pw-8qe |
 | PG-SCRATCH | Scratch area beside pages | Scratch area beside pages | 🔬 | 🔬 | ⬜ | 🔬 | pw-u53 |
-| PG-MASTER-ADD | Create one-page or two-page master pages | Create one-page or two-page master pages *Note: Master pages are read and drawn behind the pages (master A and its text boxes); a second master is not yet researched. Displayed, not editable yet.* | 🟡 | 🔬 | ⬜ | 🟡 | pw-s81 |
-| PG-MASTER-APPLY | Apply a master to a page | Apply a master to a page *Note: Each page reads its master reference (item 13) and draws that master; only master A was seen in a saved file. Displayed, not editable yet.* | 🟡 | 🔬 | ⬜ | 🟡 | pw-3l8 |
-| PG-MASTER-IGNORE | Hide master objects on one page | Hide master objects on one page *Note: Ignore Master Page (page item 7) is read and honoured on screen, in thumbnails and in PDF. Displayed, not editable yet.* | ✅ | 🔬 | ⬜ | 🟡 | pw-pw0 |
-| PG-MASTER-EDIT | Edit master shapes | Edit master shapes (page numbers, headers) *Note: Master text boxes are drawn on every page that uses the master, but cannot be selected or edited on a page. Displayed, not editable yet.* | 🟡 | 🔬 | ⬜ | 🟡 | pw-zo8 |
-| PG-HEADER-FOOTER | Header and footer areas | Header and footer areas *Note: Headers and footers are ordinary master text boxes; they are drawn like any master shape. Displayed, not editable yet.* | 🟡 | 🔬 | ⬜ | 🟡 | pw-9jr |
+| PG-MASTER-ADD | Create one-page or two-page master pages | Create one-page or two-page master pages *Note: Master pages are read and drawn behind the pages (master A and its text boxes); a second master is not yet researched. Displayed, not editable yet.* (Save: one-page masters are written; two-page masters are reported, not written.) | 🟡 | 🟡 | ⬜ | 🟡 | pw-s81 |
+| PG-MASTER-APPLY | Apply a master to a page | Apply a master to a page *Note: Each page reads its master reference (item 13) and draws that master; only master A was seen in a saved file. Displayed, not editable yet.* | 🟡 | ✅ | ⬜ | 🟡 | pw-3l8 |
+| PG-MASTER-IGNORE | Hide master objects on one page | Hide master objects on one page *Note: Ignore Master Page (page item 7) is read and honoured on screen, in thumbnails and in PDF. Displayed, not editable yet.* | ✅ | ✅ | ⬜ | 🟡 | pw-pw0 |
+| PG-MASTER-EDIT | Edit master shapes | Edit master shapes (page numbers, headers) *Note: Master text boxes are drawn on every page that uses the master, but cannot be selected or edited on a page. Displayed, not editable yet.* (Save: shapes, text, pictures, tables and groups on a master are written like those on a page; a new page-number field is not.) | 🟡 | 🟡 | ⬜ | 🟡 | pw-zo8 |
+| PG-HEADER-FOOTER | Header and footer areas | Header and footer areas *Note: Headers and footers are ordinary master text boxes; they are drawn like any master shape. Displayed, not editable yet.* | 🟡 | 🟡 | ⬜ | 🟡 | pw-9jr |
 | PG-BACKGROUND | Page background fill or picture | Page background fill or picture | 🔬 | 🔬 | ⬜ | 🔬 | pw-bdv |
 | PG-SECTIONS | Section breaks with independent numbering | Section breaks with independent numbering *Note: Section records (start page, first number, format) are read and drive the displayed page numbers. Displayed, not editable yet.* | 🟡 | 🔬 | ⬜ | 🟡 | pw-z0q |
 | PG-NUM-START | Start number and continue from previous | Start number and continue from previous *Note: Start number and continue-from-previous are read and shown. Displayed, not editable yet.* | ✅ | 🔬 | ⬜ | 🟡 | pw-l7v |
@@ -236,9 +236,9 @@ Status is judged from the code and the ROADMAP. A row is ✅ only when all of it
 | PG-MOVE-SIDE | Move only left or right page | Move only left or right page; before or after another page | 🔬 | 🔬 | ⬜ | 🔬 | pw-607 |
 | PG-TITLE-SIDES | Page titles per side of a folded layout | Page titles per side of a folded layout | 🔬 | 🔬 | ⬜ | 🔬 | pw-g9x |
 | PG-NUM-INSERT | Insert page numbers at a chosen position and alignment | Insert page numbers at a chosen position and alignment | 🔬 | 🔬 | ⬜ | 🔬 | pw-ywu |
-| PG-MASTER-ID | Master page has a one-character id and description | Master page has a one-character id and description | 🔬 | 🔬 | ⬜ | 🔬 | pw-jvr |
-| PG-MASTER-DUPLICATE | Duplicate and rename a master page | Duplicate and rename a master page | 🔬 | 🔬 | ⬜ | 🔬 | pw-zl4 |
-| PG-MASTER-RANGE | Apply a master to all, current or a page range | Apply a master to all, current or a page range | 🔬 | 🔬 | ⬜ | 🔬 | pw-9op |
+| PG-MASTER-ID | Master page has a one-character id and description | Master page has a one-character id and description (Save: the id letter and the name are written; the description has no place in the file.) | 🔬 | 🟡 | ⬜ | 🔬 | pw-jvr |
+| PG-MASTER-DUPLICATE | Duplicate and rename a master page | Duplicate and rename a master page | 🔬 | 🟡 | ⬜ | 🔬 | pw-zl4 |
+| PG-MASTER-RANGE | Apply a master to all, current or a page range | Apply a master to all, current or a page range | 🔬 | ✅ | ⬜ | 🔬 | pw-9op |
 | PG-MASTER-IGNORE-SIDE | Ignore master for the left or right page only | Ignore master for the left or right page only | 🔬 | 🔬 | ⬜ | 🔬 | pw-4t0 |
 | PG-GRID-CENTER | Add a centre guide between columns and rows | Add a centre guide between columns and rows; reset even widths | 🔬 | 🔬 | ⬜ | 🔬 | pw-687 |
 | PG-RULER-NUMERIC | Enter ruler guide position numerically | Enter ruler guide position numerically; clear one or all | 🔬 | 🔬 | ⬜ | 🔬 | pw-ahi |

@@ -274,7 +274,7 @@ impl App {
         let Some(ed) = self.editor.as_ref() else {
             return;
         };
-        let Some(page) = ed.doc().pages.get(self.page) else {
+        let Some(page) = ed.doc().surface(self.page) else {
             return;
         };
         let (pw, ph, margin) = (page.width_emu, page.height_emu, page.margins_emu);
@@ -369,9 +369,10 @@ impl App {
 
             // --- Pointer handling -------------------------------------------------
             let doc = ed.doc();
-            let Some(pg) = doc.pages.get(self.page) else {
+            let Some(pg_cow) = doc.surface(self.page) else {
                 return;
             };
+            let pg: &kernpage_core::Page = &pg_cow;
             let hover = resp.hover_pos();
             let sel_rect = |id: Option<ShapeId>| id.and_then(|i| pg.shape(i)).map(|s| s.rect);
             if let Some(pp) = hover {
@@ -786,7 +787,11 @@ impl App {
             }
             // The master page's shapes sit behind the page's own; they are never selected,
             // hit-tested or edited (spec 4T.6), only drawn.
-            let page_number = doc.page_number_text(self.page);
+            let page_number = if self.master_view.is_some() {
+                "#".to_owned() // a master shows its page-number fields as #
+            } else {
+                doc.page_number_text(self.page)
+            };
             {
                 let mut master_view = PageView {
                     painter: &content_painter,

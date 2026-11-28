@@ -102,8 +102,10 @@ impl App {
         self.size_menu(ui, enabled, (w, h));
     }
 
-    fn open_for_debug(&self, ui: &Ui, resp: &egui::Response, name: &str) {
+    pub(crate) fn open_for_debug(&self, ui: &Ui, resp: &egui::Response, name: &str) {
         if ui.is_visible() && self.debug_menu.as_deref() == Some(name) {
+            // Screenshots: no fade-in, or the menu is captured half see-through.
+            ui.ctx().all_styles_mut(|st| st.animation_time = 0.0);
             Popup::open_id(ui.ctx(), Popup::default_response_id(resp));
         }
     }

@@ -3393,16 +3393,17 @@ fn undo_restores_sections() {
 }
 
 #[kernpage_samples::test]
-fn duplicating_a_page_with_a_page_number_field_is_refused() {
+fn duplicating_a_page_with_a_page_number_field_is_saved_with_its_own_table() {
     let bytes = sample("master-pn-boxpage-1p.pub");
     let (source, mut ed) = open(&bytes);
     ed.execute(Command::DuplicatePage { page: 0 }).unwrap();
-    let plan = source.plan(ed.doc());
-    assert!(
-        plan.unsupported.iter().any(|u| u.contains("page-number fields")),
-        "{:?}",
-        plan.unsupported
-    );
+    let (out, plan) = source.build(ed.doc()).unwrap();
+    assert!(plan.unsupported.is_empty(), "{:?}", plan.unsupported);
+    let d = pub_format::read_bytes(&out).unwrap();
+    assert_eq!(d.pages.len(), 2);
+    for p in &d.pages {
+        assert!(p.shapes[0].runs.iter().any(|r| r.field.is_some()));
+    }
 }
 
 #[kernpage_samples::test]

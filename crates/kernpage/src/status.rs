@@ -152,7 +152,10 @@ impl App {
                         let v = ui.visuals_mut();
                         v.override_text_color = Some(on_bar());
                     }
-                    ui.label(text(format!("Page: {} of {}", if pages == 0 { 0 } else { self.page + 1 }, pages)));
+                    let page_text = self.master_status().unwrap_or_else(|| {
+                        format!("Page: {} of {}", if pages == 0 { 0 } else { self.page + 1 }, pages)
+                    });
+                    ui.label(text(page_text));
                     ui.add_space(19.0);
                     let icon_cell = |ui: &mut Ui, icon: Icon| {
                         let (r, _) = ui.allocate_exact_size(Vec2::new(15.0, STATUS_BAR_H), Sense::hover());

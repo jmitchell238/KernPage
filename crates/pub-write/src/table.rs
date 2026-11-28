@@ -327,8 +327,7 @@ fn add_table_tracks(
     let cell_count = rows.len() * cols.len();
     let doc = pub_format::read_bytes(input)?;
     let page = doc
-        .pages
-        .get(page_index)
+        .surface(page_index)
         .ok_or(WriteError::NoSuchPage(page_index))?;
     let (cx, cy) = (
         f64::from(doc.page_width_emu) / 2.0,
@@ -751,12 +750,23 @@ impl Layout {
 
 fn read_layout(input: &[u8], table_id: u32) -> Result<Layout> {
     let doc = pub_format::read_bytes(input)?;
-    let found = doc.pages.iter().enumerate().find_map(|(pi, p)| {
-        p.shapes
-            .iter()
-            .find(|s| s.object_number == table_id && s.table.is_some())
-            .map(|s| (pi, s))
-    });
+    let found = doc
+        .pages
+        .iter()
+        .enumerate()
+        .map(|(pi, p)| (pi, &p.shapes))
+        .chain(
+            doc.masters
+                .iter()
+                .enumerate()
+                .map(|(mi, m)| (pub_format::master_surface(mi), &m.shapes)),
+        )
+        .find_map(|(pi, shapes)| {
+            shapes
+                .iter()
+                .find(|s| s.object_number == table_id && s.table.is_some())
+                .map(|s| (pi, s))
+        });
     let Some((page, shape)) = found else {
         return fail(format!("object {table_id} is not a table on a page"));
     };
@@ -818,6 +828,7 @@ fn restore_format(bytes: Vec<u8>, object: u32, l: &Layout) -> Result<Vec<u8>> {
         .pages
         .iter()
         .flat_map(|p| &p.shapes)
+        .chain(doc.masters.iter().flat_map(|m| &m.shapes))
         .find(|s| s.object_number == object && s.table.is_some());
     let Some((shape, story)) = shape.and_then(|s| Some((s, s.story?))) else {
         return Ok(bytes);
