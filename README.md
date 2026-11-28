@@ -133,7 +133,7 @@ To regenerate the sample newsletter: `cargo run -p kernpage-core --example make_
 
 ## Project status
 
-Early development: version 0.2.3 is released (see the [latest release](https://github.com/jmitchell238/KernPage/releases/latest) and [docs/release-notes/0.2.3.md](docs/release-notes/0.2.3.md)). See
+Early development: version 0.2.4 is released (see the [latest release](https://github.com/jmitchell238/KernPage/releases/latest) and [docs/release-notes/0.2.4.md](docs/release-notes/0.2.4.md)). See
 [ROADMAP.md](ROADMAP.md) for what is done and what is next, and [docs/FEATURES.md](docs/FEATURES.md)
 for the feature-by-feature list. Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md). Privacy: [PRIVACY.md](PRIVACY.md).
