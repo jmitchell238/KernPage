@@ -93,6 +93,10 @@ pub struct Job<'a> {
     pub pages: &'a [usize],
     pub copies: u32,
     pub collate: bool,
+    /// The job is printed on both sides of the paper: sides are paired into sheets (front,
+    /// back), and a blank back is added where a sheet would have none (a booklet with an
+    /// odd number of sides, per copy; any other layout, at the very end).
+    pub two_sided: bool,
 }
 
 /// US Letter, the paper the layouts assume when the printer's paper is not known.
@@ -220,13 +224,21 @@ pub fn impose(job: &Job) -> Vec<SheetSide> {
         PrintLayout::Booklet => booklet(job),
     };
     let collates = matches!(job.layout, PrintLayout::OnePerSheet | PrintLayout::Booklet);
-    let base = std::mem::take(&mut sides);
-    let repeated: Vec<SheetSide> = if collates && !job.collate {
+    let booklet = job.layout == PrintLayout::Booklet;
+    let mut base = std::mem::take(&mut sides);
+    let blank = |paper| SheetSide { paper, placements: Vec::new(), sheet: 0, back: false };
+    if job.two_sided && booklet && base.len() % 2 == 1 {
+        base.push(blank(base[0].paper));
+    }
+    let mut repeated: Vec<SheetSide> = if collates && !job.collate {
         base.into_iter().flat_map(|s| std::iter::repeat_n(s, copies)).collect()
     } else {
         (0..copies).flat_map(|_| base.iter().cloned()).collect()
     };
-    renumber(repeated, job.layout == PrintLayout::Booklet)
+    if job.two_sided && !booklet && repeated.len() % 2 == 1 {
+        repeated.push(blank(repeated[0].paper));
+    }
+    renumber(repeated, booklet || job.two_sided)
 }
 
 fn renumber(mut sides: Vec<SheetSide>, booklet: bool) -> Vec<SheetSide> {
@@ -340,6 +352,7 @@ mod tests {
             pages,
             copies: 1,
             collate: true,
+            two_sided: false,
         }
     }
 
@@ -545,6 +558,29 @@ mod tests {
         let sides = impose(&j);
         assert_eq!(pages_of(&sides)[1], pair(Some(4), Some(1)));
         assert_eq!(pages_of(&sides)[2], pair(Some(2), Some(3)));
+    }
+
+    #[test]
+    fn two_sided_jobs_pair_sides_and_pad_a_missing_back() {
+        // Booklet of 6 pages: 3 sides, so the last sheet gets a blank back; each copy pads itself.
+        let pages: Vec<usize> = (0..6).collect();
+        let mut j = job(PrintLayout::Booklet, HALF, &pages);
+        j.two_sided = true;
+        j.copies = 2;
+        let sides = impose(&j);
+        assert_eq!(sides.len(), 8);
+        assert!(sides[3].placements.is_empty() && sides[7].placements.is_empty());
+        assert_eq!(pages_of(&sides)[4], pair(Some(6), Some(1)), "copy 2 starts on a new sheet");
+        let marks: Vec<(usize, bool)> = sides.iter().map(|s| (s.sheet, s.back)).collect();
+        assert_eq!(marks[3], (1, true));
+        assert_eq!(marks[4], (2, false));
+        // Other layouts pair consecutive sides and pad the tail.
+        let mut j = job(PrintLayout::OnePerSheet, (612.0, 792.0), &[0, 1, 2]);
+        j.two_sided = true;
+        let sides = impose(&j);
+        assert_eq!(sides.len(), 4);
+        assert!(sides[3].placements.is_empty());
+        assert_eq!((sides[2].sheet, sides[2].back, sides[3].back), (1, false, true));
     }
 
     #[test]

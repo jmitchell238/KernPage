@@ -14,7 +14,7 @@ use crate::app::App;
 use crate::icons::{self, Icon};
 use crate::nav::paint_thumb;
 use crate::backstage::{green_link, page_title, section_title, selected_row};
-use crate::printing::{self, PageScope, PrintJob, PrinterList, Shared};
+use crate::printing::{self, Duplex, PageScope, PrintJob, PrinterCaps, PrinterList, Shared};
 use kernpage_core::imposition::{self, PrintLayout, SheetSide};
 use eframe::egui::{self, Color32, Sense, Stroke, StrokeKind, Ui, Vec2};
 use std::path::{Path, PathBuf};
@@ -29,6 +29,13 @@ pub struct PrintState {
     pub collate: bool,
     /// The chosen print layout; `None` until the user picks one (the default for the page size).
     pub layout: Option<PrintLayout>,
+    /// The chosen two-sided mode; `None` until the user picks one (the default for the layout).
+    pub duplex: Option<Duplex>,
+    /// What the selected printer reported, with the printer and settings it was asked about.
+    pub caps: Option<(String, Option<Vec<u8>>, PrinterCaps)>,
+    /// Manual two-sided printing: the back sides (and the PDF), waiting for the user to turn the
+    /// stack over.
+    pub pending_backs: Option<(PrintJob, Vec<u8>)>,
     /// The printer's own settings from Printer Properties, and the printer they belong to.
     pub devmode: Option<(String, Vec<u8>)>,
     pub running: Option<Shared>,
@@ -44,11 +51,17 @@ impl Default for PrintState {
             range: String::new(),
             collate: true,
             layout: None,
+            duplex: None,
+            caps: None,
+            pending_backs: None,
             devmode: None,
             running: None,
         }
     }
 }
+
+/// Manual two-sided printing prints the back sides last sheet first (see `start_print`).
+pub const MANUAL_BACKS_REVERSED: bool = true;
 
 pub fn is_pdf(path: &Path) -> bool {
     path.extension()
@@ -198,15 +211,65 @@ impl App {
         Some((p.width_emu as f64 / 12_700.0, p.height_emu as f64 / 12_700.0))
     }
 
+    /// Ask the selected printer for its paper and duplex support again when the printer or its
+    /// settings changed (cheap otherwise).
+    pub fn refresh_print_caps(&mut self) {
+        let Some(printer) = self.print.printer.clone() else {
+            self.print.caps = None;
+            return;
+        };
+        let dm = self.print.devmode.as_ref().filter(|(p, _)| *p == printer).map(|(_, d)| d.clone());
+        if let Some((p, d, _)) = &self.print.caps {
+            if *p == printer && *d == dm {
+                return;
+            }
+        }
+        let caps = printing::printer_caps(&printer, dm.as_deref());
+        self.print.caps = Some((printer, dm, caps));
+    }
+
+    /// The selected printer's capabilities (nothing known: Letter, no two-sided printing).
+    pub fn print_caps(&self) -> PrinterCaps {
+        self.print.caps.as_ref().map_or(PrinterCaps { paper: None, duplex: false }, |c| c.2)
+    }
+
+    /// The paper the sheets are laid out on: the printer's own, else Letter.
+    pub fn print_paper(&self) -> (f64, f64) {
+        self.print_caps().paper.unwrap_or(imposition::LETTER)
+    }
+
     /// The layout in force: the user's choice if it still suits the page size, else the default.
     pub fn print_layout(&self) -> PrintLayout {
         let Some(page) = self.print_page_points() else {
             return PrintLayout::OnePerSheet;
         };
+        let paper = self.print_paper();
         self.print
             .layout
-            .filter(|l| imposition::available_layouts(page, imposition::LETTER).contains(l))
-            .unwrap_or_else(|| imposition::default_layout(page, imposition::LETTER))
+            .filter(|l| imposition::available_layouts(page, paper).contains(l))
+            .unwrap_or_else(|| imposition::default_layout(page, paper))
+    }
+
+    /// The two-sided choices this printer offers: the automatic ones only with duplex support.
+    pub fn duplex_choices(&self) -> Vec<Duplex> {
+        let auto = self.print_caps().duplex;
+        Duplex::ALL.into_iter().filter(|d| auto || !d.is_automatic()).collect()
+    }
+
+    /// The two-sided mode in force: the user's choice if the printer offers it, else the
+    /// default. Booklets default to both sides (flip on the short edge if the printer can,
+    /// else by hand); everything else to one side.
+    pub fn print_duplex(&self) -> Duplex {
+        if let Some(d) = self.print.duplex.filter(|d| self.duplex_choices().contains(d)) {
+            return d;
+        }
+        if self.print_layout() != PrintLayout::Booklet {
+            Duplex::OneSided
+        } else if self.print_caps().duplex {
+            Duplex::ShortEdge
+        } else {
+            Duplex::Manual
+        }
     }
 
     /// Every sheet side the current settings would print (what the preview steps through).
@@ -216,14 +279,16 @@ impl App {
         };
         let total = self.editor.as_ref().map_or(0, |e| e.doc().pages.len());
         let pages = self.print_pages().unwrap_or_else(|_| (0..total).collect());
+        let paper = self.print_paper();
         imposition::impose(&imposition::Job {
             layout: self.print_layout(),
-            paper: imposition::LETTER,
+            paper,
             page,
-            spacing: imposition::default_spacing(page, imposition::LETTER),
+            spacing: imposition::default_spacing(page, paper),
             pages: &pages,
             copies: self.print.copies.clamp(1, 999),
             collate: self.print.collate,
+            two_sided: self.print_duplex() != Duplex::OneSided,
         })
     }
 
@@ -246,21 +311,56 @@ impl App {
                 return;
             }
         };
+        self.refresh_print_caps();
         let Some(bytes) = self.pdf_bytes() else {
             return;
         };
+        let layout = self.print_layout();
+        let duplex = self.print_duplex();
+        let sides = self.print_sides();
         let Some(ed) = self.editor.as_ref() else { return };
         let doc = ed.doc();
-        let first = pages.first().and_then(|&p| doc.pages.get(p));
+        let landscape = sides.first().is_some_and(|s| s.paper.0 > s.paper.1);
         let job = PrintJob {
             printer: printer.clone(),
             copies: self.print.copies.clamp(1, 999),
             collate: self.print.collate,
-            landscape: first.is_some_and(|p| p.width_emu > p.height_emu),
+            layout,
+            sides,
+            duplex,
+            landscape,
             doc_name: file_stem(&doc.name),
             devmode: self.print.devmode.as_ref().filter(|(p, _)| *p == printer).map(|(_, d)| d.clone()),
             pages,
         };
+        let ctx = ctx.clone();
+        let repaint = move || ctx.request_repaint();
+        if duplex == Duplex::Manual {
+            // Front sides now; the back sides after the user has turned the stack over. Sides
+            // come in (front, back) pairs. The printer puts each printed sheet on top of the
+            // last one, so the stack after the fronts is in reverse order; turned over as it
+            // is, the sheets come off in the order they were printed, last first. Most printers
+            // therefore need the backs printed last sheet first (reverse order), which is what
+            // is done here. MANUAL_BACKS_REVERSED flips that for printers that feed the other way.
+            let mut fronts = job.clone();
+            fronts.duplex = Duplex::OneSided;
+            fronts.sides = job.sides.iter().step_by(2).cloned().collect();
+            let mut backs = job;
+            backs.duplex = Duplex::OneSided;
+            backs.sides = backs.sides.iter().skip(1).step_by(2).cloned().collect();
+            if MANUAL_BACKS_REVERSED {
+                backs.sides.reverse();
+            }
+            self.print.pending_backs = Some((backs, bytes.clone()));
+            self.print.running = Some(printing::submit(fronts, bytes, repaint));
+        } else {
+            self.print.running = Some(printing::submit(job, bytes, repaint));
+        }
+    }
+
+    /// The back sides of a manual two-sided job: sent once the user said Continue.
+    pub fn print_backs(&mut self, ctx: &egui::Context) {
+        let Some((job, bytes)) = self.print.pending_backs.take() else { return };
         let ctx = ctx.clone();
         self.print.running = Some(printing::submit(job, bytes, move || ctx.request_repaint()));
     }
@@ -273,11 +373,17 @@ impl App {
             return;
         };
         if p.finished {
+            let failed = p.error.is_some();
             if let Some(e) = &p.error {
                 self.error = Some(format!("KernPage cannot print.\n\n{e}"));
             }
             drop(p);
             self.print.running = None;
+            if failed {
+                self.print.pending_backs = None;
+            } else if self.print.pending_backs.is_some() {
+                self.prompt = Some(crate::app::Prompt::TurnOver);
+            }
         } else {
             ctx.request_repaint_after(std::time::Duration::from_millis(150));
         }
@@ -291,14 +397,6 @@ impl App {
         };
         let pages = ed.doc().pages.len();
         let size = ed.doc().pages.first().map(|p| (p.width_emu, p.height_emu));
-        let sides = self.print_sides();
-        self.print_sheet = self.print_sheet.min(sides.len().saturating_sub(1));
-        let layout = self.print_layout();
-        let layout_choices = self
-            .print_page_points()
-            .map(|pg| imposition::available_layouts(pg, imposition::LETTER))
-            .unwrap_or_default();
-        let mut chosen = layout;
         if self.print.printers.is_none() {
             let list = printing::list_printers();
             if self.print.printer.is_none() {
@@ -306,6 +404,18 @@ impl App {
             }
             self.print.printers = Some(list);
         }
+        self.refresh_print_caps();
+        let sides = self.print_sides();
+        self.print_sheet = self.print_sheet.min(sides.len().saturating_sub(1));
+        let layout = self.print_layout();
+        let layout_choices = self
+            .print_page_points()
+            .map(|pg| imposition::available_layouts(pg, self.print_paper()))
+            .unwrap_or_default();
+        let mut chosen = layout;
+        let duplex = self.print_duplex();
+        let duplex_choices = self.duplex_choices();
+        let mut chosen_duplex = duplex;
         let names = self.print.printers.as_ref().map(|l| l.names.clone()).unwrap_or_default();
         let range_problem = (self.print.scope == PageScope::Custom)
             .then(|| self.print_pages().err())
@@ -360,15 +470,6 @@ impl App {
                                     .color(crate::theme::accent_text()),
                             );
                         }
-                    }
-                    if layout != PrintLayout::OnePerSheet {
-                        ui.label(
-                            egui::RichText::new(
-                                "Printing this layout comes in the next update; the preview shows how it will look.",
-                            )
-                            .color(crate::theme::disabled())
-                            .size(12.0),
-                        );
                     }
                     ui.add_space(10.0);
                     section_title(ui, "Printer");
@@ -438,12 +539,28 @@ impl App {
                         })
                         .color(crate::theme::disabled()),
                     );
+                    let (pw, ph) = self.print_paper();
+                    ui.label(
+                        egui::RichText::new(format!(
+                            "Paper: {} x {}\" (from the printer)",
+                            inches((pw * 12_700.0) as i64),
+                            inches((ph * 12_700.0) as i64)
+                        ))
+                        .color(crate::theme::disabled()),
+                    );
                     ui.add_space(4.0);
                     let paper = size.map_or_else(String::new, |(w, h)| {
                         format!("{} x {}\"", inches(w), inches(h))
                     });
                     setting(ui, "Publication page size", &paper, Icon::Size, soon);
-                    setting(ui, "Print One Sided", "Only print on one side of the sheet", Icon::Page, soon);
+                    egui::ComboBox::from_id_salt("print_duplex")
+                        .width(290.0)
+                        .selected_text(duplex.label())
+                        .show_ui(ui, |ui| {
+                            for d in &duplex_choices {
+                                ui.selectable_value(&mut chosen_duplex, *d, d.label());
+                            }
+                        });
                     setting(ui, "Composite RGB", "Print as RGB color publication.", Icon::Palette, soon);
                     let mut keep = false;
                     ui.add_enabled(false, egui::Checkbox::new(&mut keep, "Save settings with publication"));
@@ -458,6 +575,10 @@ impl App {
         });
         if chosen != layout {
             self.print.layout = Some(chosen);
+            self.print_sheet = 0;
+        }
+        if chosen_duplex != duplex {
+            self.print.duplex = Some(chosen_duplex);
             self.print_sheet = 0;
         }
         if props {
@@ -521,8 +642,8 @@ impl App {
         }
         ui.painter().rect_stroke(rect, 0.0, Stroke::new(1.0 / ppp, Color32::from_gray(90)), StrokeKind::Inside);
         ui.add_space(10.0);
-        let booklet = self.print_layout() == PrintLayout::Booklet;
-        let text = if booklet {
+        let paired = self.print_layout() == PrintLayout::Booklet || self.print_duplex() != Duplex::OneSided;
+        let text = if paired {
             format!("Sheet {}, {}", side.sheet + 1, if side.back { "back" } else { "front" })
         } else {
             format!("Sheet {} of {}", self.print_sheet + 1, sides.len())

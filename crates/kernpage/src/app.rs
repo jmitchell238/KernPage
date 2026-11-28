@@ -459,6 +459,9 @@ pub enum Prompt {
         target: PathBuf,
         then: Option<Pending>,
     },
+    /// Manual two-sided printing: the front sides are printed; waiting for the user to turn the
+    /// stack over (the back sides are in `print.pending_backs`).
+    TurnOver,
 }
 
 pub struct App {
@@ -1319,6 +1322,35 @@ impl App {
         #[allow(deprecated)]
         let modal_id = egui::Id::new("save_prompt");
         match prompt {
+            Prompt::TurnOver => {
+                let mut choice = None; // Some(true) = Continue, Some(false) = Cancel
+                egui::Modal::new(modal_id).show(ctx, |ui| {
+                    ui.set_width(400.0);
+                    ui.heading("KernPage");
+                    ui.add_space(8.0);
+                    ui.label(
+                        "Take the printed pages out, turn the stack over without changing its order, \
+                         put it back in the tray, then click Continue.",
+                    );
+                    ui.add_space(12.0);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                        if ui.button("  Cancel  ").clicked() {
+                            choice = Some(false);
+                        }
+                        if ui.button("  Continue  ").clicked() {
+                            choice = Some(true);
+                        }
+                    });
+                });
+                if esc {
+                    choice = Some(false);
+                }
+                match choice {
+                    None => self.prompt = Some(Prompt::TurnOver),
+                    Some(true) => self.print_backs(ctx),
+                    Some(false) => self.print.pending_backs = None,
+                }
+            }
             Prompt::Unsaved { then } => {
                 let mut choice = None; // Some(true) = save, Some(false) = don't save
                 let can_save = self.can_save();
