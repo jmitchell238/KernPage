@@ -42,7 +42,7 @@ use app::{App, Options};
 use std::path::PathBuf;
 
 const USAGE: &str =
-    "Usage: kernpage [file.pub] [--screenshot out.png] [--open file.pub] [--page N] [--tab name] [--file-screen home|new|open|info|saveas|print|share|export|about|feedback|options] [--edit-cell shape-index,cell] [--edit-text shape-index[,start-end]] [--spacing-dialog] [--dialog page-setup|custom-margins] [--menu wrap|columns|margins|orientation|size] [--select i,j,...] [--window-size WxH] [--scale F] [--open-group name] [--print-layout one|copies|pages|booklet] [--theme light|dark|system] [--accent teal|blue|purple|graphite|orange] [--demo]";
+    "Usage: kernpage [file.pub] [--screenshot out.png] [--open file.pub] [--page N] [--tab name] [--file-screen home|new|open|info|saveas|print|share|export|about|feedback|options] [--edit-cell shape-index,cell] [--edit-text shape-index[,start-end]] [--spacing-dialog] [--dialog page-setup|custom-margins] [--menu wrap|columns|margins|orientation|size] [--select i,j,...] [--window-size WxH] [--scale F] [--open-group name] [--print-layout one|copies|pages|booklet] [--print-sheet N] [--theme light|dark|system] [--accent teal|blue|purple|graphite|orange] [--demo]";
 
 fn parse_args() -> Result<Options, String> {
     let mut opts = Options::default();
@@ -115,6 +115,10 @@ fn parse_args() -> Result<Options, String> {
             }
             "--open-group" => opts.open_group = Some(value("--open-group")?),
             "--print-layout" => opts.print_layout = Some(value("--print-layout")?),
+            "--print-sheet" => {
+                let v = value("--print-sheet")?;
+                opts.print_sheet = Some(v.parse::<usize>().map_err(|_| format!("bad sheet number {v:?}"))?);
+            }
             "--theme" => opts.theme = Some(value("--theme")?),
             "--accent" => opts.accent = Some(value("--accent")?),
             "--demo" => opts.demo = true,

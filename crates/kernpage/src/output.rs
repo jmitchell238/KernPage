@@ -492,7 +492,7 @@ impl App {
         let scale = (max_w / pw).min(max_h / ph);
         let (w, h) = (snap(pw * scale), snap(ph * scale));
         // Width ruler: the sheet's width in inches.
-        let (outer, _) = ui.allocate_exact_size(Vec2::new(max_w, 22.0), Sense::hover());
+        let (outer, _) = ui.allocate_exact_size(Vec2::new(w, 22.0), Sense::hover());
         let mid = outer.center();
         let line = Stroke::new(1.0 / ppp, crate::theme::frame());
         let p = ui.painter();

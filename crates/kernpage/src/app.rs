@@ -272,6 +272,8 @@ pub struct Options {
     pub open_group: Option<String>,
     /// Screenshot option `--print-layout one|copies|pages|booklet`: the File > Print layout.
     pub print_layout: Option<String>,
+    /// Screenshot option `--print-sheet N`: the 0-based sheet side the Print preview starts on.
+    pub print_sheet: Option<usize>,
     /// Screenshot options: `--theme light|dark|system`, `--accent teal|blue|purple|graphite|orange`.
     pub theme: Option<String>,
     pub accent: Option<String>,
@@ -708,6 +710,9 @@ impl App {
             app.section = Section::parse(page);
             // `options-appearance` opens the Appearance category.
             app.options_cat = usize::from(page.to_lowercase().contains("appearance"));
+        }
+        if let Some(n) = opts.print_sheet {
+            app.print_sheet = n;
         }
         if let Some(name) = opts.print_layout.as_deref() {
             use kernpage_core::imposition::PrintLayout;

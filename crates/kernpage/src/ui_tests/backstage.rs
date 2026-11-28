@@ -1560,3 +1560,4 @@ fn another_layout_shows_a_note_and_print_still_prints_one_page_per_sheet() {
     assert!(!has_label_containing(&ui, note));
 }
 
+
